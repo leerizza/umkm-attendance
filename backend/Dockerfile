@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install deps first (cached layer — only invalidated if requirements.txt changes)
-COPY requirements.txt .
+COPY backend/requirements.txt* ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source

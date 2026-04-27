@@ -1,0 +1,14 @@
+# Secrets — JANGAN dicommit ke git
+.env
+backend/.env
+frontend/.env
+
+# Build artifacts
+frontend/dist
+frontend/dev-dist
+frontend/node_modules
+
+# Python
+backend/__pycache__
+backend/*.pyc
+backend/*.pyo

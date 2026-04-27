@@ -23,8 +23,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/stats")
 async def get_stats(admin: dict = Depends(require_admin)):
     """Dashboard stats for today."""
-    from datetime import date
-    today = date.today().isoformat()
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    today = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
     company_id = admin["company_id"]
 
     # Total employees
@@ -168,11 +169,12 @@ async def export_attendance_csv(
     admin: dict = Depends(require_admin),
 ):
     """Export attendance data as CSV. Defaults to current month."""
-    from datetime import date
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
     import calendar
 
     if not date_from or not date_to:
-        today = date.today()
+        today = datetime.now(ZoneInfo("Asia/Jakarta")).date()
         date_from = today.replace(day=1).isoformat()
         date_to = today.replace(
             day=calendar.monthrange(today.year, today.month)[1]

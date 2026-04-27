@@ -8,6 +8,9 @@ from db import supabase
 
 WIB = ZoneInfo("Asia/Jakarta")
 
+def today_wib() -> str:
+    return datetime.now(WIB).date().isoformat()
+
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
 
@@ -27,7 +30,7 @@ async def clock_in(
     body: ClockInRequest,
     profile: dict = Depends(get_current_profile),
 ):
-    today = date.today().isoformat()
+    today = today_wib()
     user_id = profile["id"]
     company = profile["companies"]
 
@@ -105,7 +108,7 @@ async def clock_out(
     body: ClockOutRequest,
     profile: dict = Depends(get_current_profile),
 ):
-    today = date.today().isoformat()
+    today = today_wib()
     user_id = profile["id"]
     company = profile["companies"]
 
@@ -154,7 +157,7 @@ async def clock_out(
 
 @router.get("/today")
 async def get_today(profile: dict = Depends(get_current_profile)):
-    today = date.today().isoformat()
+    today = today_wib()
     record = _get_today_record(profile["id"], today)
     return {"date": today, "record": record}
 
@@ -186,7 +189,7 @@ async def get_history(
 async def monthly_stats(profile: dict = Depends(get_current_profile)):
     """Returns this month's hadir/cuti/lembur counts for the current user."""
     import calendar
-    today = date.today()
+    today = datetime.now(WIB).date()
     first_day = today.replace(day=1).isoformat()
     last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1]).isoformat()
     user_id = profile["id"]

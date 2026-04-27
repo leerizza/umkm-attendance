@@ -278,7 +278,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Smart UMKM Attendance &copy; 2024
+          Smart UMKM Attendance &copy; 2026
         </p>
       </div>
     </div>

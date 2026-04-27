@@ -12,9 +12,16 @@ export function fmtDate(date: string | Date, fmt = "dd MMM yyyy") {
   return format(d, fmt, { locale: localeId });
 }
 
+const _wibFmt = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Jakarta",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 export function fmtTime(datetime: string | Date) {
-  const d = typeof datetime === "string" ? parseISO(datetime) : datetime;
-  return format(d, "HH:mm");
+  const d = typeof datetime === "string" ? new Date(datetime) : datetime;
+  return _wibFmt.format(d); // always WIB regardless of device timezone
 }
 
 export function fmtRelative(datetime: string | Date) {

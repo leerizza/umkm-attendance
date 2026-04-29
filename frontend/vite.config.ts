@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "icons/*.png"],
+      includeAssets: ["favicon.png", "icons/*.png"],
       manifest: {
         name: "Smart UMKM Attendance",
         short_name: "Absensi UMKM",

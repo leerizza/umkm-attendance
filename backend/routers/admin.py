@@ -144,6 +144,23 @@ async def get_company(admin: dict = Depends(require_admin)):
     return res.data
 
 
+# @router.patch("/company")
+# async def update_company(
+#     body: CompanyUpdateRequest,
+#     admin: dict = Depends(require_admin),
+# ):
+#     updates = {k: v for k, v in body.model_dump().items() if v is not None}
+#     if not updates:
+#         raise HTTPException(400, "No fields to update")
+
+#     res = (
+#         supabase.table("companies")
+#         .update(updates)
+#         .eq("id", admin["company_id"])
+#         .execute()
+#     )
+#     return {"message": "Company settings updated", "data": res.data[0]}
+
 @router.patch("/company")
 async def update_company(
     body: CompanyUpdateRequest,
@@ -157,9 +174,12 @@ async def update_company(
         supabase.table("companies")
         .update(updates)
         .eq("id", admin["company_id"])
+        .select()          # ← tambah ini
         .execute()
     )
-    return {"message": "Company settings updated", "data": res.data[0]}
+
+    if not res.data:
+        raise HTTPException(404, "Company not found")
 
 
 @router.get("/attendance/export")

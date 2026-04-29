@@ -170,16 +170,23 @@ async def update_company(
     if not updates:
         raise HTTPException(400, "No fields to update")
 
-    res = (
-        supabase.table("companies")
-        .update(updates)
-        .eq("id", admin["company_id"])
-        .select()          # ← tambah ini
+    # Update dulu
+    supabase.table("companies") \
+        .update(updates) \
+        .eq("id", admin["company_id"]) \
         .execute()
-    )
+
+    # Fetch ulang data terbaru
+    res = supabase.table("companies") \
+        .select("*") \
+        .eq("id", admin["company_id"]) \
+        .single() \
+        .execute()
 
     if not res.data:
         raise HTTPException(404, "Company not found")
+
+    return {"message": "Company settings updated", "data": res.data}
 
 
 @router.get("/attendance/export")

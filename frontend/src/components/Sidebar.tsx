@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   Home, Clock, CalendarOff, Timer, User,
-  LayoutDashboard, LogOut, ShieldCheck,
+  LayoutDashboard, LogOut,
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -18,19 +18,13 @@ const ADMIN_NAV = [
   { to: "/admin",      label: "Admin Panel", Icon: LayoutDashboard },
 ];
 
-const SUPERADMIN_NAV = [
-  { to: "/superadmin", label: "Superadmin",  Icon: ShieldCheck },
-];
-
 export function Sidebar() {
   const { profile, logout } = useAuthStore();
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin";
-  const isSuperadmin = profile?.role === "superadmin";
 
   const navItems = [
     ...EMPLOYEE_NAV,
     ...(isAdmin ? ADMIN_NAV : []),
-    ...(isSuperadmin ? SUPERADMIN_NAV : []),
   ];
 
   return (

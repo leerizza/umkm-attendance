@@ -116,15 +116,19 @@ async def update_company(
     if not updates:
         raise HTTPException(400, "No fields to update")
 
+    supabase.table("companies").update(updates).eq("id", company_id).execute()
+
+    # Fetch updated data (update() in supabase-py may not return rows without .select())
     res = (
         supabase.table("companies")
-        .update(updates)
+        .select("*")
         .eq("id", company_id)
+        .single()
         .execute()
     )
     if not res.data:
         raise HTTPException(404, "Company not found")
-    return {"message": "Company updated", "data": res.data[0]}
+    return {"message": "Company updated", "data": res.data}
 
 
 @router.get("/companies/{company_id}/employees")

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Clock, CalendarOff, Timer, User, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { Home, Clock, CalendarOff, Timer, User, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
@@ -15,12 +15,10 @@ export function BottomNav() {
   const location = useLocation();
   const { profile } = useAuthStore();
   const isAdmin = profile?.role === "admin" || profile?.role === "superadmin";
-  const isSuperadmin = profile?.role === "superadmin";
 
   const NAV_ITEMS = [
     ...BASE_NAV,
     ...(isAdmin ? [{ to: "/admin", label: "Admin", Icon: LayoutDashboard }] : []),
-    ...(isSuperadmin ? [{ to: "/superadmin", label: "Super", Icon: ShieldCheck }] : []),
   ];
 
   return (

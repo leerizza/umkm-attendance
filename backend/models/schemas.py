@@ -18,6 +18,16 @@ class RegisterRequest(BaseModel):
     position: Optional[str] = Field(default=None, max_length=100)
 
 
+class RegisterCompanyRequest(BaseModel):
+    """Used by a business owner to register their company + themselves as admin in one step."""
+    email: str
+    password: str = Field(min_length=6, max_length=72)
+    full_name: str = Field(min_length=1, max_length=100)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    company_name: str = Field(min_length=1, max_length=100)
+    company_code: str = Field(min_length=3, max_length=20)  # will be uppercased
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

@@ -65,11 +65,13 @@ api.interceptors.response.use(
 // ─── Typed helpers ───────────────────────────────────────────────────────────
 
 export const authApi = {
-  login:         (email: string, password: string) =>
+  login:           (email: string, password: string) =>
     api.post("/auth/login", { email, password }),
-  register:      (data: RegisterPayload) =>
+  register:        (data: RegisterPayload) =>
     api.post("/auth/register", data),
-  updateProfile: (data: { full_name?: string; phone?: string; position?: string }) =>
+  registerCompany: (data: RegisterCompanyPayload) =>
+    api.post("/auth/register-company", data),
+  updateProfile:   (data: { full_name?: string; phone?: string; position?: string }) =>
     api.patch("/auth/profile/me", data),
 };
 
@@ -119,6 +121,8 @@ export const adminApi = {
     }),
   toggleEmployeeActive: (id: string, is_active: boolean) =>
     api.patch(`/admin/employees/${id}/active`, null, { params: { is_active } }),
+  updateEmployeeRole: (id: string, role: string) =>
+    api.patch(`/admin/employees/${id}/role`, null, { params: { role } }),
 };
 
 export const superadminApi = {
@@ -164,6 +168,15 @@ export interface RegisterPayload {
   company_code: string;
   phone?: string;
   position?: string;
+}
+
+export interface RegisterCompanyPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+  company_name: string;
+  company_code: string;
 }
 
 export interface LeavePayload {

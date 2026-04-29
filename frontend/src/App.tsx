@@ -16,7 +16,6 @@ const LeavePage         = lazy(() => import("@/pages/Leave"));
 const OvertimePage      = lazy(() => import("@/pages/Overtime"));
 const ProfilePage       = lazy(() => import("@/pages/Profile"));
 const AdminPage         = lazy(() => import("@/pages/Admin"));
-const SuperadminPage    = lazy(() => import("@/pages/Superadmin"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,10 +53,6 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return isAdmin ? <>{children}</> : <Navigate to="/" replace />;
 }
 
-function SuperadminRoute({ children }: { children: React.ReactNode }) {
-  const { profile } = useAuthStore();
-  return profile?.role === "superadmin" ? <>{children}</> : <Navigate to="/" replace />;
-}
 
 export default function App() {
   return (
@@ -90,14 +85,6 @@ export default function App() {
                     <AdminRoute>
                       <AdminPage />
                     </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/superadmin"
-                  element={
-                    <SuperadminRoute>
-                      <SuperadminPage />
-                    </SuperadminRoute>
                   }
                 />
               </Route>

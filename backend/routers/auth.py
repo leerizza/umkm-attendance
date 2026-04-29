@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
-from models.schemas import RegisterRequest, LoginRequest
+import httpx
+from models.schemas import RegisterRequest, RegisterCompanyRequest, LoginRequest
 from utils.auth import get_current_profile
 from db import supabase
 from config import settings
@@ -36,17 +37,36 @@ async def register(request: Request, body: RegisterRequest):
     except Exception:
         raise HTTPException(400, "Invalid company code")
 
-    # 2. Create Supabase auth user
-    try:
-        auth_res = supabase.auth.admin.create_user({
-            "email": body.email,
-            "password": body.password,
-            "email_confirm": True,  # auto-confirm for UMKM simplicity
-        })
-    except AuthApiError as e:
-        raise HTTPException(400, str(e))
+    # 2. Create Supabase auth user via Admin REST API directly
+    #    (more reliable than SDK admin.create_user which can fail with "user not allowed"
+    #    depending on Supabase project auth settings)
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/admin/users",
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Authorization": f"Bearer {settings.supabase_service_key}",
+            },
+            json={
+                "email": body.email,
+                "password": body.password,
+                "email_confirm": True,
+            },
+            timeout=10.0,
+        )
 
-    user_id = auth_res.user.id
+    if resp.status_code not in (200, 201):
+        data = resp.json()
+        msg = (
+            data.get("msg")
+            or data.get("message")
+            or data.get("error_description")
+            or data.get("error")
+            or "Registration failed"
+        )
+        raise HTTPException(400, msg)
+
+    user_id = resp.json()["id"]
 
     # 3. Insert profile
     supabase.table("profiles").insert({
@@ -59,6 +79,67 @@ async def register(request: Request, body: RegisterRequest):
     }).execute()
 
     return {"message": "Registration successful", "company": company["name"]}
+
+
+@router.post("/register-company")
+@limiter.limit("5/minute")
+async def register_company(request: Request, body: RegisterCompanyRequest):
+    """Owner / admin registers a new company and their own account in one step."""
+    code = body.company_code.upper()
+
+    # 1. Ensure company code is not already taken
+    existing = (
+        supabase.table("companies")
+        .select("id")
+        .eq("code", code)
+        .execute()
+    )
+    if existing.data:
+        raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
+
+    # 2. Create company
+    company_res = (
+        supabase.table("companies")
+        .insert({"name": body.company_name, "code": code})
+        .execute()
+    )
+    company_id = company_res.data[0]["id"]
+
+    # 3. Create auth user
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/admin/users",
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Authorization": f"Bearer {settings.supabase_service_key}",
+            },
+            json={"email": body.email, "password": body.password, "email_confirm": True},
+            timeout=10.0,
+        )
+
+    if resp.status_code not in (200, 201):
+        # Roll back company creation
+        supabase.table("companies").delete().eq("id", company_id).execute()
+        data = resp.json()
+        msg = data.get("msg") or data.get("message") or data.get("error_description") or "Gagal membuat akun"
+        raise HTTPException(400, msg)
+
+    user_id = resp.json()["id"]
+
+    # 4. Insert profile as admin
+    supabase.table("profiles").insert({
+        "id": user_id,
+        "company_id": company_id,
+        "full_name": body.full_name,
+        "phone": body.phone,
+        "role": "admin",
+    }).execute()
+
+    return {
+        "message": "Perusahaan dan akun admin berhasil dibuat",
+        "company": body.company_name,
+        "company_code": code,
+    }
 
 
 @router.post("/login")

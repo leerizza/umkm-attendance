@@ -35,12 +35,15 @@ async def create_leave(
     if _check_overlap(user_id, start, end):
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
+    days_count = (body.end_date - body.start_date).days + 1
+
     res = supabase.table("leave_requests").insert({
         "user_id": user_id,
         "company_id": profile["company_id"],
         "leave_type": body.leave_type,
         "start_date": start,
         "end_date": end,
+        "days_count": days_count,
         "reason": body.reason,
         "status": "pending",
     }).execute()

@@ -198,6 +198,16 @@ export default function AdminPage() {
     onError: (err) => toast.error("Gagal", getErrMsg(err)),
   });
 
+  const changeRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) =>
+      adminApi.updateEmployeeRole(id, role),
+    onSuccess: (_, { role }) => {
+      toast.success(`Role diubah ke ${role}`);
+      qc.invalidateQueries({ queryKey: ["admin-employees"] });
+    },
+    onError: (err) => toast.error("Gagal ubah role", getErrMsg(err)),
+  });
+
   function resetPage() { setPage(1); }
 
   return (
@@ -494,12 +504,14 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={cn(
-                      "text-xs font-medium px-2 py-0.5 rounded-full",
-                      row.role === "admin" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-700"
-                    )}>
-                      {row.role}
-                    </span>
+                    <select
+                      value={row.role}
+                      onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })}
+                      className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="employee">employee</option>
+                      <option value="admin">admin</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-xs font-mono">{row.phone ?? "—"}</td>
                   <td className="px-4 py-3">

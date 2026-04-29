@@ -25,10 +25,18 @@ export default function LoginPage() {
   // Login form
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
-  // Register form
+  // Register form — employee (join existing company)
   const [regForm, setRegForm] = useState({
     full_name: "", email: "", password: "",
     company_code: "", phone: "", position: "",
+  });
+
+  // Register form — admin (create new company)
+  type RegType = "employee" | "owner";
+  const [regType, setRegType] = useState<RegType>("employee");
+  const [ownerForm, setOwnerForm] = useState({
+    full_name: "", email: "", password: "",
+    phone: "", company_name: "", company_code: "",
   });
 
   async function handleLogin(e: React.FormEvent) {
@@ -86,6 +94,27 @@ export default function LoginPage() {
       setLoginForm({ email: regForm.email, password: "" });
     } catch (err) {
       toast.error("Registrasi Gagal", getErrMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegisterOwner(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await authApi.registerCompany({
+        ...ownerForm,
+        company_code: ownerForm.company_code.toUpperCase(),
+      });
+      toast.success(
+        "Perusahaan berhasil dibuat!",
+        `Kode perusahaan: ${res.data.company_code} — bagikan ke karyawan.`
+      );
+      setTab("login");
+      setLoginForm({ email: ownerForm.email, password: "" });
+    } catch (err) {
+      toast.error("Gagal Daftar", getErrMsg(err));
     } finally {
       setLoading(false);
     }
@@ -218,61 +247,150 @@ export default function LoginPage() {
               </form>
               )
             ) : (
-              <form onSubmit={handleRegister} className="space-y-3">
-                <Input
-                  label="Nama Lengkap"
-                  placeholder="Budi Santoso"
-                  value={regForm.full_name}
-                  onChange={(e) => setRegForm({ ...regForm, full_name: e.target.value })}
-                  leftIcon={<User className="h-4 w-4" />}
-                  required
-                />
-                <Input
-                  label="Email"
-                  type="email"
-                  placeholder="nama@email.com"
-                  value={regForm.email}
-                  onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                  leftIcon={<Mail className="h-4 w-4" />}
-                  required
-                />
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Min. 6 karakter"
-                  value={regForm.password}
-                  onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                  leftIcon={<Lock className="h-4 w-4" />}
-                  required
-                  minLength={6}
-                />
-                <Input
-                  label="Kode Perusahaan"
-                  placeholder="Contoh: DEMO2024"
-                  value={regForm.company_code}
-                  onChange={(e) => setRegForm({ ...regForm, company_code: e.target.value.toUpperCase() })}
-                  leftIcon={<Building2 className="h-4 w-4" />}
-                  required
-                />
-                <Input
-                  label="No. HP (Opsional)"
-                  type="tel"
-                  placeholder="08xx-xxxx-xxxx"
-                  value={regForm.phone}
-                  onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                  leftIcon={<Phone className="h-4 w-4" />}
-                />
-                <Input
-                  label="Jabatan (Opsional)"
-                  placeholder="Staff, Kasir, dll."
-                  value={regForm.position}
-                  onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
-                  leftIcon={<Briefcase className="h-4 w-4" />}
-                />
-                <Button type="submit" className="w-full" size="lg" loading={loading}>
-                  Buat Akun
-                </Button>
-              </form>
+              <div className="space-y-3">
+                {/* Toggle: employee vs owner */}
+                <div className="flex rounded-xl border border-border overflow-hidden">
+                  {(["employee", "owner"] as RegType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setRegType(t)}
+                      className={cn(
+                        "flex-1 py-2 text-xs font-semibold transition-colors",
+                        regType === t
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t === "employee" ? "Saya Karyawan" : "Saya Pemilik / Admin"}
+                    </button>
+                  ))}
+                </div>
+
+                {regType === "employee" ? (
+                  /* ── Employee: join existing company ── */
+                  <form onSubmit={handleRegister} className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Minta <strong>Kode Perusahaan</strong> ke admin/pemilik usahamu.
+                    </p>
+                    <Input
+                      label="Nama Lengkap"
+                      placeholder="Budi Santoso"
+                      value={regForm.full_name}
+                      onChange={(e) => setRegForm({ ...regForm, full_name: e.target.value })}
+                      leftIcon={<User className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="Email"
+                      type="email"
+                      placeholder="nama@email.com"
+                      value={regForm.email}
+                      onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                      leftIcon={<Mail className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="Password"
+                      type="password"
+                      placeholder="Min. 6 karakter"
+                      value={regForm.password}
+                      onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                      leftIcon={<Lock className="h-4 w-4" />}
+                      required
+                      minLength={6}
+                    />
+                    <Input
+                      label="Kode Perusahaan"
+                      placeholder="Contoh: TOKO2025"
+                      value={regForm.company_code}
+                      onChange={(e) => setRegForm({ ...regForm, company_code: e.target.value.toUpperCase() })}
+                      leftIcon={<Building2 className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="No. HP (Opsional)"
+                      type="tel"
+                      placeholder="08xx-xxxx-xxxx"
+                      value={regForm.phone}
+                      onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                      leftIcon={<Phone className="h-4 w-4" />}
+                    />
+                    <Input
+                      label="Jabatan (Opsional)"
+                      placeholder="Staff, Kasir, dll."
+                      value={regForm.position}
+                      onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
+                      leftIcon={<Briefcase className="h-4 w-4" />}
+                    />
+                    <Button type="submit" className="w-full" size="lg" loading={loading}>
+                      Buat Akun
+                    </Button>
+                  </form>
+                ) : (
+                  /* ── Owner: create new company + admin account ── */
+                  <form onSubmit={handleRegisterOwner} className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Daftarkan usahamu sekaligus buat akun admin. Kode perusahaan akan dibagikan ke karyawan.
+                    </p>
+                    <Input
+                      label="Nama Kamu"
+                      placeholder="Budi Santoso"
+                      value={ownerForm.full_name}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, full_name: e.target.value })}
+                      leftIcon={<User className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="Email"
+                      type="email"
+                      placeholder="nama@email.com"
+                      value={ownerForm.email}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })}
+                      leftIcon={<Mail className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="Password"
+                      type="password"
+                      placeholder="Min. 6 karakter"
+                      value={ownerForm.password}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, password: e.target.value })}
+                      leftIcon={<Lock className="h-4 w-4" />}
+                      required
+                      minLength={6}
+                    />
+                    <Input
+                      label="Nama Usaha / Perusahaan"
+                      placeholder="Toko Budi Jaya"
+                      value={ownerForm.company_name}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, company_name: e.target.value })}
+                      leftIcon={<Building2 className="h-4 w-4" />}
+                      required
+                    />
+                    <Input
+                      label="Kode Perusahaan"
+                      placeholder="Contoh: BUDIJAYA25 (unik, huruf kapital)"
+                      value={ownerForm.company_code}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, company_code: e.target.value.toUpperCase() })}
+                      leftIcon={<Briefcase className="h-4 w-4" />}
+                      required
+                      minLength={3}
+                    />
+                    <Input
+                      label="No. HP (Opsional)"
+                      type="tel"
+                      placeholder="08xx-xxxx-xxxx"
+                      value={ownerForm.phone}
+                      onChange={(e) => setOwnerForm({ ...ownerForm, phone: e.target.value })}
+                      leftIcon={<Phone className="h-4 w-4" />}
+                    />
+                    <Button type="submit" className="w-full" size="lg" loading={loading}>
+                      Daftarkan Usaha & Buat Akun
+                    </Button>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         </div>

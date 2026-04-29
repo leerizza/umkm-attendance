@@ -9,6 +9,7 @@ Aplikasi absensi digital berbasis GPS untuk karyawan dan admin UMKM.
 - [Untuk Karyawan](#untuk-karyawan)
 - [Untuk Admin](#untuk-admin)
 - [Untuk Superadmin](#untuk-superadmin)
+- [Pertanyaan Umum (FAQ)](#pertanyaan-umum-faq)
 
 ---
 
@@ -268,3 +269,78 @@ Ubah role via Supabase Dashboard (SQL Editor):
 ```sql
 UPDATE profiles SET role = 'superadmin' WHERE email = 'emailmu@contoh.com';
 ```
+
+---
+
+## Pertanyaan Umum (FAQ)
+
+### Absensi
+
+**Kenapa tombol Absen Masuk tidak bisa diklik?**
+Berarti kamu sudah absen masuk hari ini. Satu kali absen masuk per hari.
+
+**Muncul pesan "You are Xm away from the office"?**
+Kamu belum berada dalam radius absen yang ditentukan admin. Pindah lebih dekat ke kantor dan coba lagi. Jika kamu sudah di kantor tapi tetap gagal, minta admin untuk memperbesar radius absen di pengaturan perusahaan.
+
+**Browser meminta izin lokasi, apa yang harus dilakukan?**
+Klik **Izinkan** / **Allow**. Aplikasi butuh GPS untuk memverifikasi kamu sedang di kantor. Tanpa izin lokasi, absen tidak bisa diproses.
+
+**Sudah klik Izinkan tapi GPS tidak muncul?**
+Coba langkah berikut:
+1. Refresh halaman dan coba lagi
+2. Pastikan sinyal GPS aktif (bukan hanya WiFi)
+3. Di pengaturan browser, pastikan izin lokasi untuk aplikasi ini diatur ke **Izinkan**
+4. Coba buka aplikasi di tab baru
+
+**Lupa absen keluar, apa yang terjadi?**
+Data absensi hari itu tetap tercatat dengan status sesuai jam masuk (Hadir atau Terlambat). Jam keluar akan kosong. Hubungi admin jika perlu koreksi data.
+
+**Aplikasi bilang "Kamu sedang offline"?**
+Koneksi internetmu terputus. Absen membutuhkan koneksi aktif karena perlu memverifikasi lokasi ke server. Sambungkan ke WiFi atau data seluler dan coba lagi.
+
+---
+
+### Cuti & Lembur
+
+**Pengajuan cuti saya ditolak, bisa diajukan ulang?**
+Bisa. Klik **Ajukan Cuti** kembali dengan tanggal dan alasan yang baru. Pengajuan yang sudah ditolak tidak bisa diedit, harus mengajukan yang baru.
+
+**Kenapa tombol Ajukan tidak aktif (abu-abu)?**
+Pastikan semua kolom sudah diisi: jenis cuti, tanggal mulai, tanggal selesai, dan alasan. Tombol baru aktif setelah semua terisi.
+
+**Tanggal cuti yang dipilih bentrok dengan pengajuan sebelumnya?**
+Muncul pesan error jika tanggal yang dipilih sudah ada pengajuan cuti lain yang sedang menunggu atau sudah disetujui pada periode yang sama.
+
+**Berapa lama admin memproses pengajuan?**
+Tergantung kebijakan perusahaan. Kamu bisa pantau statusnya langsung di halaman Cuti atau Lembur.
+
+---
+
+### Akun & Login
+
+**Email sudah terdaftar tapi tidak bisa login?**
+- Pastikan tidak ada spasi di depan/belakang email
+- Coba fitur **Lupa password?** untuk reset password
+- Hubungi admin jika masalah berlanjut — mungkin akun dinonaktifkan
+
+**Link reset password tidak berfungsi?**
+Link hanya berlaku selama 1 jam. Jika sudah lewat, ulangi proses lupa password dari awal.
+
+**Kode perusahaan tidak diterima saat daftar?**
+Pastikan kode diketik dengan benar — kode bersifat huruf kapital semua, contoh: `TOKO2025`. Minta kode yang benar ke admin perusahaanmu.
+
+---
+
+### Aplikasi & Tampilan
+
+**Jam absen yang muncul salah?**
+Aplikasi menggunakan zona waktu WIB (UTC+7). Jika jam tampil berbeda, coba refresh halaman.
+
+**Aplikasi lambat atau data tidak muncul?**
+Coba refresh halaman. Jika masih lambat, periksa koneksi internet.
+
+**Bisa dipakai di HP tanpa install?**
+Bisa. Cukup buka URL aplikasi di browser HP. Tapi untuk pengalaman terbaik, install sebagai aplikasi lewat **Add to Home Screen** agar bisa diakses lebih cepat dan tampil layar penuh.
+
+**Data absensi bulan lalu masih ada?**
+Ya, semua riwayat tersimpan. Gulir ke halaman berikutnya di tab Riwayat Absensi untuk melihat data lebih lama.

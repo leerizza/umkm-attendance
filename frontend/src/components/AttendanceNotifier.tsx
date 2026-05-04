@@ -41,8 +41,7 @@ function notify(title: string, body: string, tag: string) {
     body,
     icon: "/favicon.png",
     tag,         // replaces previous notification with same tag
-    renotify: true,
-  });
+  } as NotificationOptions);
 }
 
 export function AttendanceNotifier() {

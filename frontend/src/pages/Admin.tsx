@@ -202,8 +202,9 @@ export default function AdminPage() {
   const toggleActive = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       adminApi.toggleEmployeeActive(id, is_active),
-    onMutate: ({ id, is_active }) => {
-      // Optimistic update: flip is_active immediately in every cached employees page
+    onMutate: async ({ id, is_active }) => {
+      await qc.cancelQueries({ queryKey: ["admin-employees"] }); // prevent stale overwrites
+      const prev = qc.getQueriesData({ queryKey: ["admin-employees"] });
       qc.setQueriesData(
         { queryKey: ["admin-employees"] },
         (old: any) => {
@@ -211,22 +212,27 @@ export default function AdminPage() {
           return { ...old, data: old.data.map((e: any) => e.id === id ? { ...e, is_active } : e) };
         }
       );
+      return { prev };
     },
     onSuccess: (_, { is_active }) => {
       toast.success(is_active ? "Karyawan diaktifkan" : "Karyawan dinonaktifkan");
-      qc.refetchQueries({ queryKey: ["admin-employees"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: (err) => {
+    onError: (err, _, ctx: any) => {
       toast.error("Gagal", getErrMsg(err));
-      qc.refetchQueries({ queryKey: ["admin-employees"] }); // revert optimistic
+      ctx?.prev?.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin-employees"] });
     },
   });
 
   const changeRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
       adminApi.updateEmployeeRole(id, role),
-    onMutate: ({ id, role }) => {
+    onMutate: async ({ id, role }) => {
+      await qc.cancelQueries({ queryKey: ["admin-employees"] });
+      const prev = qc.getQueriesData({ queryKey: ["admin-employees"] });
       qc.setQueriesData(
         { queryKey: ["admin-employees"] },
         (old: any) => {
@@ -234,14 +240,17 @@ export default function AdminPage() {
           return { ...old, data: old.data.map((e: any) => e.id === id ? { ...e, role } : e) };
         }
       );
+      return { prev };
     },
     onSuccess: (_, { role }) => {
       toast.success(`Role diubah ke ${role}`);
-      qc.refetchQueries({ queryKey: ["admin-employees"] });
     },
-    onError: (err) => {
+    onError: (err, _, ctx: any) => {
       toast.error("Gagal ubah role", getErrMsg(err));
-      qc.refetchQueries({ queryKey: ["admin-employees"] }); // revert optimistic
+      ctx?.prev?.forEach(([key, data]: [any, any]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin-employees"] });
     },
   });
 

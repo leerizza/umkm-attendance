@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     # Comma-separated list of allowed frontend origins.
     # Example: https://myapp.vercel.app,https://myapp-git-main-user.vercel.app
-    frontend_url: str = "https://umkm-attendance.vercel.app"
+    frontend_url: str = "https://umkm-attendance-1-1.vercel.app"
 
     @property
     def allowed_origins(self) -> List[str]:

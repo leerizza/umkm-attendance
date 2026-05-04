@@ -268,11 +268,14 @@ async def update_employee_role(
     if role not in ("employee", "admin"):
         raise HTTPException(400, "role must be 'employee' or 'admin'")
 
-    emp = supabase.table("profiles").select("company_id").eq("id", user_id).single().execute()
+    try:
+        emp = supabase.table("profiles").select("company_id").eq("id", user_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
         raise HTTPException(404, "Employee not found")
 
-    supabase.table("profiles").update({"role": role}).eq("id", user_id).execute()
+    supabase.table("profiles").update({"role": role}).eq("id", user_id).select().execute()
     return {"message": f"Role updated to {role}"}
 
 
@@ -282,11 +285,14 @@ async def toggle_employee_active(
     is_active: bool,
     admin: dict = Depends(require_admin),
 ):
-    emp = supabase.table("profiles").select("company_id,role").eq("id", user_id).single().execute()
+    try:
+        emp = supabase.table("profiles").select("company_id,role").eq("id", user_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
         raise HTTPException(404, "Employee not found")
     if user_id == admin["id"]:
         raise HTTPException(400, "Cannot deactivate yourself")
 
-    supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).execute()
+    supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).select().execute()
     return {"message": "activated" if is_active else "deactivated"}

@@ -202,22 +202,47 @@ export default function AdminPage() {
   const toggleActive = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       adminApi.toggleEmployeeActive(id, is_active),
+    onMutate: ({ id, is_active }) => {
+      // Optimistic update: flip is_active immediately in every cached employees page
+      qc.setQueriesData(
+        { queryKey: ["admin-employees"] },
+        (old: any) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.map((e: any) => e.id === id ? { ...e, is_active } : e) };
+        }
+      );
+    },
     onSuccess: (_, { is_active }) => {
       toast.success(is_active ? "Karyawan diaktifkan" : "Karyawan dinonaktifkan");
-      qc.invalidateQueries({ queryKey: ["admin-employees"] });
+      qc.refetchQueries({ queryKey: ["admin-employees"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: (err) => toast.error("Gagal", getErrMsg(err)),
+    onError: (err) => {
+      toast.error("Gagal", getErrMsg(err));
+      qc.refetchQueries({ queryKey: ["admin-employees"] }); // revert optimistic
+    },
   });
 
   const changeRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) =>
       adminApi.updateEmployeeRole(id, role),
+    onMutate: ({ id, role }) => {
+      qc.setQueriesData(
+        { queryKey: ["admin-employees"] },
+        (old: any) => {
+          if (!old?.data) return old;
+          return { ...old, data: old.data.map((e: any) => e.id === id ? { ...e, role } : e) };
+        }
+      );
+    },
     onSuccess: (_, { role }) => {
       toast.success(`Role diubah ke ${role}`);
-      qc.invalidateQueries({ queryKey: ["admin-employees"] });
+      qc.refetchQueries({ queryKey: ["admin-employees"] });
     },
-    onError: (err) => toast.error("Gagal ubah role", getErrMsg(err)),
+    onError: (err) => {
+      toast.error("Gagal ubah role", getErrMsg(err));
+      qc.refetchQueries({ queryKey: ["admin-employees"] }); // revert optimistic
+    },
   });
 
   function resetPage() { setPage(1); }

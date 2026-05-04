@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clock, MapPin, CheckCircle2,
   Calendar, Timer, AlertCircle,
-  LogIn, LogOut,
+  LogIn, LogOut, Hourglass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { attendanceApi } from "@/lib/api";
-import { fmtTime, fmtDate, getErrMsg, cn } from "@/lib/utils";
+import { fmtTime, fmtDate, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const { profile } = useAuthStore();
@@ -47,6 +47,14 @@ export default function Dashboard() {
   const record = todayData?.record;
   const clockedIn  = !!record?.clock_in;
   const clockedOut = !!record?.clock_out;
+
+  // Live work duration for today
+  const todayWorkMinutes = (() => {
+    if (!record?.clock_in) return null;
+    const end = record.clock_out ? new Date(record.clock_out) : now;
+    const start = new Date(record.clock_in);
+    return Math.floor((end.getTime() - start.getTime()) / 60_000);
+  })();
 
   async function handleClock(type: "in" | "out") {
     if (!isOnline) return toast.error("Kamu offline", "Pastikan koneksi aktif");
@@ -141,7 +149,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="bg-white/15 rounded-xl p-3">
                 <p className="text-xs text-white/70 mb-1">Masuk</p>
                 <p className="text-lg font-bold font-mono">
@@ -152,6 +160,12 @@ export default function Dashboard() {
                 <p className="text-xs text-white/70 mb-1">Keluar</p>
                 <p className="text-lg font-bold font-mono">
                   {record?.clock_out ? fmtTime(record.clock_out) : "—"}
+                </p>
+              </div>
+              <div className="bg-white/15 rounded-xl p-3">
+                <p className="text-xs text-white/70 mb-1">Durasi</p>
+                <p className="text-lg font-bold font-mono">
+                  {todayWorkMinutes != null ? fmtDuration(todayWorkMinutes) : "—"}
                 </p>
               </div>
             </div>
@@ -228,14 +242,13 @@ export default function Dashboard() {
       {/* Quick stats */}
       <div>
         <h3 className="text-sm font-semibold text-foreground mb-3">Bulan Ini</h3>
-        <div className="grid grid-cols-3 gap-2.5">
-          {(
-            [
-              { label: "Hadir",  value: statsData?.hadir  ?? "—", Icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50" },
-              { label: "Cuti",   value: statsData?.cuti   ?? "—", Icon: Calendar,     color: "text-blue-600 bg-blue-50" },
-              { label: "Lembur", value: statsData?.lembur ?? "—", Icon: Timer,        color: "text-amber-600 bg-amber-50" },
-            ] as const
-          ).map(({ label, value, Icon, color }) => (
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { label: "Hadir",     value: statsData?.hadir  ?? "—",                                                Icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50" },
+            { label: "Cuti",      value: statsData?.cuti   ?? "—",                                                Icon: Calendar,     color: "text-blue-600 bg-blue-50" },
+            { label: "Lembur",    value: statsData?.lembur ?? "—",                                                Icon: Timer,        color: "text-amber-600 bg-amber-50" },
+            { label: "Jam Kerja", value: statsData?.total_work_minutes != null ? fmtDuration(statsData.total_work_minutes) : "—", Icon: Hourglass,    color: "text-purple-600 bg-purple-50" },
+          ].map(({ label, value, Icon, color }) => (
             <Card key={label} className="text-center p-3 space-y-1">
               <div className={cn("w-8 h-8 rounded-lg mx-auto flex items-center justify-center", color)}>
                 <Icon className="h-4 w-4" />

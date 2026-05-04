@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
+import { AttendanceNotifier } from "./AttendanceNotifier";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff } from "lucide-react";
 
@@ -9,6 +10,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <AttendanceNotifier />
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">

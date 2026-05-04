@@ -229,8 +229,29 @@ async def monthly_stats(profile: dict = Depends(get_current_profile)):
 
     total_leave_days = sum(r.get("days_count") or 0 for r in (leave_res.data or []))
 
+    # Total working minutes: sum (clock_out - clock_in) for days with both timestamps
+    work_res = (
+        supabase.table("attendance")
+        .select("clock_in, clock_out")
+        .eq("user_id", user_id)
+        .gte("date", first_day)
+        .lte("date", last_day)
+        .not_.is_("clock_in", "null")
+        .not_.is_("clock_out", "null")
+        .execute()
+    )
+    total_work_minutes = 0
+    for r in (work_res.data or []):
+        try:
+            ci = datetime.fromisoformat(r["clock_in"].replace("Z", "+00:00"))
+            co = datetime.fromisoformat(r["clock_out"].replace("Z", "+00:00"))
+            total_work_minutes += int((co - ci).total_seconds() / 60)
+        except Exception:
+            pass
+
     return {
         "hadir": att_res.count or 0,
         "cuti": total_leave_days,
         "lembur": ot_res.count or 0,
+        "total_work_minutes": total_work_minutes,
     }

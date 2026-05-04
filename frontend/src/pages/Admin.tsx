@@ -40,12 +40,24 @@ export default function AdminPage() {
   });
 
   // ── Attendance ─────────────────────────────────────────────
+  const [attDateFrom, setAttDateFrom] = useState("");
+  const [attDateTo,   setAttDateTo]   = useState("");
+
   const { data: attData, isLoading: attLoading } = useQuery({
-    queryKey: ["admin-attendance", page],
-    queryFn: () => adminApi.attendance(page).then((r) => r.data),
+    queryKey: ["admin-attendance", page, attDateFrom, attDateTo],
+    queryFn: () => adminApi.attendance(page, attDateFrom || undefined).then((r) => r.data),
     enabled: tab === "attendance",
     placeholderData: (p) => p,
   });
+
+  // Total durasi semua baris yang ada clock_in & clock_out
+  const totalWorkMinutes = (attData?.data ?? []).reduce((sum: number, row: any) => {
+    if (!row.clock_in || !row.clock_out) return sum;
+    return sum + Math.floor(
+      (new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000
+    );
+  }, 0);
+  const rowsWithDuration = (attData?.data ?? []).filter((r: any) => r.clock_in && r.clock_out).length;
 
   // ── Leave ──────────────────────────────────────────────────
   const [leaveFilter, setLeaveFilter] = useState("pending");
@@ -317,14 +329,14 @@ export default function AdminPage() {
         {/* ── Attendance table ── */}
         {tab === "attendance" && (
           <div className="space-y-3 animate-fade-in">
-            {/* Export bar */}
+            {/* Filter + Export bar */}
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground font-medium">Dari</label>
                 <input
                   type="date"
-                  value={exportFrom}
-                  onChange={(e) => setExportFrom(e.target.value)}
+                  value={attDateFrom}
+                  onChange={(e) => { setAttDateFrom(e.target.value); setExportFrom(e.target.value); resetPage(); }}
                   className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -332,9 +344,9 @@ export default function AdminPage() {
                 <label className="text-xs text-muted-foreground font-medium">Sampai</label>
                 <input
                   type="date"
-                  value={exportTo}
-                  min={exportFrom}
-                  onChange={(e) => setExportTo(e.target.value)}
+                  value={attDateTo}
+                  min={attDateFrom}
+                  onChange={(e) => { setAttDateTo(e.target.value); setExportTo(e.target.value); resetPage(); }}
                   className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -343,6 +355,22 @@ export default function AdminPage() {
                 Export CSV
               </Button>
             </div>
+
+            {/* Total durasi summary */}
+            {!attLoading && rowsWithDuration > 0 && (
+              <div className="flex items-center gap-3 rounded-xl bg-purple-50 border border-purple-200 px-4 py-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                  <Timer className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-700 font-medium">Total Durasi Kerja</p>
+                  <p className="text-xs text-purple-500">{rowsWithDuration} dari {attData?.data?.length ?? 0} data di halaman ini</p>
+                </div>
+                <p className="ml-auto text-xl font-extrabold text-purple-700 font-mono">
+                  {fmtDuration(totalWorkMinutes)}
+                </p>
+              </div>
+            )}
             <TableWrapper
               isLoading={attLoading}
               data={attData}

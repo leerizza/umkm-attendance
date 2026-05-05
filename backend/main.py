@@ -1,11 +1,36 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
 from routers import auth, attendance, leave, overtime, admin, superadmin, corrections
+
+
+# ─── CORS error fallback middleware ───────────────────────────────────────────
+# Starlette's ServerErrorMiddleware sits OUTSIDE CORSMiddleware, so any
+# unhandled exception that escapes all route/exception handlers never gets
+# CORS headers — the browser sees ERR_FAILED instead of a proper 500.
+# This middleware wraps the entire app and injects CORS headers on any error
+# response, regardless of where the exception originated.
+class CORSErrorMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        try:
+            response = await call_next(request)
+            return response
+        except Exception:
+            origin = request.headers.get("origin", "*")
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Internal server error"},
+                headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Credentials": "true",
+                },
+            )
+
 
 app = FastAPI(
     title="Smart UMKM Attendance API",
@@ -18,8 +43,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-# Must be added BEFORE the global exception handler so CORS headers are always
-# present — even on 500 responses where the route crashes before sending headers.
+# Order matters: CORSErrorMiddleware must be added LAST (outermost layer).
+# add_middleware() prepends, so the last call = outermost wrapper.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -27,14 +52,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ─── Global exception handler ─────────────────────────────────────────────────
-# Converts any unhandled exception into a JSON 500 so the CORSMiddleware can
-# attach Access-Control-Allow-Origin (otherwise the browser sees ERR_FAILED).
-@app.exception_handler(Exception)
-async def _unhandled(request: Request, exc: Exception):
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+app.add_middleware(CORSErrorMiddleware)  # outermost — catches anything CORSMiddleware missed
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
 app.include_router(auth.router)

@@ -38,42 +38,57 @@ async def create_correction(
     body: CorrectionCreateRequest,
     profile: dict = Depends(get_current_profile),
 ):
-    if not body.requested_clock_in and not body.requested_clock_out:
-        raise HTTPException(400, "Isi setidaknya jam masuk atau jam keluar yang diinginkan")
-
-    # Verify the attendance record belongs to this user
     try:
-        rec = supabase.table("attendance").select("id, company_id, user_id").eq("id", body.attendance_id).single().execute()
-    except Exception:
-        raise HTTPException(404, "Data absensi tidak ditemukan")
-    if not rec.data or rec.data["user_id"] != profile["id"]:
-        raise HTTPException(403, "Tidak diizinkan")
+        if not body.requested_clock_in and not body.requested_clock_out:
+            raise HTTPException(400, "Isi setidaknya jam masuk atau jam keluar yang diinginkan")
 
-    # Only one pending correction per attendance record
-    existing = (
-        supabase.table("attendance_corrections")
-        .select("id")
-        .eq("attendance_id", body.attendance_id)
-        .eq("status", "pending")
-        .execute()
-    )
-    if existing.data:
-        raise HTTPException(400, "Sudah ada pengajuan koreksi yang belum diproses untuk absensi ini")
+        # Verify the attendance record belongs to this user
+        try:
+            rec = supabase.table("attendance").select("id, company_id, user_id").eq("id", body.attendance_id).single().execute()
+        except Exception:
+            raise HTTPException(404, "Data absensi tidak ditemukan")
+        if not rec.data or rec.data["user_id"] != profile["id"]:
+            raise HTTPException(403, "Tidak diizinkan")
 
-    payload: dict = {
-        "attendance_id": body.attendance_id,
-        "user_id": profile["id"],
-        "company_id": profile["company_id"],
-        "reason": body.reason,
-        "status": "pending",
-    }
-    if body.requested_clock_in:
-        payload["requested_clock_in"] = _parse_wib(body.requested_clock_in)
-    if body.requested_clock_out:
-        payload["requested_clock_out"] = _parse_wib(body.requested_clock_out)
+        # Only one pending correction per attendance record
+        try:
+            existing = (
+                supabase.table("attendance_corrections")
+                .select("id")
+                .eq("attendance_id", body.attendance_id)
+                .eq("status", "pending")
+                .execute()
+            )
+            if existing.data:
+                raise HTTPException(400, "Sudah ada pengajuan koreksi yang belum diproses untuk absensi ini")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(500, "Tabel koreksi belum dibuat. Jalankan SQL migration di Supabase terlebih dahulu.")
 
-    res = supabase.table("attendance_corrections").insert(payload).execute()
-    return {"message": "Pengajuan koreksi terkirim", "data": res.data[0]}
+        payload: dict = {
+            "attendance_id": body.attendance_id,
+            "user_id": profile["id"],
+            "company_id": profile["company_id"],
+            "reason": body.reason,
+            "status": "pending",
+        }
+        if body.requested_clock_in:
+            payload["requested_clock_in"] = _parse_wib(body.requested_clock_in)
+        if body.requested_clock_out:
+            payload["requested_clock_out"] = _parse_wib(body.requested_clock_out)
+
+        try:
+            res = supabase.table("attendance_corrections").insert(payload).execute()
+        except Exception as e:
+            raise HTTPException(500, f"Gagal menyimpan koreksi: {str(e)}")
+
+        return {"message": "Pengajuan koreksi terkirim", "data": res.data[0]}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Server error: {str(e)}")
 
 
 @router.get("")

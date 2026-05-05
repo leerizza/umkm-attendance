@@ -87,9 +87,10 @@ export const attendanceApi = {
 };
 
 export const leaveApi = {
-  create: (data: LeavePayload) => api.post("/leave", data),
-  list:   (page = 1, per_page = 20) =>
+  create:  (data: LeavePayload) => api.post("/leave", data),
+  list:    (page = 1, per_page = 20) =>
     api.get("/leave", { params: { page, per_page } }),
+  balance: () => api.get("/leave/balance"),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/leave/${id}/approve`, { status, reviewer_note }),
 };

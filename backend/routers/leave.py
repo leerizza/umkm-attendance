@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from models.schemas import LeaveCreateRequest, LeaveApproveRequest
 from utils.auth import get_current_profile, require_admin
 from db import supabase
+
+# Default annual leave allowance (days/year) if not set per company
+DEFAULT_ANNUAL_ALLOWANCE = 12
 
 router = APIRouter(prefix="/leave", tags=["leave"])
 
@@ -49,6 +52,46 @@ async def create_leave(
     }).execute()
 
     return {"message": "Leave request submitted", "data": res.data[0]}
+
+
+@router.get("/balance")
+async def get_leave_balance(
+    profile: dict = Depends(get_current_profile),
+):
+    """Return annual leave balance for the current user this year."""
+    user_id = profile["id"]
+    year = date.today().year
+    first_day = f"{year}-01-01"
+    last_day  = f"{year}-12-31"
+
+    # Company allowance (use leave_allowance column if it exists, else default)
+    allowance = DEFAULT_ANNUAL_ALLOWANCE
+    try:
+        comp = supabase.table("companies").select("leave_allowance").eq("id", profile["company_id"]).single().execute()
+        if comp.data and comp.data.get("leave_allowance"):
+            allowance = comp.data["leave_allowance"]
+    except Exception:
+        pass
+
+    # Sum approved annual leave days this year
+    res = (
+        supabase.table("leave_requests")
+        .select("days_count")
+        .eq("user_id", user_id)
+        .eq("leave_type", "annual")
+        .eq("status", "approved")
+        .gte("start_date", first_day)
+        .lte("end_date", last_day)
+        .execute()
+    )
+    used = sum(r["days_count"] for r in (res.data or []))
+
+    return {
+        "year": year,
+        "allowance": allowance,
+        "used": used,
+        "remaining": max(0, allowance - used),
+    }
 
 
 @router.get("")

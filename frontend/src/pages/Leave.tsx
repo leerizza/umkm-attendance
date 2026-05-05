@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, CalendarOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,11 @@ export default function LeavePage() {
   const toast = useToast();
   const qc = useQueryClient();
 
+  const { data: balance } = useQuery({
+    queryKey: ["leave-balance"],
+    queryFn: () => leaveApi.balance().then((r) => r.data),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["leave", page],
     queryFn: () => leaveApi.list(page).then((r) => r.data),
@@ -41,6 +46,7 @@ export default function LeavePage() {
     onSuccess: () => {
       toast.success("Pengajuan terkirim!", "Menunggu persetujuan admin");
       qc.invalidateQueries({ queryKey: ["leave"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance"] });
       setShowForm(false);
       setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
     },
@@ -65,6 +71,26 @@ export default function LeavePage() {
       />
 
       <div className="px-4 md:px-6 py-4 space-y-4">
+        {/* Leave balance card */}
+        {balance && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Jatah Cuti", value: balance.allowance, color: "text-blue-600 bg-blue-50" },
+              { label: "Sudah Dipakai", value: balance.used,      color: "text-amber-600 bg-amber-50" },
+              { label: "Sisa Cuti",    value: balance.remaining,  color: balance.remaining <= 3 ? "text-red-600 bg-red-50" : "text-emerald-600 bg-emerald-50" },
+            ].map(({ label, value, color }) => (
+              <Card key={label}>
+                <CardContent className="p-3 text-center space-y-1">
+                  <div className={cn("w-8 h-8 rounded-lg mx-auto flex items-center justify-center", color)}>
+                    <Palmtree className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-foreground">{value}</p>
+                  <p className="text-[10px] text-muted-foreground">{label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
         {/* Form modal */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm">

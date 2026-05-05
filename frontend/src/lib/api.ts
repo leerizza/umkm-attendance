@@ -124,6 +124,8 @@ export const adminApi = {
     api.patch(`/admin/employees/${id}/active`, null, { params: { is_active } }),
   updateEmployeeRole: (id: string, role: string) =>
     api.patch(`/admin/employees/${id}/role`, null, { params: { role } }),
+  correctAttendance: (id: string, data: { clock_in?: string; clock_out?: string; notes?: string }) =>
+    api.patch(`/admin/attendance/${id}`, data),
 };
 
 export const superadminApi = {

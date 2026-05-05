@@ -17,6 +17,12 @@ class CompanyUpdateRequest(BaseModel):
     work_start: Optional[str] = None  # "HH:MM"
     work_end: Optional[str] = None    # "HH:MM"
 
+
+class AttendanceCorrectionRequest(BaseModel):
+    clock_in: Optional[str] = None   # ISO datetime string, e.g. "2026-05-05T08:00:00"
+    clock_out: Optional[str] = None  # ISO datetime string
+    notes: Optional[str] = None
+
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
@@ -257,6 +263,54 @@ async def export_attendance_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.patch("/attendance/{record_id}")
+async def correct_attendance(
+    record_id: str,
+    body: AttendanceCorrectionRequest,
+    admin: dict = Depends(require_admin),
+):
+    """Admin corrects clock-in / clock-out time for any attendance record in their company."""
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    try:
+        rec = supabase.table("attendance").select("company_id, date, clock_in").eq("id", record_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Attendance record not found")
+    if not rec.data or rec.data["company_id"] != admin["company_id"]:
+        raise HTTPException(404, "Attendance record not found")
+
+    updates: dict = {}
+
+    def parse_local(dt_str: str) -> str:
+        """Accept 'YYYY-MM-DDTHH:MM' (naive, treated as WIB) and return UTC ISO string."""
+        try:
+            naive = datetime.fromisoformat(dt_str)
+            wib = naive.replace(tzinfo=ZoneInfo("Asia/Jakarta"))
+            return wib.astimezone(timezone.utc).isoformat()
+        except Exception:
+            raise HTTPException(400, f"Invalid datetime format: {dt_str!r}. Use YYYY-MM-DDTHH:MM")
+
+    if body.clock_in is not None:
+        updates["clock_in"] = parse_local(body.clock_in)
+    if body.clock_out is not None:
+        updates["clock_out"] = parse_local(body.clock_out)
+    if body.notes is not None:
+        updates["notes"] = body.notes
+
+    if not updates:
+        raise HTTPException(400, "Nothing to update")
+
+    # Validate clock_out > clock_in if both are being set or one already exists
+    final_in  = updates.get("clock_in")  or rec.data.get("clock_in")
+    final_out = updates.get("clock_out")
+    if final_in and final_out and final_out <= final_in:
+        raise HTTPException(400, "Jam keluar harus setelah jam masuk")
+
+    supabase.table("attendance").update(updates).eq("id", record_id).execute()
+    return {"message": "Attendance corrected"}
 
 
 @router.patch("/employees/{user_id}/role")

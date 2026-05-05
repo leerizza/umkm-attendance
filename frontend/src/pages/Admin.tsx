@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download,
+  TrendingUp, Settings, Download, Pencil,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -150,6 +150,27 @@ export default function AdminPage() {
       setExporting(false);
     }
   }
+
+  // ── Attendance correction ──────────────────────────────────
+  const [corrModal, setCorrModal] = useState<{
+    id: string; name: string; date: string;
+    clock_in: string; clock_out: string; notes: string;
+  } | null>(null);
+
+  const correctAtt = useMutation({
+    mutationFn: (vars: { id: string; clock_in: string; clock_out: string; notes: string }) =>
+      adminApi.correctAttendance(vars.id, {
+        clock_in:  vars.clock_in  || undefined,
+        clock_out: vars.clock_out || undefined,
+        notes:     vars.notes     || undefined,
+      }),
+    onSuccess: () => {
+      toast.success("Absensi dikoreksi!");
+      qc.invalidateQueries({ queryKey: ["admin-attendance"] });
+      setCorrModal(null);
+    },
+    onError: (err) => toast.error("Gagal koreksi", getErrMsg(err)),
+  });
 
   // ── Approve mutations ──────────────────────────────────────
   const [reviewModal, setReviewModal] = useState<{
@@ -301,6 +322,63 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ── Correction modal ── */}
+      {corrModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm">
+          <Card className="w-full md:max-w-sm rounded-t-2xl md:rounded-2xl border-0 shadow-xl animate-slide-up">
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <div>
+                <h3 className="font-bold text-base">Koreksi Absensi</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {corrModal.name} — {fmtDate(corrModal.date)}
+                </p>
+              </div>
+              <button onClick={() => setCorrModal(null)} className="text-muted-foreground hover:text-foreground">
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            <CardContent className="p-5 space-y-4">
+              <Input
+                label="Jam Masuk (WIB)"
+                type="datetime-local"
+                value={corrModal.clock_in}
+                onChange={(e) => setCorrModal({ ...corrModal, clock_in: e.target.value })}
+              />
+              <Input
+                label="Jam Keluar (WIB)"
+                type="datetime-local"
+                value={corrModal.clock_out}
+                onChange={(e) => setCorrModal({ ...corrModal, clock_out: e.target.value })}
+              />
+              <Input
+                label="Catatan (opsional)"
+                placeholder="Alasan koreksi..."
+                value={corrModal.notes}
+                onChange={(e) => setCorrModal({ ...corrModal, notes: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setCorrModal(null)}>
+                  Batal
+                </Button>
+                <Button
+                  className="flex-1"
+                  loading={correctAtt.isPending}
+                  disabled={!corrModal.clock_in && !corrModal.clock_out}
+                  onClick={() => correctAtt.mutate({
+                    id: corrModal.id,
+                    clock_in: corrModal.clock_in,
+                    clock_out: corrModal.clock_out,
+                    notes: corrModal.notes,
+                  })}
+                >
+                  Simpan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Tab bar */}
       <div className="sticky top-14 md:top-16 z-20 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex overflow-x-auto px-4 md:px-6 gap-0 scrollbar-hide">
@@ -410,7 +488,7 @@ export default function AdminPage() {
               data={attData}
               page={page}
               setPage={setPage}
-              cols={["Karyawan", "Tanggal", "Masuk", "Keluar", "Durasi", "Status"]}
+              cols={["Karyawan", "Tanggal", "Masuk", "Keluar", "Durasi", "Status", ""]}
               emptyIcon={<Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Belum ada data absensi"
               renderRow={(row: any) => {
@@ -420,6 +498,16 @@ export default function AdminPage() {
                         (new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000
                       )
                     : null;
+                // Format ISO datetime to datetime-local value (WIB)
+                function toLocal(iso: string | null) {
+                  if (!iso) return "";
+                  const d = new Date(new Date(iso).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+                  return d.getFullYear() + "-"
+                    + String(d.getMonth()+1).padStart(2,"0") + "-"
+                    + String(d.getDate()).padStart(2,"0") + "T"
+                    + String(d.getHours()).padStart(2,"0") + ":"
+                    + String(d.getMinutes()).padStart(2,"0");
+                }
                 return (
                 <Fragment key={row.id}>
                   <tr className="border-b border-border/50 hover:bg-muted/30">
@@ -431,10 +519,26 @@ export default function AdminPage() {
                       {workMinutes != null ? fmtDuration(workMinutes) : "—"}
                     </td>
                     <td className="px-4 py-3"><Badge status={row.status} /></td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => setCorrModal({
+                          id: row.id,
+                          name: row.profiles?.full_name ?? "—",
+                          date: row.date,
+                          clock_in:  toLocal(row.clock_in),
+                          clock_out: toLocal(row.clock_out),
+                          notes: row.notes ?? "",
+                        })}
+                        className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                        title="Koreksi absensi"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                   {row.notes && (
                     <tr className="border-b border-border/50 bg-muted/20">
-                      <td colSpan={6} className="px-4 py-2">
+                      <td colSpan={7} className="px-4 py-2">
                         <p className="text-xs text-muted-foreground">
                           <span className="font-semibold">Catatan:</span> {row.notes}
                         </p>

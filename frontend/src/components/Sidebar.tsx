@@ -31,9 +31,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-60 min-h-screen bg-white border-r border-border shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
-        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-          <Clock className="h-4 w-4 text-white" />
-        </div>
+        <img src="/donkap-id.png" alt="Donkap ID" className="w-8 h-8 object-contain shrink-0" />
         <div>
           <p className="text-sm font-bold text-foreground leading-none">Smart Absensi</p>
           <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[120px]">

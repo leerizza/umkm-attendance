@@ -125,9 +125,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm animate-fade-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary shadow-glow flex items-center justify-center mb-3">
-            <Clock className="h-7 w-7 text-white" />
-          </div>
+          <img src="/donkap-id.png" alt="Donkap ID" className="w-16 h-16 object-contain mb-3" />
           <h1 className="text-2xl font-extrabold text-foreground">Smart Absensi</h1>
           <p className="text-sm text-muted-foreground mt-1">Sistem absensi digital untuk UMKM</p>
         </div>

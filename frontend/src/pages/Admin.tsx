@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download, Pencil, BarChart2,
+  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -111,10 +111,26 @@ export default function AdminPage() {
   });
 
   // ── Employees ──────────────────────────────────────────────
+  const [empSearch, setEmpSearch] = useState("");
+  const [empActiveFilter, setEmpActiveFilter] = useState<"all" | "active" | "inactive">("all");
+  const [empHistModal, setEmpHistModal] = useState<{ id: string; name: string } | null>(null);
+  const [empHistPage, setEmpHistPage] = useState(1);
+
   const { data: empData, isLoading: empLoading } = useQuery({
-    queryKey: ["admin-employees", page],
-    queryFn: () => adminApi.employees(page).then((r) => r.data),
+    queryKey: ["admin-employees", page, empSearch, empActiveFilter],
+    queryFn: () => adminApi.employees(
+      page,
+      empSearch || undefined,
+      empActiveFilter === "active" ? true : empActiveFilter === "inactive" ? false : undefined,
+    ).then((r) => r.data),
     enabled: tab === "employees",
+    placeholderData: (p) => p,
+  });
+
+  const { data: empHistData, isLoading: empHistLoading } = useQuery({
+    queryKey: ["admin-emp-history", empHistModal?.id, empHistPage],
+    queryFn: () => adminApi.employeeAttendance(empHistModal!.id, empHistPage).then((r) => r.data),
+    enabled: !!empHistModal,
     placeholderData: (p) => p,
   });
 
@@ -667,7 +683,38 @@ export default function AdminPage() {
 
         {/* ── Employees ── */}
         {tab === "employees" && (
-          <div className="animate-fade-in">
+          <div className="space-y-3 animate-fade-in">
+            {/* Search + filter bar */}
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="search"
+                  placeholder="Cari nama karyawan..."
+                  value={empSearch}
+                  onChange={(e) => { setEmpSearch(e.target.value); resetPage(); }}
+                  className="w-full h-8 pl-8 pr-3 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                {empSearch && (
+                  <button
+                    onClick={() => { setEmpSearch(""); resetPage(); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <FilterBar
+                value={empActiveFilter}
+                onChange={(v) => { setEmpActiveFilter(v as any); resetPage(); }}
+                options={[
+                  { value: "all",      label: "Semua" },
+                  { value: "active",   label: "Aktif" },
+                  { value: "inactive", label: "Nonaktif" },
+                ]}
+              />
+            </div>
+
             <TableWrapper
               isLoading={empLoading}
               data={empData}
@@ -679,7 +726,12 @@ export default function AdminPage() {
               renderRow={(row: any) => (
                 <tr key={row.id} className={cn("border-b border-border/50 hover:bg-muted/30", !row.is_active && "opacity-50")}>
                   <td className="px-4 py-3 font-medium text-sm">
-                    {row.full_name}
+                    <button
+                      onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }}
+                      className="text-left hover:text-primary hover:underline transition-colors"
+                    >
+                      {row.full_name}
+                    </button>
                     {!row.is_active && <span className="ml-1.5 text-[10px] text-red-500 font-normal">(nonaktif)</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
@@ -713,11 +765,85 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── Employee attendance history modal ── */}
+        {empHistModal && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="w-full md:max-w-2xl bg-card rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+                <div>
+                  <h3 className="font-bold text-base">Riwayat Absensi</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{empHistModal.name}</p>
+                </div>
+                <button onClick={() => setEmpHistModal(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="overflow-auto flex-1">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-muted/90">
+                    <tr className="border-b border-border">
+                      {["Tanggal", "Masuk", "Keluar", "Durasi", "Status"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {empHistLoading
+                      ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)
+                      : !empHistData?.data?.length
+                      ? (
+                        <tr>
+                          <td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
+                            <Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            Belum ada data absensi
+                          </td>
+                        </tr>
+                      )
+                      : empHistData.data.map((row: any) => {
+                        const mins = row.clock_in && row.clock_out
+                          ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
+                          : null;
+                        return (
+                          <tr key={row.id} className="border-b border-border/50 hover:bg-muted/20">
+                            <td className="px-4 py-3 text-xs font-medium">{fmtDate(row.date)}</td>
+                            <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : "—"}</td>
+                            <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : "—"}</td>
+                            <td className="px-4 py-3 text-xs text-purple-600 font-mono">{mins != null ? fmtDuration(mins) : "—"}</td>
+                            <td className="px-4 py-3"><Badge status={row.status} /></td>
+                          </tr>
+                        );
+                      })
+                    }
+                  </tbody>
+                </table>
+              </div>
+              {/* Pagination */}
+              {(empHistData?.total ?? 0) > 20 && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-border shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    Halaman {empHistPage} dari {Math.ceil((empHistData?.total ?? 0) / 20)}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEmpHistPage((p) => Math.max(1, p - 1))} disabled={empHistPage === 1}>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEmpHistPage((p) => p + 1)} disabled={empHistPage >= Math.ceil((empHistData?.total ?? 0) / 20)}>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Monthly Report ── */}
         {tab === "report" && (
           <div className="space-y-4 animate-fade-in">
-            {/* Month picker */}
-            <div className="flex items-center gap-2">
+            {/* Month picker + export */}
+            <div className="flex items-center gap-2 flex-wrap">
               <input
                 type="month"
                 value={`${reportYear}-${String(reportMonth).padStart(2, "0")}`}
@@ -728,9 +854,34 @@ export default function AdminPage() {
                 }}
                 className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground flex-1">
                 {reportData ? `${reportData.data.length} karyawan` : ""}
               </span>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={exporting}
+                onClick={async () => {
+                  setExporting(true);
+                  try {
+                    const res = await adminApi.exportMonthlyReport(reportYear, reportMonth);
+                    const url = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `rekap_${reportYear}_${String(reportMonth).padStart(2, "0")}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("Export rekap berhasil!");
+                  } catch (err) {
+                    toast.error("Export gagal", getErrMsg(err));
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
             </div>
 
             <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-card">

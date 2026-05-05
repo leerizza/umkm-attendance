@@ -18,6 +18,10 @@ class ProfileUpdateRequest(BaseModel):
     phone: str | None = None
     position: str | None = None
 
+
+class ChangePasswordRequest(BaseModel):
+    new_password: str
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -176,6 +180,28 @@ async def refresh_token(body: RefreshRequest):
         "refresh_token": res.session.refresh_token,
         "expires_at": res.session.expires_at,
     }
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    profile: dict = Depends(get_current_profile),
+):
+    async with httpx.AsyncClient() as client:
+        resp = await client.put(
+            f"{settings.supabase_url}/auth/v1/admin/users/{profile['id']}",
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Authorization": f"Bearer {settings.supabase_service_key}",
+            },
+            json={"password": body.new_password},
+            timeout=10.0,
+        )
+    if resp.status_code not in (200, 201):
+        data = resp.json()
+        msg = data.get("msg") or data.get("message") or data.get("error_description") or "Gagal mengubah password"
+        raise HTTPException(400, msg)
+    return {"message": "Password berhasil diubah"}
 
 
 @router.patch("/profile/me")

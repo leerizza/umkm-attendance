@@ -20,6 +20,12 @@ function toDatetimeLocal(iso: string | null): string {
     + String(d.getMinutes()).padStart(2, "0");
 }
 
+const corrStatusMap: Record<string, { label: string; className: string }> = {
+  pending:  { label: "Koreksi: Menunggu", className: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+  approved: { label: "Koreksi: Disetujui", className: "bg-green-100 text-green-700 border border-green-200" },
+  rejected: { label: "Koreksi: Ditolak",  className: "bg-red-100 text-red-700 border border-red-200" },
+};
+
 export default function AttendancePage() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 20;
@@ -31,6 +37,24 @@ export default function AttendancePage() {
     queryFn: () => attendanceApi.history(page, PER_PAGE).then((r) => r.data),
     placeholderData: (prev) => prev,
   });
+
+  // Fetch all my corrections (up to 100) to map by attendance_id
+  const { data: corrData } = useQuery({
+    queryKey: ["my-corrections"],
+    queryFn: () => correctionsApi.list(1).then((r) => r.data),
+  });
+
+  // Build a map: attendance_id → latest correction status
+  const corrByAttId: Record<string, string> = {};
+  if (corrData?.data) {
+    for (const c of corrData.data) {
+      const aid = c.attendance_id;
+      // If multiple corrections exist, "pending" takes priority, else keep the latest
+      if (!corrByAttId[aid] || c.status === "pending") {
+        corrByAttId[aid] = c.status;
+      }
+    }
+  }
 
   const totalPages = data ? Math.ceil(data.total / PER_PAGE) : 1;
 
@@ -53,6 +77,7 @@ export default function AttendancePage() {
     onSuccess: () => {
       toast.success("Pengajuan koreksi terkirim!", "Menunggu persetujuan admin");
       qc.invalidateQueries({ queryKey: ["attendance-history"] });
+      qc.invalidateQueries({ queryKey: ["my-corrections"] });
       setCorrModal(null);
     },
     onError: (err) => toast.error("Gagal mengajukan", getErrMsg(err)),
@@ -150,6 +175,9 @@ export default function AttendancePage() {
                       : null;
                     const h = duration ? Math.floor(duration / 60) : null;
                     const m = duration ? duration % 60 : null;
+                    const corrStatus = corrByAttId[row.id];
+                    const corrInfo = corrStatus ? corrStatusMap[corrStatus] : null;
+                    const hasPending = corrStatus === "pending";
                     return (
                       <Fragment key={row.id}>
                         <tr className="border-b border-border/50 hover:bg-muted/30 transition-colors">
@@ -168,20 +196,37 @@ export default function AttendancePage() {
                           </td>
                           <td className="px-4 py-3">
                             <button
-                              onClick={() => setCorrModal({
-                                attendance_id: row.id,
-                                date: row.date,
-                                clock_in:  toDatetimeLocal(row.clock_in),
-                                clock_out: toDatetimeLocal(row.clock_out),
-                                reason: "",
-                              })}
-                              className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-                              title="Ajukan koreksi"
+                              onClick={() => {
+                                if (hasPending) return;
+                                setCorrModal({
+                                  attendance_id: row.id,
+                                  date: row.date,
+                                  clock_in:  toDatetimeLocal(row.clock_in),
+                                  clock_out: toDatetimeLocal(row.clock_out),
+                                  reason: "",
+                                });
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                hasPending
+                                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                  : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                              }`}
+                              title={hasPending ? "Ada koreksi yang sedang menunggu" : "Ajukan koreksi"}
+                              disabled={hasPending}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
                           </td>
                         </tr>
+                        {corrInfo && (
+                          <tr key={`${row.id}-corr`} className="border-b border-border/50 bg-muted/10">
+                            <td colSpan={6} className="px-4 py-1.5">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${corrInfo.className}`}>
+                                {corrInfo.label}
+                              </span>
+                            </td>
+                          </tr>
+                        )}
                         {row.notes && (
                           <tr key={`${row.id}-notes`} className="border-b border-border/50 bg-muted/20">
                             <td colSpan={6} className="px-4 py-2">

@@ -126,18 +126,56 @@ async def admin_overtime(
 async def admin_employees(
     page: int = 1,
     per_page: int = 20,
+    search: str = None,
+    is_active: bool = None,
     admin: dict = Depends(require_admin),
 ):
     offset = (page - 1) * per_page
-    res = (
+    q = (
         supabase.table("profiles")
         .select("*", count="exact")
         .eq("company_id", admin["company_id"])
         .order("full_name")
+    )
+    if search:
+        q = q.ilike("full_name", f"%{search}%")
+    if is_active is not None:
+        q = q.eq("is_active", is_active)
+    res = q.range(offset, offset + per_page - 1).execute()
+    return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
+
+
+@router.get("/employees/{user_id}/attendance")
+async def employee_attendance_history(
+    user_id: str,
+    page: int = 1,
+    per_page: int = 20,
+    admin: dict = Depends(require_admin),
+):
+    try:
+        emp = supabase.table("profiles").select("company_id, full_name").eq("id", user_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Karyawan tidak ditemukan")
+    if not emp.data or emp.data["company_id"] != admin["company_id"]:
+        raise HTTPException(404, "Karyawan tidak ditemukan")
+
+    offset = (page - 1) * per_page
+    res = (
+        supabase.table("attendance")
+        .select("*", count="exact")
+        .eq("user_id", user_id)
+        .eq("company_id", admin["company_id"])
+        .order("date", desc=True)
         .range(offset, offset + per_page - 1)
         .execute()
     )
-    return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
+    return {
+        "employee": emp.data,
+        "data": res.data,
+        "total": res.count,
+        "page": page,
+        "per_page": per_page,
+    }
 
 
 @router.get("/company")
@@ -274,6 +312,89 @@ async def monthly_report(
         })
 
     return {"year": year, "month": month, "data": result}
+
+
+@router.get("/report/monthly/export")
+async def export_monthly_report_csv(
+    year: int = None,
+    month: int = None,
+    admin: dict = Depends(require_admin),
+):
+    """Export monthly per-employee summary as CSV."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import calendar
+    from collections import defaultdict
+
+    today = datetime.now(ZoneInfo("Asia/Jakarta")).date()
+    year  = year  or today.year
+    month = month or today.month
+
+    first_day = f"{year}-{month:02d}-01"
+    last_day  = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
+    company_id = admin["company_id"]
+
+    emp_res = supabase.table("profiles").select("id, full_name, position").eq("company_id", company_id).eq("is_active", True).order("full_name").execute()
+    employees = emp_res.data or []
+
+    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_rows = att_res.data or []
+
+    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").gte("start_date", first_day).lte("end_date", last_day).execute()
+    leave_rows = leave_res.data or []
+
+    ot_res = supabase.table("overtime_requests").select("user_id, duration_minutes").eq("company_id", company_id).eq("status", "approved").gte("date", first_day).lte("date", last_day).execute()
+    ot_rows = ot_res.data or []
+
+    att_by_user   = defaultdict(list)
+    leave_by_user = defaultdict(int)
+    ot_by_user    = defaultdict(int)
+    for r in att_rows:
+        att_by_user[r["user_id"]].append(r)
+    for r in leave_rows:
+        leave_by_user[r["user_id"]] += r.get("days_count") or 0
+    for r in ot_rows:
+        ot_by_user[r["user_id"]] += r.get("duration_minutes") or 0
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    import calendar as cal_module
+    month_name = f"{year}-{month:02d}"
+    writer.writerow(["Rekap Absensi Bulanan", month_name])
+    writer.writerow([])
+    writer.writerow(["Nama", "Jabatan", "Hadir", "Terlambat", "Cuti (hari)", "Lembur (menit)", "Total Kerja (jam)"])
+
+    for emp in employees:
+        uid  = emp["id"]
+        rows = att_by_user[uid]
+        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late"))
+        terlambat = sum(1 for r in rows if r.get("status") == "late")
+        work_min  = 0
+        for r in rows:
+            if r.get("clock_in") and r.get("clock_out"):
+                try:
+                    ci = datetime.fromisoformat(r["clock_in"].replace("Z", "+00:00"))
+                    co = datetime.fromisoformat(r["clock_out"].replace("Z", "+00:00"))
+                    work_min += max(0, int((co - ci).total_seconds() / 60))
+                except Exception:
+                    pass
+        writer.writerow([
+            emp["full_name"],
+            emp.get("position") or "",
+            hadir,
+            terlambat,
+            leave_by_user[uid],
+            ot_by_user[uid],
+            round(work_min / 60, 1),
+        ])
+
+    output.seek(0)
+    filename = f"rekap_{year}_{month:02d}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/attendance/export")

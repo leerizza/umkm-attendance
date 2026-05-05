@@ -73,6 +73,8 @@ export const authApi = {
     api.post("/auth/register-company", data),
   updateProfile:   (data: { full_name?: string; phone?: string; position?: string }) =>
     api.patch("/auth/profile/me", data),
+  changePassword:  (new_password: string) =>
+    api.post("/auth/change-password", { new_password }),
 };
 
 export const attendanceApi = {
@@ -111,8 +113,10 @@ export const adminApi = {
     api.get("/admin/leave", { params: { page, status_filter } }),
   overtime:        (page = 1, status_filter?: string) =>
     api.get("/admin/overtime", { params: { page, status_filter } }),
-  employees:       (page = 1) =>
-    api.get("/admin/employees", { params: { page } }),
+  employees:       (page = 1, search?: string, is_active?: boolean) =>
+    api.get("/admin/employees", { params: { page, search: search || undefined, is_active } }),
+  employeeAttendance: (user_id: string, page = 1) =>
+    api.get(`/admin/employees/${user_id}/attendance`, { params: { page } }),
   getCompany:           () => api.get("/admin/company"),
   updateCompany:        (data: CompanyUpdatePayload) => api.patch("/admin/company", data),
   exportAttendance:     (date_from?: string, date_to?: string) =>
@@ -128,6 +132,11 @@ export const adminApi = {
     api.patch(`/admin/attendance/${id}`, data),
   monthlyReport: (year?: number, month?: number) =>
     api.get("/admin/report/monthly", { params: { year, month } }),
+  exportMonthlyReport: (year?: number, month?: number) =>
+    api.get("/admin/report/monthly/export", {
+      params: { year, month },
+      responseType: "blob",
+    }),
 };
 
 export const correctionsApi = {

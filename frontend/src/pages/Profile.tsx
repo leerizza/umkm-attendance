@@ -10,13 +10,16 @@ import { authApi } from "@/lib/api";
 import { getInitials, getErrMsg } from "@/lib/utils";
 import {
   User, Mail, Phone, Briefcase, Building2,
-  MapPin, Clock, LogOut, Shield, Pencil, X,
+  MapPin, Clock, LogOut, Shield, Pencil, X, Lock, Eye, EyeOff,
 } from "lucide-react";
 
 export default function ProfilePage() {
   const { profile, setProfile, logout } = useAuthStore();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
+  const [changingPw, setChangingPw] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [newPw, setNewPw] = useState("");
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
@@ -33,6 +36,16 @@ export default function ProfilePage() {
       setEditing(false);
     },
     onError: (err) => toast.error("Gagal memperbarui", getErrMsg(err)),
+  });
+
+  const pwMutation = useMutation({
+    mutationFn: () => authApi.changePassword(newPw),
+    onSuccess: () => {
+      toast.success("Password berhasil diubah!");
+      setChangingPw(false);
+      setNewPw("");
+    },
+    onError: (err) => toast.error("Gagal mengubah password", getErrMsg(err)),
   });
 
   const readonlyFields = [
@@ -59,6 +72,7 @@ export default function ProfilePage() {
                 setForm({ full_name: profile.full_name, phone: profile.phone ?? "", position: profile.position ?? "" });
               }
               setEditing(!editing);
+              setChangingPw(false);
             }}
           >
             {editing ? <><X className="h-4 w-4" /> Batal</> : <><Pencil className="h-4 w-4" /> Edit</>}
@@ -123,7 +137,6 @@ export default function ProfilePage() {
         {/* Info list (readonly) */}
         <Card>
           <CardContent className="p-0 divide-y divide-border">
-            {/* Editable fields shown in readonly mode */}
             {[
               { icon: User,      label: "Nama",    value: profile.full_name },
               { icon: Phone,     label: "No. HP",  value: profile.phone ?? "—" },
@@ -139,7 +152,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             ))}
-            {/* Readonly fields */}
             {readonlyFields.map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center gap-3 px-5 py-3.5">
                 <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -153,6 +165,56 @@ export default function ProfilePage() {
             ))}
           </CardContent>
         </Card>
+
+        {/* Change password section */}
+        {!changingPw ? (
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => { setChangingPw(true); setEditing(false); }}
+          >
+            <Lock className="h-4 w-4" />
+            Ganti Password
+          </Button>
+        ) : (
+          <Card>
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">Ganti Password</p>
+                <button onClick={() => { setChangingPw(false); setNewPw(""); }} className="text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  label="Password Baru"
+                  type={showPw ? "text" : "password"}
+                  placeholder="Minimal 6 karakter"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  leftIcon={<Lock className="h-4 w-4" />}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-9 text-muted-foreground"
+                  onClick={() => setShowPw(!showPw)}
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button
+                className="w-full"
+                size="lg"
+                loading={pwMutation.isPending}
+                onClick={() => pwMutation.mutate()}
+                disabled={newPw.length < 6}
+              >
+                Simpan Password
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Logout */}
         <Button variant="destructive" size="lg" className="w-full" onClick={logout}>

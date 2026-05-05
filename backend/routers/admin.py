@@ -197,6 +197,85 @@ async def update_company(
     return {"message": "Company settings updated", "data": res.data}
 
 
+@router.get("/report/monthly")
+async def monthly_report(
+    year: int = None,
+    month: int = None,
+    admin: dict = Depends(require_admin),
+):
+    """Per-employee monthly summary: hadir, terlambat, cuti, lembur, total jam kerja."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import calendar
+
+    today = datetime.now(ZoneInfo("Asia/Jakarta")).date()
+    year  = year  or today.year
+    month = month or today.month
+
+    first_day = f"{year}-{month:02d}-01"
+    last_day  = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
+    company_id = admin["company_id"]
+
+    # All active employees
+    emp_res = supabase.table("profiles").select("id, full_name, position").eq("company_id", company_id).eq("is_active", True).order("full_name").execute()
+    employees = emp_res.data or []
+
+    # All attendance in range
+    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_rows = att_res.data or []
+
+    # Approved leaves in range
+    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").gte("start_date", first_day).lte("end_date", last_day).execute()
+    leave_rows = leave_res.data or []
+
+    # Approved overtime in range
+    ot_res = supabase.table("overtime_requests").select("user_id, duration_minutes").eq("company_id", company_id).eq("status", "approved").gte("date", first_day).lte("date", last_day).execute()
+    ot_rows = ot_res.data or []
+
+    # Build per-user index
+    from collections import defaultdict
+    att_by_user   = defaultdict(list)
+    leave_by_user = defaultdict(int)
+    ot_by_user    = defaultdict(int)
+
+    for r in att_rows:
+        att_by_user[r["user_id"]].append(r)
+    for r in leave_rows:
+        leave_by_user[r["user_id"]] += r.get("days_count") or 0
+    for r in ot_rows:
+        ot_by_user[r["user_id"]] += r.get("duration_minutes") or 0
+
+    result = []
+    for emp in employees:
+        uid  = emp["id"]
+        rows = att_by_user[uid]
+
+        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late"))
+        terlambat = sum(1 for r in rows if r.get("status") == "late")
+        work_min  = 0
+        for r in rows:
+            if r.get("clock_in") and r.get("clock_out"):
+                try:
+                    ci = datetime.fromisoformat(r["clock_in"].replace("Z", "+00:00"))
+                    co = datetime.fromisoformat(r["clock_out"].replace("Z", "+00:00"))
+                    work_min += max(0, int((co - ci).total_seconds() / 60))
+                except Exception:
+                    pass
+
+        result.append({
+            "user_id":          uid,
+            "full_name":        emp["full_name"],
+            "position":         emp.get("position"),
+            "hadir":            hadir,
+            "terlambat":        terlambat,
+            "cuti_days":        leave_by_user[uid],
+            "lembur_minutes":   ot_by_user[uid],
+            "work_minutes":     work_min,
+        })
+
+    return {"year": year, "month": month, "data": result}
+
+
 @router.get("/attendance/export")
 async def export_attendance_csv(
     date_from: str = None,

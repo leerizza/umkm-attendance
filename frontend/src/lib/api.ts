@@ -126,6 +126,8 @@ export const adminApi = {
     api.patch(`/admin/employees/${id}/role`, null, { params: { role } }),
   correctAttendance: (id: string, data: { clock_in?: string; clock_out?: string; notes?: string }) =>
     api.patch(`/admin/attendance/${id}`, data),
+  monthlyReport: (year?: number, month?: number) =>
+    api.get("/admin/report/monthly", { params: { year, month } }),
 };
 
 export const correctionsApi = {

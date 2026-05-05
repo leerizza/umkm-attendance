@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download, Pencil,
+  TrendingUp, Settings, Download, Pencil, BarChart2,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { adminApi, leaveApi, overtimeApi, correctionsApi } from "@/lib/api";
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 
-type AdminTab = "overview" | "attendance" | "leave" | "overtime" | "employees" | "corrections" | "settings";
+type AdminTab = "overview" | "attendance" | "leave" | "overtime" | "employees" | "corrections" | "report" | "settings";
 
 const TABS: { id: AdminTab; label: string; Icon: any }[] = [
   { id: "overview",    label: "Overview",   Icon: TrendingUp },
@@ -24,6 +24,7 @@ const TABS: { id: AdminTab; label: string; Icon: any }[] = [
   { id: "overtime",    label: "Lembur",     Icon: Timer },
   { id: "corrections", label: "Koreksi",    Icon: Pencil },
   { id: "employees",   label: "Karyawan",   Icon: Users },
+  { id: "report",      label: "Rekap",      Icon: BarChart2 },
   { id: "settings",    label: "Pengaturan", Icon: Settings },
 ];
 
@@ -96,6 +97,17 @@ export default function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (err) => toast.error("Gagal", getErrMsg(err)),
+  });
+
+  // ── Monthly report ────────────────────────────────────────
+  const now = new Date();
+  const [reportYear,  setReportYear]  = useState(now.getFullYear());
+  const [reportMonth, setReportMonth] = useState(now.getMonth() + 1);
+
+  const { data: reportData, isLoading: reportLoading } = useQuery({
+    queryKey: ["admin-report", reportYear, reportMonth],
+    queryFn: () => adminApi.monthlyReport(reportYear, reportMonth).then((r) => r.data),
+    enabled: tab === "report",
   });
 
   // ── Employees ──────────────────────────────────────────────
@@ -325,21 +337,33 @@ export default function AdminPage() {
       {/* Tab bar */}
       <div className="sticky top-14 md:top-16 z-20 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex overflow-x-auto px-4 md:px-6 gap-0 scrollbar-hide">
-          {TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => { setTab(id); resetPage(); }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors shrink-0",
-                tab === id
-                  ? "text-primary border-primary"
-                  : "text-muted-foreground border-transparent hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
+          {TABS.map(({ id, label, Icon }) => {
+            const badge =
+              id === "leave"       ? (stats?.pending_leaves      ?? 0)
+            : id === "overtime"    ? (stats?.pending_overtime    ?? 0)
+            : id === "corrections" ? (stats?.pending_corrections ?? 0)
+            : 0;
+            return (
+              <button
+                key={id}
+                onClick={() => { setTab(id); resetPage(); }}
+                className={cn(
+                  "relative flex items-center gap-1.5 px-3 py-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors shrink-0",
+                  tab === id
+                    ? "text-primary border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+                {badge > 0 && (
+                  <span className="absolute top-2 right-0.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -686,6 +710,89 @@ export default function AdminPage() {
                 </tr>
               )}
             />
+          </div>
+        )}
+
+        {/* ── Monthly Report ── */}
+        {tab === "report" && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Month picker */}
+            <div className="flex items-center gap-2">
+              <input
+                type="month"
+                value={`${reportYear}-${String(reportMonth).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const [y, m] = e.target.value.split("-").map(Number);
+                  setReportYear(y);
+                  setReportMonth(m);
+                }}
+                className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span className="text-xs text-muted-foreground">
+                {reportData ? `${reportData.data.length} karyawan` : ""}
+              </span>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-card">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border">
+                      {["Karyawan", "Jabatan", "Hadir", "Terlambat", "Cuti", "Lembur", "Total Jam"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportLoading
+                      ? Array.from({ length: 5 }).map((_, i) => (
+                          <tr key={i} className="border-b border-border/50">
+                            {Array.from({ length: 7 }).map((_, j) => (
+                              <td key={j} className="px-4 py-3">
+                                <div className="h-3 bg-muted rounded animate-pulse w-16" />
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      : !reportData?.data?.length
+                      ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
+                            <BarChart2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            Tidak ada data untuk bulan ini
+                          </td>
+                        </tr>
+                      )
+                      : reportData.data.map((row: any) => (
+                        <tr key={row.user_id} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="px-4 py-3 font-medium text-sm">{row.full_name}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="font-bold text-emerald-600">{row.hadir}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={cn("font-semibold text-sm", row.terlambat > 0 ? "text-amber-600" : "text-muted-foreground")}>
+                              {row.terlambat}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="font-semibold text-blue-600">{row.cuti_days}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono text-amber-600">
+                            {row.lembur_minutes > 0 ? fmtDuration(row.lembur_minutes) : "—"}
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono font-semibold text-purple-600">
+                            {row.work_minutes > 0 ? fmtDuration(row.work_minutes) : "—"}
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "icons/*.png"],
       manifest: {
-        name: "Smart UMKM Attendance",
-        short_name: "Absensi UMKM",
+        name: "Donkap",
+        short_name: "Donkap",
         description: "Sistem absensi digital untuk UMKM Indonesia",
         theme_color: "#4f46e5",
         background_color: "#f8fafc",

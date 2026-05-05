@@ -95,7 +95,7 @@ export function AttendanceNotifier() {
         if (now - last >= INTERVAL_MS) {
           notify(
             "⏰ Jangan lupa absen masuk!",
-            "Buka Smart Absensi dan lakukan clock-in sekarang.",
+            "Buka Donkap dan lakukan clock-in sekarang.",
             "clock-in-reminder",
           );
           localStorage.setItem(KEY_IN, String(now));
@@ -108,7 +108,7 @@ export function AttendanceNotifier() {
         if (now - last >= INTERVAL_MS) {
           notify(
             "🏠 Jangan lupa absen keluar!",
-            "Sudah waktunya clock-out. Buka Smart Absensi.",
+            "Sudah waktunya clock-out. Buka Donkap.",
             "clock-out-reminder",
           );
           localStorage.setItem(KEY_OUT, String(now));

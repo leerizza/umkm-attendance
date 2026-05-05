@@ -223,7 +223,7 @@ export default function ProfilePage() {
         </Button>
 
         <p className="text-center text-xs text-muted-foreground pb-2">
-          Smart UMKM Attendance v1.0.0
+          Donkap v1.0.0
         </p>
       </div>
     </div>

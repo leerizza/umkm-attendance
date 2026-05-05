@@ -126,7 +126,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src="/donkap-id.png" alt="Donkap ID" className="w-16 h-16 object-contain mb-3" />
-          <h1 className="text-2xl font-extrabold text-foreground">Smart Absensi</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Donkap</h1>
           <p className="text-sm text-muted-foreground mt-1">Sistem absensi digital untuk UMKM</p>
         </div>
 
@@ -394,7 +394,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Smart UMKM Attendance &copy; 2026
+          Donkap &copy; 2026
         </p>
       </div>
     </div>

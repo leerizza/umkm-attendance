@@ -33,7 +33,7 @@ export function Sidebar() {
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
         <img src="/donkap-id.png" alt="Donkap ID" className="w-8 h-8 object-contain shrink-0" />
         <div>
-          <p className="text-sm font-bold text-foreground leading-none">Smart Absensi</p>
+          <p className="text-sm font-bold text-foreground leading-none">Donkap</p>
           <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[120px]">
             {profile?.companies?.name ?? "UMKM"}
           </p>

@@ -79,11 +79,11 @@ async def create_correction(
             payload["requested_clock_out"] = _parse_wib(body.requested_clock_out)
 
         try:
-            res = supabase.table("attendance_corrections").insert(payload).execute()
+            supabase.table("attendance_corrections").insert(payload).execute()
         except Exception as e:
             raise HTTPException(500, f"Gagal menyimpan koreksi: {str(e)}")
 
-        return {"message": "Pengajuan koreksi terkirim", "data": res.data[0]}
+        return {"message": "Pengajuan koreksi terkirim"}
 
     except HTTPException:
         raise
@@ -121,11 +121,7 @@ async def admin_list_corrections(
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance_corrections")
-        .select(
-            "*, profiles!attendance_corrections_user_id_fkey(full_name, position),"
-            " attendance(date, clock_in, clock_out)",
-            count="exact",
-        )
+        .select("*, profiles(full_name, position), attendance(date, clock_in, clock_out)", count="exact")
         .eq("company_id", admin["company_id"])
         .order("created_at", desc=True)
     )

@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -n \"try\\\\|except\\\\|raise\\\\|Exception\" /Users/rizagumelar/Downloads/umkm-attendance/backend/routers/*.py)"
+      "Bash(grep -n \"try\\\\|except\\\\|raise\\\\|Exception\" /Users/rizagumelar/Downloads/umkm-attendance/backend/routers/*.py)",
+      "Bash(npx tsc *)",
+      "Bash(git -C /Users/rizagumelar/Downloads/umkm-attendance add frontend/src/components/AttendanceNotifier.tsx)",
+      "Bash(git -C /Users/rizagumelar/Downloads/umkm-attendance commit -m ' *)",
+      "Bash(git -C /Users/rizagumelar/Downloads/umkm-attendance push)",
+      "Bash(git -C /Users/rizagumelar/Downloads/umkm-attendance add backend/config.py)",
+      "Bash(git -C /Users/rizagumelar/Downloads/umkm-attendance add frontend/src/pages/Admin.tsx)"
     ]
   }
 }

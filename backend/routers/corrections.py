@@ -106,7 +106,7 @@ async def admin_list_corrections(
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance_corrections")
-        .select("*, profiles(full_name, position), attendance(date, clock_in, clock_out)", count="exact")
+        .select("*, profiles!user_id(full_name, position), attendance(date, clock_in, clock_out)", count="exact")
         .eq("company_id", admin["company_id"])
         .order("created_at", desc=True)
     )

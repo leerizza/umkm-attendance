@@ -17,9 +17,12 @@ from routers import auth, attendance, leave, overtime, admin, superadmin, correc
 # response, regardless of where the exception originated.
 class CORSErrorMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        from fastapi import HTTPException as FastAPIHTTPException
         try:
             response = await call_next(request)
             return response
+        except FastAPIHTTPException:
+            raise  # let FastAPI's ExceptionMiddleware handle it with proper status + CORS
         except Exception:
             origin = request.headers.get("origin", "*")
             return JSONResponse(

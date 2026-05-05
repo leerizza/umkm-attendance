@@ -5,7 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
-from routers import auth, attendance, leave, overtime, admin, superadmin
+from routers import auth, attendance, leave, overtime, admin, superadmin, corrections
 
 app = FastAPI(
     title="Smart UMKM Attendance API",
@@ -43,6 +43,7 @@ app.include_router(leave.router)
 app.include_router(overtime.router)
 app.include_router(admin.router)
 app.include_router(superadmin.router)
+app.include_router(corrections.router)
 
 
 @app.get("/health")

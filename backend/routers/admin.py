@@ -46,13 +46,15 @@ async def get_stats(admin: dict = Depends(require_admin)):
     # Pending overtime
     ot_res = supabase.table("overtime_requests").select("id", count="exact").eq("company_id", company_id).eq("status", "pending").execute()
 
-    clocked_in = sum(1 for r in (att_res.data or []) if r.get("clock_in") or r.get("status") == "present")
+    # Pending corrections
+    corr_res = supabase.table("attendance_corrections").select("id", count="exact").eq("company_id", company_id).eq("status", "pending").execute()
 
     return {
         "total_employees": emp_res.count or 0,
         "present_today": att_res.count or 0,
         "pending_leaves": leave_res.count or 0,
         "pending_overtime": ot_res.count or 0,
+        "pending_corrections": corr_res.count or 0,
     }
 
 

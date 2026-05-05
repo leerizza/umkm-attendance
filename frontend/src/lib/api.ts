@@ -128,6 +128,16 @@ export const adminApi = {
     api.patch(`/admin/attendance/${id}`, data),
 };
 
+export const correctionsApi = {
+  create:  (data: { attendance_id: string; requested_clock_in?: string; requested_clock_out?: string; reason: string }) =>
+    api.post("/corrections", data),
+  list:    (page = 1) => api.get("/corrections", { params: { page } }),
+  adminList:   (page = 1, status_filter?: string) =>
+    api.get("/corrections/admin", { params: { page, status_filter } }),
+  approve: (id: string, status: string, reviewer_note?: string) =>
+    api.post(`/corrections/${id}/approve`, { status, reviewer_note }),
+};
+
 export const superadminApi = {
   stats:           () => api.get("/superadmin/stats"),
   listCompanies:   (page = 1) => api.get("/superadmin/companies", { params: { page } }),

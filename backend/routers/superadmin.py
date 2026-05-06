@@ -85,8 +85,8 @@ async def create_company(
     payload = body.model_dump()
     payload["code"] = payload["code"].upper()
 
-    res = supabase.table("companies").insert(payload).execute()
-    return {"message": "Company created", "data": res.data[0]}
+    supabase.table("companies").insert(payload).execute()
+    return {"message": "Company created"}
 
 
 @router.get("/companies/{company_id}")

@@ -40,7 +40,7 @@ async def create_leave(
 
     days_count = (body.end_date - body.start_date).days + 1
 
-    res = supabase.table("leave_requests").insert({
+    supabase.table("leave_requests").insert({
         "user_id": user_id,
         "company_id": profile["company_id"],
         "leave_type": body.leave_type,
@@ -51,7 +51,7 @@ async def create_leave(
         "status": "pending",
     }).execute()
 
-    return {"message": "Leave request submitted", "data": res.data[0]}
+    return {"message": "Leave request submitted"}
 
 
 @router.get("/balance")

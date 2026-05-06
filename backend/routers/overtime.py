@@ -38,7 +38,7 @@ async def create_overtime(
     end_h, end_m = map(int, body.end_time.split(":"))
     duration_minutes = (end_h * 60 + end_m) - (start_h * 60 + start_m)
 
-    res = supabase.table("overtime_requests").insert({
+    supabase.table("overtime_requests").insert({
         "user_id": user_id,
         "company_id": profile["company_id"],
         "date": req_date,
@@ -49,7 +49,7 @@ async def create_overtime(
         "status": "pending",
     }).execute()
 
-    return {"message": "Overtime request submitted", "data": res.data[0]}
+    return {"message": "Overtime request submitted"}
 
 
 @router.get("")

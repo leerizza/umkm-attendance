@@ -34,17 +34,12 @@ async def create_overtime(
     if _check_overlap(user_id, req_date, body.start_time, body.end_time):
         raise HTTPException(400, "Overtime hours overlap with an existing request")
 
-    start_h, start_m = map(int, body.start_time.split(":"))
-    end_h, end_m = map(int, body.end_time.split(":"))
-    duration_minutes = (end_h * 60 + end_m) - (start_h * 60 + start_m)
-
     supabase.table("overtime_requests").insert({
         "user_id": user_id,
         "company_id": profile["company_id"],
         "date": req_date,
         "start_time": body.start_time,
         "end_time": body.end_time,
-        "duration_minutes": duration_minutes,
         "reason": body.reason,
         "status": "pending",
     }).execute()

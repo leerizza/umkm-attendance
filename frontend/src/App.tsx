@@ -22,8 +22,13 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 60_000,             // 1 min — avoids redundant refetches during navigation
       gcTime: 5 * 60_000,            // 5 min cache lifetime
-      retry: 2,
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000), // 1s → 2s → 4s …
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors (auth, not found, validation)
+        const status = error?.response?.status;
+        if (status >= 400 && status < 500) return false;
+        return failureCount < 1;     // only 1 retry for 5xx / network errors
+      },
+      retryDelay: 1500,              // fixed 1.5s delay (not exponential)
       refetchOnWindowFocus: false,
     },
     mutations: {

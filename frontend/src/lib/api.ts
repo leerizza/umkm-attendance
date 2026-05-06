@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  timeout: 15_000,
+  timeout: 12_000,
 });
 
 // Inject Bearer token from Zustand store on every request

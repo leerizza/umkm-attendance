@@ -180,32 +180,20 @@ async def employee_attendance_history(
 
 @router.get("/company")
 async def get_company(admin: dict = Depends(require_admin)):
-    res = (
-        supabase.table("companies")
-        .select("*")
-        .eq("id", admin["company_id"])
-        .single()
-        .execute()
-    )
+    try:
+        res = (
+            supabase.table("companies")
+            .select("*")
+            .eq("id", admin["company_id"])
+            .single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "Company not found")
+    if not res.data:
+        raise HTTPException(404, "Company not found")
     return res.data
 
-
-# @router.patch("/company")
-# async def update_company(
-#     body: CompanyUpdateRequest,
-#     admin: dict = Depends(require_admin),
-# ):
-#     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-#     if not updates:
-#         raise HTTPException(400, "No fields to update")
-
-#     res = (
-#         supabase.table("companies")
-#         .update(updates)
-#         .eq("id", admin["company_id"])
-#         .execute()
-#     )
-#     return {"message": "Company settings updated", "data": res.data[0]}
 
 @router.patch("/company")
 async def update_company(
@@ -216,19 +204,19 @@ async def update_company(
     if not updates:
         raise HTTPException(400, "No fields to update")
 
-    # Update dulu
     supabase.table("companies") \
         .update(updates) \
         .eq("id", admin["company_id"]) \
         .execute()
 
-    # Fetch ulang data terbaru
-    res = supabase.table("companies") \
-        .select("*") \
-        .eq("id", admin["company_id"]) \
-        .single() \
-        .execute()
-
+    try:
+        res = supabase.table("companies") \
+            .select("*") \
+            .eq("id", admin["company_id"]) \
+            .single() \
+            .execute()
+    except Exception:
+        raise HTTPException(404, "Company not found")
     if not res.data:
         raise HTTPException(404, "Company not found")
 

@@ -105,8 +105,11 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
     company_res = (
         supabase.table("companies")
         .insert({"name": body.company_name, "code": code})
+        .select("id")
         .execute()
     )
+    if not company_res.data:
+        raise HTTPException(500, "Gagal membuat perusahaan")
     company_id = company_res.data[0]["id"]
 
     # 3. Create auth user

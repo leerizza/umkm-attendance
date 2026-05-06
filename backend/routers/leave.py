@@ -119,7 +119,10 @@ async def approve_leave(
         raise HTTPException(400, "status must be 'approved' or 'rejected'")
 
     # Verify same company
-    res = supabase.table("leave_requests").select("*").eq("id", leave_id).single().execute()
+    try:
+        res = supabase.table("leave_requests").select("*").eq("id", leave_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Leave request not found")
     if not res.data:
         raise HTTPException(404, "Leave request not found")
     if res.data["company_id"] != admin["company_id"]:

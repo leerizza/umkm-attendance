@@ -94,13 +94,16 @@ async def get_company(
     company_id: str,
     _: dict = Depends(require_superadmin),
 ):
-    res = (
-        supabase.table("companies")
-        .select("*")
-        .eq("id", company_id)
-        .single()
-        .execute()
-    )
+    try:
+        res = (
+            supabase.table("companies")
+            .select("*")
+            .eq("id", company_id)
+            .single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "Company not found")
     if not res.data:
         raise HTTPException(404, "Company not found")
     return res.data
@@ -118,14 +121,16 @@ async def update_company(
 
     supabase.table("companies").update(updates).eq("id", company_id).execute()
 
-    # Fetch updated data (update() in supabase-py may not return rows without .select())
-    res = (
-        supabase.table("companies")
-        .select("*")
-        .eq("id", company_id)
-        .single()
-        .execute()
-    )
+    try:
+        res = (
+            supabase.table("companies")
+            .select("*")
+            .eq("id", company_id)
+            .single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "Company not found")
     if not res.data:
         raise HTTPException(404, "Company not found")
     return {"message": "Company updated", "data": res.data}
@@ -160,14 +165,17 @@ async def update_employee_role(
     if role not in ("employee", "admin", "superadmin"):
         raise HTTPException(400, "Invalid role")
 
-    emp = (
-        supabase.table("profiles")
-        .select("company_id")
-        .eq("id", user_id)
-        .eq("company_id", company_id)
-        .single()
-        .execute()
-    )
+    try:
+        emp = (
+            supabase.table("profiles")
+            .select("company_id")
+            .eq("id", user_id)
+            .eq("company_id", company_id)
+            .single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "Employee not found in this company")
     if not emp.data:
         raise HTTPException(404, "Employee not found in this company")
 

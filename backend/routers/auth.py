@@ -217,6 +217,7 @@ async def update_profile(
         supabase.table("profiles")
         .update(updates)
         .eq("id", profile["id"])
+        .select()
         .execute()
     )
-    return {"message": "Profile updated", "data": res.data[0]}
+    return {"message": "Profile updated", "data": res.data[0] if res.data else updates}

@@ -79,7 +79,10 @@ async def approve_overtime(
     if body.status not in ("approved", "rejected"):
         raise HTTPException(400, "status must be 'approved' or 'rejected'")
 
-    res = supabase.table("overtime_requests").select("*").eq("id", ot_id).single().execute()
+    try:
+        res = supabase.table("overtime_requests").select("*").eq("id", ot_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Overtime request not found")
     if not res.data:
         raise HTTPException(404, "Overtime request not found")
     if res.data["company_id"] != admin["company_id"]:

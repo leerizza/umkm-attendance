@@ -31,27 +31,33 @@ async def create_leave(
     body: LeaveCreateRequest,
     profile: dict = Depends(get_current_profile),
 ):
-    user_id = profile["id"]
-    start = body.start_date.isoformat()
-    end = body.end_date.isoformat()
+    import traceback
+    try:
+        user_id = profile["id"]
+        start = body.start_date.isoformat()
+        end = body.end_date.isoformat()
 
-    if _check_overlap(user_id, start, end):
-        raise HTTPException(400, "Leave dates overlap with an existing request")
+        if _check_overlap(user_id, start, end):
+            raise HTTPException(400, "Leave dates overlap with an existing request")
 
-    days_count = (body.end_date - body.start_date).days + 1
+        days_count = (body.end_date - body.start_date).days + 1
 
-    supabase.table("leave_requests").insert({
-        "user_id": user_id,
-        "company_id": profile["company_id"],
-        "leave_type": body.leave_type,
-        "start_date": start,
-        "end_date": end,
-        "days_count": days_count,
-        "reason": body.reason,
-        "status": "pending",
-    }).execute()
+        supabase.table("leave_requests").insert({
+            "user_id": user_id,
+            "company_id": profile["company_id"],
+            "leave_type": body.leave_type,
+            "start_date": start,
+            "end_date": end,
+            "days_count": days_count,
+            "reason": body.reason,
+            "status": "pending",
+        }).execute()
 
-    return {"message": "Leave request submitted"}
+        return {"message": "Leave request submitted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"DEBUG: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/balance")

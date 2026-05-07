@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, Briefcase, Building2, KeyRound } from "lucide-react";
-import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
@@ -10,7 +10,7 @@ import { authApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
 
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string) || "";
+const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string) || "";
 
 type Tab = "login" | "register";
 type RegType = "employee" | "owner";
@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   // ── Captcha ───────────────────────────────────────────────────────────────
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const turnstileRef = useRef<TurnstileInstance>(null);
+  const hcaptchaRef = useRef<HCaptcha>(null);
 
   // ── OTP countdown ─────────────────────────────────────────────────────────
   const [otpCountdown, setOtpCountdown] = useState(0);
@@ -43,11 +43,11 @@ export default function LoginPage() {
   }
 
   // If no site key configured, captcha is not required
-  const captchaRequired = !!TURNSTILE_SITE_KEY;
+  const captchaRequired = !!HCAPTCHA_SITE_KEY;
 
   function resetCaptcha() {
     setCaptchaToken(null);
-    turnstileRef.current?.reset();
+    hcaptchaRef.current?.resetCaptcha();
   }
 
   // ── Login form ────────────────────────────────────────────────────────────
@@ -286,13 +286,12 @@ export default function LoginPage() {
                       autoFocus
                     />
                     {captchaRequired && (
-                      <Turnstile
-                        ref={turnstileRef}
-                        siteKey={TURNSTILE_SITE_KEY}
-                        onSuccess={(token) => setCaptchaToken(token)}
+                      <HCaptcha
+                        ref={hcaptchaRef}
+                        sitekey={HCAPTCHA_SITE_KEY}
+                        onVerify={(token) => setCaptchaToken(token)}
                         onExpire={resetCaptcha}
                         onError={resetCaptcha}
-                        options={{ theme: "light", size: "flexible" }}
                       />
                     )}
                     <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
@@ -397,13 +396,12 @@ export default function LoginPage() {
                     />
                   </div>
                   {captchaRequired && (
-                    <Turnstile
-                      ref={turnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => setCaptchaToken(token)}
+                    <HCaptcha
+                      ref={hcaptchaRef}
+                      sitekey={HCAPTCHA_SITE_KEY}
+                      onVerify={(token) => setCaptchaToken(token)}
                       onExpire={resetCaptcha}
                       onError={resetCaptcha}
-                      options={{ theme: "light", size: "flexible" }}
                     />
                   )}
                   <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
@@ -552,13 +550,12 @@ export default function LoginPage() {
                         leftIcon={<Briefcase className="h-4 w-4" />}
                       />
                       {captchaRequired && (
-                        <Turnstile
-                          ref={turnstileRef}
-                          siteKey={TURNSTILE_SITE_KEY}
-                          onSuccess={(token) => setCaptchaToken(token)}
+                        <HCaptcha
+                          ref={hcaptchaRef}
+                          sitekey={HCAPTCHA_SITE_KEY}
+                          onVerify={(token) => setCaptchaToken(token)}
                           onExpire={resetCaptcha}
                           onError={resetCaptcha}
-                          options={{ theme: "light", size: "flexible" }}
                         />
                       )}
                       <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
@@ -624,13 +621,12 @@ export default function LoginPage() {
                         leftIcon={<Phone className="h-4 w-4" />}
                       />
                       {captchaRequired && (
-                        <Turnstile
-                          ref={turnstileRef}
-                          siteKey={TURNSTILE_SITE_KEY}
-                          onSuccess={(token) => setCaptchaToken(token)}
+                        <HCaptcha
+                          ref={hcaptchaRef}
+                          sitekey={HCAPTCHA_SITE_KEY}
+                          onVerify={(token) => setCaptchaToken(token)}
                           onExpire={resetCaptcha}
                           onError={resetCaptcha}
-                          options={{ theme: "light", size: "flexible" }}
                         />
                       )}
                       <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>

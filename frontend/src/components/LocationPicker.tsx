@@ -119,57 +119,54 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
 
   return (
     <div className="space-y-3">
-      {/* Search row — wraps on mobile */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Search row */}
+      <div className="flex gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && searchAddress()}
-            placeholder="Cari alamat kantor..."
+            placeholder="Cari alamat..."
             className="w-full h-9 pl-8 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={searchAddress} disabled={searching}>
-            {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cari"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={useGPS} disabled={gpsLoading} title="Gunakan lokasi saya">
-            {gpsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-          </Button>
-          <Button
-            size="sm"
-            variant={manualMode ? "default" : "outline"}
-            onClick={() => setManualMode(!manualMode)}
-            title="Input koordinat manual"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" onClick={searchAddress} disabled={searching} className="shrink-0">
+          {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cari"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={useGPS} disabled={gpsLoading} title="Gunakan lokasi GPS" className="shrink-0 px-2.5">
+          {gpsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+        </Button>
+        <Button
+          size="sm"
+          variant={manualMode ? "default" : "outline"}
+          onClick={() => setManualMode(!manualMode)}
+          title="Input koordinat manual"
+          className="shrink-0 px-2.5"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
-      {/* Manual coordinate input — stacked on mobile */}
+      {/* Manual coordinate input — always stacked */}
       {manualMode && (
         <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
           <p className="text-xs text-muted-foreground font-medium">
             Koordinat Manual — salin dari Google Maps (klik kanan → "What's here?")
           </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              value={manualLat}
-              onChange={(e) => setManualLat(e.target.value)}
-              placeholder="Latitude (contoh: -6.2088)"
-              className="flex-1 h-9 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <input
-              value={manualLng}
-              onChange={(e) => setManualLng(e.target.value)}
-              placeholder="Longitude (contoh: 106.8456)"
-              className="flex-1 h-9 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <Button size="sm" onClick={applyManual} className="shrink-0">Terapkan</Button>
-          </div>
+          <input
+            value={manualLat}
+            onChange={(e) => setManualLat(e.target.value)}
+            placeholder="Latitude (contoh: -6.2088)"
+            className="w-full h-9 px-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <input
+            value={manualLng}
+            onChange={(e) => setManualLng(e.target.value)}
+            placeholder="Longitude (contoh: 106.8456)"
+            className="w-full h-9 px-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <Button size="sm" onClick={applyManual} className="w-full">Terapkan</Button>
         </div>
       )}
 

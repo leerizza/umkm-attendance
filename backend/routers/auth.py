@@ -152,21 +152,31 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
 @router.post("/login")
 @limiter.limit("10/minute")
 async def login(request: Request, body: LoginRequest):
-    try:
-        res = supabase.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password,
-        })
-    except AuthApiError as e:
-        raise HTTPException(401, "Invalid email or password")
+    # Use httpx (async) instead of supabase-py SDK (sync) to avoid blocking
+    # the event loop — sync SDK calls on Railway caused 499 proxy timeouts on mobile
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/token",
+            params={"grant_type": "password"},
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Content-Type": "application/json",
+            },
+            json={"email": body.email, "password": body.password},
+            timeout=10.0,
+        )
 
+    if resp.status_code != 200:
+        raise HTTPException(401, "Email atau password salah")
+
+    data = resp.json()
     return {
-        "access_token": res.session.access_token,
-        "refresh_token": res.session.refresh_token,
-        "expires_at": res.session.expires_at,
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "expires_at":   data["expires_at"],
         "user": {
-            "id": res.user.id,
-            "email": res.user.email,
+            "id":    data["user"]["id"],
+            "email": data["user"]["email"],
         },
     }
 

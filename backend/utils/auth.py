@@ -1,4 +1,5 @@
 import time
+import asyncio
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from db import supabase
@@ -44,7 +45,10 @@ async def get_current_user(
         return cached
 
     try:
-        res = supabase.auth.get_user(token)
+        # Run sync supabase SDK call in thread pool to avoid blocking the event loop
+        res = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: supabase.auth.get_user(token)
+        )
         user = res.user
         if not user:
             raise HTTPException(status_code=401, detail="Invalid token")

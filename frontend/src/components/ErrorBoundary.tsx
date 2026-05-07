@@ -42,9 +42,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-muted-foreground mt-1">
               Halaman ini mengalami error. Coba muat ulang atau kembali ke dashboard.
             </p>
-            {import.meta.env.DEV && this.state.error && (
-              <pre className="mt-3 text-left text-xs bg-muted rounded-xl p-3 max-w-sm overflow-auto text-red-600">
+            {this.state.error && (
+              <pre className="mt-3 text-left text-xs bg-muted rounded-xl p-3 max-w-sm overflow-auto text-red-600 break-all whitespace-pre-wrap">
                 {this.state.error.message}
+                {"\n\n"}
+                {this.state.error.stack?.split("\n").slice(0, 5).join("\n")}
               </pre>
             )}
           </div>

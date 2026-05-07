@@ -966,7 +966,42 @@ export default function AdminPage() {
             </div>
 
             <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-card">
-              <div className="overflow-x-auto">
+              {/* Mobile: card list */}
+              <div className="md:hidden divide-y divide-border">
+                {reportLoading
+                  ? <div className="p-4 space-y-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}</div>
+                  : !reportData?.data?.length
+                  ? <div className="py-12 text-center text-muted-foreground text-sm"><BarChart2 className="h-8 w-8 mx-auto mb-2 opacity-30" />Tidak ada data untuk bulan ini</div>
+                  : reportData.data.map((row: any) => (
+                    <div key={row.user_id} className="px-4 py-3 space-y-2">
+                      <div>
+                        <p className="font-semibold text-sm">{row.full_name}</p>
+                        {row.position && <p className="text-xs text-muted-foreground">{row.position}</p>}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-emerald-50 rounded-lg px-2 py-1.5 text-center">
+                          <p className="text-lg font-bold text-emerald-600">{row.hadir}</p>
+                          <p className="text-[10px] text-emerald-700">Hadir</p>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg px-2 py-1.5 text-center">
+                          <p className="text-lg font-bold text-blue-600">{row.cuti_days}</p>
+                          <p className="text-[10px] text-blue-700">Cuti</p>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg px-2 py-1.5 text-center">
+                          <p className="text-lg font-bold text-purple-600 font-mono text-sm">{row.work_minutes > 0 ? fmtDuration(row.work_minutes) : "—"}</p>
+                          <p className="text-[10px] text-purple-700">Total Jam</p>
+                        </div>
+                      </div>
+                      {row.lembur_minutes > 0 && (
+                        <p className="text-xs text-amber-600 font-mono">Lembur: {fmtDuration(row.lembur_minutes)}</p>
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">

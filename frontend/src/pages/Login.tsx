@@ -112,7 +112,7 @@ export default function LoginPage() {
       await authApi.register(regForm);
       setRegOtpEmail(regForm.email);
       setRegStep("verify");
-      toast.success("Akun dibuat!", `Masukkan kode OTP yang dikirim ke ${regForm.email}`);
+      toast.success("OTP terkirim!", `Cek inbox ${regForm.email}`);
     } catch (err) {
       toast.error("Registrasi Gagal", getErrMsg(err));
     } finally {
@@ -125,16 +125,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await authApi.registerCompany({
+      await authApi.registerCompany({
         ...ownerForm,
         company_code: ownerForm.company_code.toUpperCase(),
       });
-      toast.success(
-        "Perusahaan berhasil dibuat!",
-        `Kode perusahaan: ${res.data.company_code}`
-      );
       setRegOtpEmail(ownerForm.email);
       setRegStep("verify");
+      toast.success("OTP terkirim!", `Cek inbox ${ownerForm.email}`);
     } catch (err) {
       toast.error("Gagal Daftar", getErrMsg(err));
     } finally {
@@ -142,21 +139,48 @@ export default function LoginPage() {
     }
   }
 
-  // ── OTP verification after register → auto-login ──────────────────────────
+  // ── OTP verification after register → create profile → auto-login ─────────
   async function handleVerifyRegister(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await authApi.verifyOtp(regOtpEmail, regOtpCode);
-      const { access_token, refresh_token } = res.data;
+      let res;
+      if (regType === "employee") {
+        res = await authApi.verifyRegister({
+          email: regOtpEmail,
+          token: regOtpCode,
+          full_name: regForm.full_name,
+          company_code: regForm.company_code,
+          phone: regForm.phone || undefined,
+          position: regForm.position || undefined,
+        });
+      } else {
+        res = await authApi.verifyRegisterCompany({
+          email: regOtpEmail,
+          token: regOtpCode,
+          full_name: ownerForm.full_name,
+          company_name: ownerForm.company_name,
+          company_code: ownerForm.company_code,
+          phone: ownerForm.phone || undefined,
+        });
+        if (res.data.company_code) {
+          toast.success(
+            "Perusahaan berhasil dibuat!",
+            `Kode perusahaan: ${res.data.company_code} — bagikan ke karyawan.`
+          );
+        }
+      }
 
+      const { access_token, refresh_token } = res.data;
       await supabase.auth.setSession({ access_token, refresh_token });
 
       const profileRes = await authApi.me(access_token);
       const profile = profileRes.data;
 
       setAuth(access_token, { ...profile, email: regOtpEmail });
-      toast.success("Email terverifikasi!", `Selamat datang, ${profile.full_name}`);
+      if (regType === "employee") {
+        toast.success("Registrasi berhasil!", `Selamat datang, ${profile.full_name}`);
+      }
       navigate("/");
     } catch (err) {
       toast.error("Verifikasi Gagal", getErrMsg(err));

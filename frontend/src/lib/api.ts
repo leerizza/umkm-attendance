@@ -86,6 +86,10 @@ export const authApi = {
     api.post("/auth/reset-password-otp", { email, token, new_password }),
   changePasswordOtp:    (token: string, new_password: string) =>
     api.post("/auth/change-password-otp", { token, new_password }),
+  verifyRegister:       (data: VerifyRegisterPayload) =>
+    api.post("/auth/verify-register", data),
+  verifyRegisterCompany: (data: VerifyRegisterOwnerPayload) =>
+    api.post("/auth/verify-register-company", data),
   register:        (data: RegisterPayload) =>
     api.post("/auth/register", data),
   registerCompany: (data: RegisterCompanyPayload) =>
@@ -198,6 +202,24 @@ export interface RegisterPayload {
   company_code: string;
   phone?: string;
   position?: string;
+}
+
+export interface VerifyRegisterPayload {
+  email: string;
+  token: string;
+  full_name: string;
+  company_code: string;
+  phone?: string;
+  position?: string;
+}
+
+export interface VerifyRegisterOwnerPayload {
+  email: string;
+  token: string;
+  full_name: string;
+  company_name: string;
+  company_code: string;
+  phone?: string;
 }
 
 export interface RegisterCompanyPayload {

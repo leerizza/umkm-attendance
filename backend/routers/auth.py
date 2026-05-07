@@ -5,6 +5,7 @@ from models.schemas import (
     RegisterRequest, RegisterCompanyRequest, LoginRequest,
     SendOTPRequest, VerifyOTPRequest,
     ResetPasswordOTPRequest, ChangePasswordOTPRequest,
+    VerifyRegisterRequest, VerifyRegisterOwnerRequest,
 )
 from utils.auth import get_current_profile, get_current_user
 from db import supabase
@@ -43,11 +44,10 @@ async def register(request: Request, body: RegisterRequest):
         )
         company = company_res.data
     except Exception:
-        raise HTTPException(400, "Invalid company code")
+        raise HTTPException(400, "Kode perusahaan tidak ditemukan")
 
-    # 2. Create Supabase auth user via Admin REST API directly
-    #    (more reliable than SDK admin.create_user which can fail with "user not allowed"
-    #    depending on Supabase project auth settings)
+    # 2. Create unconfirmed auth user (email_confirm: False)
+    #    Profile is NOT inserted yet — created only after OTP verification.
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{settings.supabase_url}/auth/v1/admin/users",
@@ -55,69 +55,171 @@ async def register(request: Request, body: RegisterRequest):
                 "apikey": settings.supabase_service_key,
                 "Authorization": f"Bearer {settings.supabase_service_key}",
             },
-            json={
-                "email": body.email,
-                "password": body.password,
-                "email_confirm": True,
-            },
+            json={"email": body.email, "password": body.password, "email_confirm": False},
             timeout=10.0,
         )
 
-    if resp.status_code not in (200, 201):
+    already_exists = resp.status_code not in (200, 201)
+    if already_exists:
         data = resp.json()
-        msg = (
-            data.get("msg")
-            or data.get("message")
-            or data.get("error_description")
-            or data.get("error")
-            or "Registration failed"
-        )
-        raise HTTPException(400, msg)
-
-    user_id = resp.json()["id"]
-
-    # 3. Insert profile
-    supabase.table("profiles").insert({
-        "id": user_id,
-        "company_id": company["id"],
-        "full_name": body.full_name,
-        "phone": body.phone,
-        "position": body.position,
-        "role": "employee",
-    }).execute()
-
-    # 4. Send OTP for email verification (best-effort, don't fail registration if this errors)
-    try:
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{settings.supabase_url}/auth/v1/otp",
-                headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
-                json={"email": body.email, "create_user": False},
-                timeout=8.0,
+        err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
+        if "already been registered" not in err:
+            raise HTTPException(400, data.get("msg") or data.get("message") or "Registrasi gagal")
+        # User exists — check if they already have a profile (completed registration)
+        existing_profile = supabase.table("profiles").select("id").eq("email", body.email).execute()
+        # profiles table doesn't have email column — use auth admin list
+        async with httpx.AsyncClient() as client2:
+            user_list = await client2.get(
+                f"{settings.supabase_url}/auth/v1/admin/users",
+                headers={
+                    "apikey": settings.supabase_service_key,
+                    "Authorization": f"Bearer {settings.supabase_service_key}",
+                },
+                params={"email": body.email},
+                timeout=10.0,
             )
-    except Exception:
-        pass
+        users = user_list.json().get("users", [])
+        if users:
+            uid = users[0]["id"]
+            profile_check = supabase.table("profiles").select("id").eq("id", uid).execute()
+            if profile_check.data:
+                raise HTTPException(400, "Email sudah terdaftar, silakan login")
+        # No profile yet → resend OTP to finish registration
 
-    return {"message": "Registration successful", "company": company["name"]}
+    # 3. Send OTP for email verification
+    async with httpx.AsyncClient() as client:
+        otp_resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/otp",
+            headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
+            json={"email": body.email, "create_user": False},
+            timeout=8.0,
+        )
+    if otp_resp.status_code not in (200, 204):
+        raise HTTPException(400, "Gagal mengirim OTP, coba lagi")
+
+    return {"message": "OTP terkirim ke email", "company": company["name"]}
+
+
+@router.post("/verify-register")
+@limiter.limit("5/minute")
+async def verify_register(request: Request, body: VerifyRegisterRequest):
+    """Verify OTP then create employee profile — completes registration."""
+    # 1. Verify OTP
+    async with httpx.AsyncClient() as client:
+        verify = await client.post(
+            f"{settings.supabase_url}/auth/v1/verify",
+            headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
+            json={"email": body.email, "token": body.token, "type": "email"},
+            timeout=10.0,
+        )
+    if verify.status_code != 200:
+        raise HTTPException(401, "Kode OTP salah atau sudah kadaluarsa")
+
+    data = verify.json()
+    user_id = data["user"]["id"]
+
+    # 2. Validate company code
+    try:
+        company_res = (
+            supabase.table("companies")
+            .select("id,name")
+            .eq("code", body.company_code.upper())
+            .single()
+            .execute()
+        )
+        company = company_res.data
+    except Exception:
+        raise HTTPException(400, "Kode perusahaan tidak valid")
+
+    # 3. Insert profile (idempotent — skip if already exists)
+    existing = supabase.table("profiles").select("id").eq("id", user_id).execute()
+    if not existing.data:
+        supabase.table("profiles").insert({
+            "id": user_id,
+            "company_id": company["id"],
+            "full_name": body.full_name,
+            "phone": body.phone,
+            "position": body.position,
+            "role": "employee",
+        }).execute()
+
+    return {
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "expires_at": data["expires_at"],
+    }
 
 
 @router.post("/register-company")
 @limiter.limit("5/minute")
 async def register_company(request: Request, body: RegisterCompanyRequest):
-    """Owner / admin registers a new company and their own account in one step."""
+    """Owner registers: create unconfirmed user + send OTP. Company created after OTP verified."""
     code = body.company_code.upper()
 
     # 1. Ensure company code is not already taken
-    existing = (
-        supabase.table("companies")
-        .select("id")
-        .eq("code", code)
-        .execute()
-    )
+    existing = supabase.table("companies").select("id").eq("code", code).execute()
     if existing.data:
         raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
 
-    # 2. Create company
+    # 2. Create unconfirmed auth user (profile/company created after OTP)
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/admin/users",
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Authorization": f"Bearer {settings.supabase_service_key}",
+            },
+            json={"email": body.email, "password": body.password, "email_confirm": False},
+            timeout=10.0,
+        )
+
+    if resp.status_code not in (200, 201):
+        data = resp.json()
+        err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
+        if "already been registered" not in err:
+            raise HTTPException(400, data.get("msg") or data.get("message") or "Gagal membuat akun")
+        # Already exists but unverified → resend OTP
+
+    # 3. Send OTP
+    async with httpx.AsyncClient() as client:
+        otp_resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/otp",
+            headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
+            json={"email": body.email, "create_user": False},
+            timeout=8.0,
+        )
+    if otp_resp.status_code not in (200, 204):
+        raise HTTPException(400, "Gagal mengirim OTP, coba lagi")
+
+    return {"message": "OTP terkirim ke email"}
+
+
+@router.post("/verify-register-company")
+@limiter.limit("5/minute")
+async def verify_register_company(request: Request, body: VerifyRegisterOwnerRequest):
+    """Verify OTP then create company + admin profile — completes owner registration."""
+    code = body.company_code.upper()
+
+    # 1. Verify OTP
+    async with httpx.AsyncClient() as client:
+        verify = await client.post(
+            f"{settings.supabase_url}/auth/v1/verify",
+            headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
+            json={"email": body.email, "token": body.token, "type": "email"},
+            timeout=10.0,
+        )
+    if verify.status_code != 200:
+        raise HTTPException(401, "Kode OTP salah atau sudah kadaluarsa")
+
+    data = verify.json()
+    user_id = data["user"]["id"]
+
+    # 2. Check company code still available
+    existing = supabase.table("companies").select("id").eq("code", code).execute()
+    if existing.data:
+        raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
+
+    # 3. Create company
     company_res = (
         supabase.table("companies")
         .insert({"name": body.company_name, "code": code})
@@ -128,51 +230,21 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
         raise HTTPException(500, "Gagal membuat perusahaan")
     company_id = company_res.data[0]["id"]
 
-    # 3. Create auth user
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{settings.supabase_url}/auth/v1/admin/users",
-            headers={
-                "apikey": settings.supabase_service_key,
-                "Authorization": f"Bearer {settings.supabase_service_key}",
-            },
-            json={"email": body.email, "password": body.password, "email_confirm": True},
-            timeout=10.0,
-        )
-
-    if resp.status_code not in (200, 201):
-        # Roll back company creation
-        supabase.table("companies").delete().eq("id", company_id).execute()
-        data = resp.json()
-        msg = data.get("msg") or data.get("message") or data.get("error_description") or "Gagal membuat akun"
-        raise HTTPException(400, msg)
-
-    user_id = resp.json()["id"]
-
-    # 4. Insert profile as admin
-    supabase.table("profiles").insert({
-        "id": user_id,
-        "company_id": company_id,
-        "full_name": body.full_name,
-        "phone": body.phone,
-        "role": "admin",
-    }).execute()
-
-    # 5. Send OTP for email verification (best-effort)
-    try:
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{settings.supabase_url}/auth/v1/otp",
-                headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
-                json={"email": body.email, "create_user": False},
-                timeout=8.0,
-            )
-    except Exception:
-        pass
+    # 4. Insert admin profile (idempotent)
+    existing_profile = supabase.table("profiles").select("id").eq("id", user_id).execute()
+    if not existing_profile.data:
+        supabase.table("profiles").insert({
+            "id": user_id,
+            "company_id": company_id,
+            "full_name": body.full_name,
+            "phone": body.phone,
+            "role": "admin",
+        }).execute()
 
     return {
-        "message": "Perusahaan dan akun admin berhasil dibuat",
-        "company": body.company_name,
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "expires_at": data["expires_at"],
         "company_code": code,
     }
 

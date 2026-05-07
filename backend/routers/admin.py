@@ -259,7 +259,7 @@ async def monthly_report(
     month: int = None,
     admin: dict = Depends(require_admin),
 ):
-    """Per-employee monthly summary: hadir, terlambat, cuti, lembur, total jam kerja."""
+    """Per-employee monthly summary: hadir, cuti, lembur, total jam kerja."""
     from datetime import datetime
     from zoneinfo import ZoneInfo
     import calendar
@@ -306,7 +306,7 @@ async def monthly_report(
         uid  = emp["id"]
         rows = att_by_user[uid]
 
-        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))  # late/early_leave treated as hadir (legacy data)
         work_min = 0
         for r in rows:
             if r.get("clock_in") and r.get("clock_out"):
@@ -383,7 +383,7 @@ async def export_monthly_report_csv(
     for emp in employees:
         uid  = emp["id"]
         rows = att_by_user[uid]
-        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))  # late/early_leave treated as hadir (legacy data)
         work_min = 0
         for r in rows:
             if r.get("clock_in") and r.get("clock_out"):

@@ -34,25 +34,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-          {
-            urlPattern: /\/api\/.*/,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 },
-            },
-          },
-        ],
+        // Only pre-cache static assets — never HTML (avoids stale app shell on mobile)
+        globPatterns: ["**/*.{js,css,ico,png,svg,woff2}"],
+        // Never cache API or Supabase auth calls — always go to the network
+        runtimeCaching: [],
+        navigateFallback: null,
       },
       devOptions: { enabled: true },
     }),

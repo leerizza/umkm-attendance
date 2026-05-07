@@ -46,8 +46,8 @@ export default function LoginPage() {
       const res = await authApi.login(loginForm.email, loginForm.password);
       const { access_token, refresh_token } = res.data;
 
-      // Set Supabase session for the token-refresh interceptor
-      supabase.auth.setSession({ access_token, refresh_token });
+      // Set Supabase session for the token-refresh interceptor (must be awaited)
+      await supabase.auth.setSession({ access_token, refresh_token });
 
       // Fetch profile via backend (avoids direct Supabase RLS/storage issues on mobile)
       const profileRes = await authApi.me(access_token);
@@ -56,8 +56,12 @@ export default function LoginPage() {
       setAuth(access_token, { ...profile, email: loginForm.email });
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
-    } catch (err) {
-      toast.error("Login Gagal", getErrMsg(err));
+    } catch (err: any) {
+      const isNetworkErr = !err?.response;
+      const msg = isNetworkErr
+        ? "Periksa koneksi internet kamu"
+        : getErrMsg(err);
+      toast.error("Login Gagal", msg);
     } finally {
       setLoading(false);
     }

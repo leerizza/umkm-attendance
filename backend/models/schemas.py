@@ -41,24 +41,24 @@ class SendOTPRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
     email: str
-    token: str = Field(min_length=6, max_length=8)
+    token: str = Field(min_length=6, max_length=6)
 
 
 class ResetPasswordOTPRequest(BaseModel):
     email: str
-    token: str = Field(min_length=6, max_length=8)
+    token: str = Field(min_length=6, max_length=6)
     new_password: str = Field(min_length=6, max_length=72)
 
 
 class ChangePasswordOTPRequest(BaseModel):
-    token: str = Field(min_length=6, max_length=8)
+    token: str = Field(min_length=6, max_length=6)
     new_password: str = Field(min_length=6, max_length=72)
 
 
 class VerifyRegisterRequest(BaseModel):
     """Verify OTP then create employee profile."""
     email: str
-    token: str = Field(min_length=6, max_length=8)
+    token: str = Field(min_length=6, max_length=6)
     full_name: str = Field(min_length=1, max_length=100)
     company_code: str = Field(min_length=1, max_length=20)
     phone: Optional[str] = Field(default=None, max_length=20)
@@ -68,7 +68,7 @@ class VerifyRegisterRequest(BaseModel):
 class VerifyRegisterOwnerRequest(BaseModel):
     """Verify OTP then create company + admin profile."""
     email: str
-    token: str = Field(min_length=6, max_length=8)
+    token: str = Field(min_length=6, max_length=6)
     full_name: str = Field(min_length=1, max_length=100)
     phone: Optional[str] = Field(default=None, max_length=20)
     company_name: str = Field(min_length=1, max_length=100)

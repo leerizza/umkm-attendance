@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { PageHeader } from "@/components/PageHeader";
@@ -22,6 +22,19 @@ export default function ProfilePage() {
   const [showPw, setShowPw] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function startCountdown() {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setOtpCountdown(60);
+    countdownRef.current = setInterval(() => {
+      setOtpCountdown((prev) => {
+        if (prev <= 1) { clearInterval(countdownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
@@ -44,6 +57,7 @@ export default function ProfilePage() {
     mutationFn: () => authApi.sendOtp(profile!.email),
     onSuccess: () => {
       setChangePwStep("otp");
+      startCountdown();
       toast.success("OTP terkirim!", `Cek inbox ${profile!.email}`);
     },
     onError: (err) => toast.error("Gagal mengirim OTP", getErrMsg(err)),
@@ -244,9 +258,9 @@ export default function ProfilePage() {
                     label="Kode OTP"
                     type="text"
                     inputMode="numeric"
-                    placeholder="8 digit kode"
+                    placeholder="6 digit kode"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     leftIcon={<KeyRound className="h-4 w-4" />}
                     autoFocus
                   />
@@ -259,13 +273,20 @@ export default function ProfilePage() {
                   >
                     Simpan Password
                   </Button>
+                  {otpCountdown > 0 ? (
+                    <p className="text-center text-xs text-muted-foreground">
+                      OTP berlaku <span className="font-semibold text-primary">{otpCountdown}s</span>
+                    </p>
+                  ) : (
+                    <p className="text-center text-xs text-red-500">OTP sudah expired.</p>
+                  )}
                   <button
                     type="button"
                     onClick={() => sendOtpMutation.mutate()}
-                    disabled={sendOtpMutation.isPending}
-                    className="w-full text-xs text-primary font-medium disabled:opacity-50"
+                    disabled={sendOtpMutation.isPending || otpCountdown > 0}
+                    className="w-full text-xs text-primary font-medium disabled:opacity-40"
                   >
-                    Kirim ulang OTP
+                    {otpCountdown > 0 ? `Kirim ulang (${otpCountdown}s)` : "Kirim ulang OTP"}
                   </button>
                 </>
               )}

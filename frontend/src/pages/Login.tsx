@@ -27,6 +27,21 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
+  // ── OTP countdown ─────────────────────────────────────────────────────────
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function startCountdown() {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setOtpCountdown(60);
+    countdownRef.current = setInterval(() => {
+      setOtpCountdown((prev) => {
+        if (prev <= 1) { clearInterval(countdownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
   function resetCaptcha() {
     setCaptchaToken(null);
     turnstileRef.current?.reset();
@@ -95,6 +110,7 @@ export default function LoginPage() {
       await authApi.sendOtp(forgotEmail, captchaToken ?? undefined);
       setForgotStep("otp");
       resetCaptcha();
+      startCountdown();
       toast.success("OTP terkirim!", `Cek inbox ${forgotEmail}`);
     } catch (err) {
       toast.error("Gagal mengirim OTP", getErrMsg(err));
@@ -131,6 +147,7 @@ export default function LoginPage() {
       await authApi.register(regForm);
       setRegOtpEmail(regForm.email);
       setRegStep("verify");
+      startCountdown();
       toast.success("OTP terkirim!", `Cek inbox ${regForm.email}`);
     } catch (err) {
       toast.error("Registrasi Gagal", getErrMsg(err));
@@ -150,6 +167,7 @@ export default function LoginPage() {
       });
       setRegOtpEmail(ownerForm.email);
       setRegStep("verify");
+      startCountdown();
       toast.success("OTP terkirim!", `Cek inbox ${ownerForm.email}`);
     } catch (err) {
       toast.error("Gagal Daftar", getErrMsg(err));
@@ -203,6 +221,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authApi.sendOtp(email);
+      startCountdown();
       toast.success("OTP dikirim ulang!", `Cek inbox ${email}`);
     } catch (err) {
       toast.error("Gagal kirim ulang", getErrMsg(err));
@@ -293,9 +312,9 @@ export default function LoginPage() {
                       label="Kode OTP"
                       type="text"
                       inputMode="numeric"
-                      placeholder="8 digit kode"
+                      placeholder="6 digit kode"
                       value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       leftIcon={<KeyRound className="h-4 w-4" />}
                       required
                       autoFocus
@@ -313,6 +332,13 @@ export default function LoginPage() {
                     <Button type="submit" className="w-full" size="lg" loading={loading}>
                       Reset Password
                     </Button>
+                    {otpCountdown > 0 ? (
+                      <p className="text-center text-xs text-muted-foreground">
+                        OTP berlaku <span className="font-semibold text-primary">{otpCountdown}s</span>
+                      </p>
+                    ) : (
+                      <p className="text-center text-xs text-red-500">OTP sudah expired.</p>
+                    )}
                     <div className="flex justify-between text-xs">
                       <button
                         type="button"
@@ -324,10 +350,10 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => handleResendOtp(forgotEmail)}
-                        disabled={loading}
-                        className="text-primary font-medium disabled:opacity-50"
+                        disabled={loading || otpCountdown > 0}
+                        className="text-primary font-medium disabled:opacity-40"
                       >
-                        Kirim ulang OTP
+                        {otpCountdown > 0 ? `Kirim ulang (${otpCountdown}s)` : "Kirim ulang OTP"}
                       </button>
                     </div>
                   </form>
@@ -404,9 +430,9 @@ export default function LoginPage() {
                     label="Kode OTP"
                     type="text"
                     inputMode="numeric"
-                    placeholder="8 digit kode"
+                    placeholder="6 digit kode"
                     value={regOtpCode}
-                    onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     leftIcon={<KeyRound className="h-4 w-4" />}
                     required
                     autoFocus
@@ -414,6 +440,13 @@ export default function LoginPage() {
                   <Button type="submit" className="w-full" size="lg" loading={loading}>
                     Verifikasi & Masuk
                   </Button>
+                  {otpCountdown > 0 ? (
+                    <p className="text-center text-xs text-muted-foreground">
+                      OTP berlaku <span className="font-semibold text-primary">{otpCountdown}s</span>
+                    </p>
+                  ) : (
+                    <p className="text-center text-xs text-red-500">OTP sudah expired.</p>
+                  )}
                   <div className="flex justify-between text-xs">
                     <button
                       type="button"
@@ -425,10 +458,10 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => handleResendOtp(regOtpEmail)}
-                      disabled={loading}
-                      className="text-primary font-medium disabled:opacity-50"
+                      disabled={loading || otpCountdown > 0}
+                      className="text-primary font-medium disabled:opacity-40"
                     >
-                      Kirim ulang OTP
+                      {otpCountdown > 0 ? `Kirim ulang (${otpCountdown}s)` : "Kirim ulang OTP"}
                     </button>
                   </div>
                 </form>

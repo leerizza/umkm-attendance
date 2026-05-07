@@ -548,6 +548,8 @@ async def update_employee_role(
         raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
         raise HTTPException(404, "Employee not found")
+    if user_id == admin["id"]:
+        raise HTTPException(400, "Tidak dapat mengubah role diri sendiri")
 
     supabase.table("profiles").update({"role": role}).eq("id", user_id).execute()
     return {"message": f"Role updated to {role}"}

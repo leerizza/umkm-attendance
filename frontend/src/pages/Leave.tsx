@@ -142,7 +142,7 @@ export default function LeavePage() {
 
               {days > 0 && (
                 <p className="text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-2 rounded-lg">
-                  Total: {days} hari kerja
+                  Total: {days} hari (termasuk akhir pekan)
                 </p>
               )}
 

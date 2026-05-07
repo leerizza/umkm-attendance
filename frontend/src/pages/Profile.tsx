@@ -67,10 +67,12 @@ export default function ProfilePage() {
     mutationFn: () => authApi.changePasswordOtp(otpCode, newPw),
     onSuccess: () => {
       toast.success("Password berhasil diubah!");
+      if (countdownRef.current) clearInterval(countdownRef.current);
       setChangingPw(false);
       setChangePwStep("form");
       setNewPw("");
       setOtpCode("");
+      setOtpCountdown(0);
     },
     onError: (err) => toast.error("Gagal mengubah password", getErrMsg(err)),
   });

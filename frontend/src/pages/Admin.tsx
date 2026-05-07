@@ -175,15 +175,23 @@ export default function AdminPage() {
   }, [companyData]);
 
   const saveCompany = useMutation({
-    mutationFn: () => adminApi.updateCompany({
-      name:          companyForm.name || undefined,
-      address:       companyForm.address || undefined,
-      lat:           companyForm.lat ? parseFloat(companyForm.lat) : undefined,
-      lng:           companyForm.lng ? parseFloat(companyForm.lng) : undefined,
-      radius_meters: companyForm.radius_meters ? parseInt(companyForm.radius_meters) : undefined,
-      work_start:    companyForm.work_start || undefined,
-      work_end:      companyForm.work_end || undefined,
-    }),
+    mutationFn: () => {
+      const lat = companyForm.lat ? parseFloat(companyForm.lat) : undefined;
+      const lng = companyForm.lng ? parseFloat(companyForm.lng) : undefined;
+      const radius = companyForm.radius_meters ? parseInt(companyForm.radius_meters) : undefined;
+      if (lat !== undefined && isNaN(lat)) throw new Error("Latitude tidak valid");
+      if (lng !== undefined && isNaN(lng)) throw new Error("Longitude tidak valid");
+      if (radius !== undefined && isNaN(radius)) throw new Error("Radius tidak valid");
+      return adminApi.updateCompany({
+        name:          companyForm.name || undefined,
+        address:       companyForm.address || undefined,
+        lat,
+        lng,
+        radius_meters: radius,
+        work_start:    companyForm.work_start || undefined,
+        work_end:      companyForm.work_end || undefined,
+      });
+    },
     onSuccess: () => {
       toast.success("Pengaturan disimpan!");
       qc.invalidateQueries({ queryKey: ["admin-company"] });
@@ -376,7 +384,7 @@ export default function AdminPage() {
             return (
               <button
                 key={id}
-                onClick={() => { setTab(id); resetPage(); }}
+                onClick={() => { setTab(id); resetPage(); setEmpHistModal(null); }}
                 className={cn(
                   "relative flex items-center gap-1.5 px-3 py-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors shrink-0",
                   tab === id
@@ -794,7 +802,7 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">
                       <option value="employee">employee</option>
                       <option value="admin">admin</option>
                     </select>
@@ -822,7 +830,7 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground">{row.position ?? "—"}</span>
                     <span className="text-muted-foreground">·</span>
-                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">
                       <option value="employee">employee</option>
                       <option value="admin">admin</option>
                     </select>
@@ -1049,6 +1057,9 @@ export default function AdminPage() {
                 />
                 <Input
                   label="Radius Absensi (meter)"
+                  type="number"
+                  min="10"
+                  max="50000"
                   placeholder="100"
                   value={companyForm.radius_meters}
                   onChange={(e) => setCompanyForm({ ...companyForm, radius_meters: e.target.value })}

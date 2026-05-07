@@ -46,8 +46,7 @@ async def register(request: Request, body: RegisterRequest):
     except Exception:
         raise HTTPException(400, "Kode perusahaan tidak ditemukan")
 
-    # 2. Create unconfirmed auth user (email_confirm: False)
-    #    Profile is NOT inserted yet — created only after OTP verification.
+    # 2. Create confirmed auth user — profile NOT inserted yet (created after OTP).
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{settings.supabase_url}/auth/v1/admin/users",
@@ -55,36 +54,34 @@ async def register(request: Request, body: RegisterRequest):
                 "apikey": settings.supabase_service_key,
                 "Authorization": f"Bearer {settings.supabase_service_key}",
             },
-            json={"email": body.email, "password": body.password, "email_confirm": False},
+            json={"email": body.email, "password": body.password, "email_confirm": True},
             timeout=10.0,
         )
 
-    already_exists = resp.status_code not in (200, 201)
-    if already_exists:
+    if resp.status_code not in (200, 201):
         data = resp.json()
         err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
-        if "already been registered" not in err:
+        if "already been registered" in err:
+            # Check if profile already exists (completed registration before)
+            async with httpx.AsyncClient() as client2:
+                user_list = await client2.get(
+                    f"{settings.supabase_url}/auth/v1/admin/users",
+                    headers={
+                        "apikey": settings.supabase_service_key,
+                        "Authorization": f"Bearer {settings.supabase_service_key}",
+                    },
+                    params={"email": body.email},
+                    timeout=10.0,
+                )
+            users = user_list.json().get("users", [])
+            if users:
+                uid = users[0]["id"]
+                profile_check = supabase.table("profiles").select("id").eq("id", uid).execute()
+                if profile_check.data:
+                    raise HTTPException(400, "Email sudah terdaftar, silakan login")
+            # No profile yet → resend OTP
+        else:
             raise HTTPException(400, data.get("msg") or data.get("message") or "Registrasi gagal")
-        # User exists — check if they already have a profile (completed registration)
-        existing_profile = supabase.table("profiles").select("id").eq("email", body.email).execute()
-        # profiles table doesn't have email column — use auth admin list
-        async with httpx.AsyncClient() as client2:
-            user_list = await client2.get(
-                f"{settings.supabase_url}/auth/v1/admin/users",
-                headers={
-                    "apikey": settings.supabase_service_key,
-                    "Authorization": f"Bearer {settings.supabase_service_key}",
-                },
-                params={"email": body.email},
-                timeout=10.0,
-            )
-        users = user_list.json().get("users", [])
-        if users:
-            uid = users[0]["id"]
-            profile_check = supabase.table("profiles").select("id").eq("id", uid).execute()
-            if profile_check.data:
-                raise HTTPException(400, "Email sudah terdaftar, silakan login")
-        # No profile yet → resend OTP to finish registration
 
     # 3. Send OTP for email verification
     async with httpx.AsyncClient() as client:
@@ -161,7 +158,7 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
     if existing.data:
         raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
 
-    # 2. Create unconfirmed auth user (profile/company created after OTP)
+    # 2. Create confirmed auth user — company/profile created after OTP.
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{settings.supabase_url}/auth/v1/admin/users",
@@ -169,7 +166,7 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
                 "apikey": settings.supabase_service_key,
                 "Authorization": f"Bearer {settings.supabase_service_key}",
             },
-            json={"email": body.email, "password": body.password, "email_confirm": False},
+            json={"email": body.email, "password": body.password, "email_confirm": True},
             timeout=10.0,
         )
 
@@ -178,7 +175,7 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
         err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
         if "already been registered" not in err:
             raise HTTPException(400, data.get("msg") or data.get("message") or "Gagal membuat akun")
-        # Already exists but unverified → resend OTP
+        # Already exists but no profile yet → resend OTP
 
     # 3. Send OTP
     async with httpx.AsyncClient() as client:

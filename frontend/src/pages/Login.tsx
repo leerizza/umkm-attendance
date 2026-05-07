@@ -10,7 +10,7 @@ import { authApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string;
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string) || "";
 
 type Tab = "login" | "register";
 type RegType = "employee" | "owner";
@@ -41,6 +41,9 @@ export default function LoginPage() {
       });
     }, 1000);
   }
+
+  // If no site key configured, captcha is not required
+  const captchaRequired = !!TURNSTILE_SITE_KEY;
 
   function resetCaptcha() {
     setCaptchaToken(null);
@@ -282,15 +285,17 @@ export default function LoginPage() {
                       required
                       autoFocus
                     />
-                    <Turnstile
-                      ref={turnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => setCaptchaToken(token)}
-                      onExpire={resetCaptcha}
-                      onError={resetCaptcha}
-                      options={{ theme: "light", size: "flexible" }}
-                    />
-                    <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
+                    {captchaRequired && (
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => setCaptchaToken(token)}
+                        onExpire={resetCaptcha}
+                        onError={resetCaptcha}
+                        options={{ theme: "light", size: "flexible" }}
+                      />
+                    )}
+                    <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
                       Kirim Kode OTP
                     </Button>
                     <button
@@ -391,15 +396,17 @@ export default function LoginPage() {
                       tabIndex={-1}
                     />
                   </div>
-                  <Turnstile
-                    ref={turnstileRef}
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => setCaptchaToken(token)}
-                    onExpire={resetCaptcha}
-                    onError={resetCaptcha}
-                    options={{ theme: "light", size: "flexible" }}
-                  />
-                  <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
+                  {captchaRequired && (
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onSuccess={(token) => setCaptchaToken(token)}
+                      onExpire={resetCaptcha}
+                      onError={resetCaptcha}
+                      options={{ theme: "light", size: "flexible" }}
+                    />
+                  )}
+                  <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
                     Masuk
                   </Button>
                   <div className="text-center">
@@ -544,15 +551,17 @@ export default function LoginPage() {
                         onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
                         leftIcon={<Briefcase className="h-4 w-4" />}
                       />
-                      <Turnstile
-                        ref={turnstileRef}
-                        siteKey={TURNSTILE_SITE_KEY}
-                        onSuccess={(token) => setCaptchaToken(token)}
-                        onExpire={resetCaptcha}
-                        onError={resetCaptcha}
-                        options={{ theme: "light", size: "flexible" }}
-                      />
-                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
+                      {captchaRequired && (
+                        <Turnstile
+                          ref={turnstileRef}
+                          siteKey={TURNSTILE_SITE_KEY}
+                          onSuccess={(token) => setCaptchaToken(token)}
+                          onExpire={resetCaptcha}
+                          onError={resetCaptcha}
+                          options={{ theme: "light", size: "flexible" }}
+                        />
+                      )}
+                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
                         Buat Akun
                       </Button>
                     </form>
@@ -614,15 +623,17 @@ export default function LoginPage() {
                         onChange={(e) => setOwnerForm({ ...ownerForm, phone: e.target.value })}
                         leftIcon={<Phone className="h-4 w-4" />}
                       />
-                      <Turnstile
-                        ref={turnstileRef}
-                        siteKey={TURNSTILE_SITE_KEY}
-                        onSuccess={(token) => setCaptchaToken(token)}
-                        onExpire={resetCaptcha}
-                        onError={resetCaptcha}
-                        options={{ theme: "light", size: "flexible" }}
-                      />
-                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
+                      {captchaRequired && (
+                        <Turnstile
+                          ref={turnstileRef}
+                          siteKey={TURNSTILE_SITE_KEY}
+                          onSuccess={(token) => setCaptchaToken(token)}
+                          onExpire={resetCaptcha}
+                          onError={resetCaptcha}
+                          options={{ theme: "light", size: "flexible" }}
+                        />
+                      )}
+                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
                         Daftarkan Usaha & Buat Akun
                       </Button>
                     </form>

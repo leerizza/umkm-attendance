@@ -246,7 +246,7 @@ export default function ProfilePage() {
                     inputMode="numeric"
                     placeholder="6 digit kode"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     leftIcon={<KeyRound className="h-4 w-4" />}
                     autoFocus
                   />

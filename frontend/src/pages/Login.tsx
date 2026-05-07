@@ -278,7 +278,7 @@ export default function LoginPage() {
                       inputMode="numeric"
                       placeholder="6 digit kode"
                       value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
                       leftIcon={<KeyRound className="h-4 w-4" />}
                       required
                       autoFocus
@@ -381,7 +381,7 @@ export default function LoginPage() {
                     inputMode="numeric"
                     placeholder="6 digit kode"
                     value={regOtpCode}
-                    onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     leftIcon={<KeyRound className="h-4 w-4" />}
                     required
                     autoFocus

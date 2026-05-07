@@ -16,6 +16,18 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { attendanceApi } from "@/lib/api";
 import { fmtTime, fmtDate, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 
+// Haversine distance in meters
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function Dashboard() {
   const { profile } = useAuthStore();
   const toast = useToast();
@@ -24,6 +36,26 @@ export default function Dashboard() {
   const { error: geoError, getPosition } = useGeolocation();
   const [clockLoading, setClockLoading] = useState<"in" | "out" | null>(null);
   const [now, setNow] = useState(new Date());
+  const [livePos, setLivePos] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Watch live position for radius check
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => setLivePos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 15_000 }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+
+  const company = profile?.companies;
+  const distanceM = livePos && company?.lat && company?.lng
+    ? Math.round(haversine(livePos.lat, livePos.lng, company.lat, company.lng))
+    : null;
+  const isInRadius = distanceM !== null && company?.radius_meters
+    ? distanceM <= company.radius_meters
+    : null; // null = belum dapat GPS
 
   // Live clock
   useEffect(() => {
@@ -180,11 +212,11 @@ export default function Dashboard() {
             size="lg"
             variant="success"
             onClick={() => handleClock("in")}
-            disabled={clockedIn || !isOnline}
+            disabled={clockedIn || !isOnline || isInRadius === false}
             loading={clockLoading === "in"}
             className={cn(
               "h-16 flex-col gap-1 rounded-2xl text-sm",
-              clockedIn && "opacity-50"
+              (clockedIn || isInRadius === false) && "opacity-50"
             )}
           >
             <LogIn className="h-5 w-5" />
@@ -194,16 +226,26 @@ export default function Dashboard() {
             size="lg"
             variant="warning"
             onClick={() => handleClock("out")}
-            disabled={!clockedIn || !isOnline}
+            disabled={!clockedIn || !isOnline || isInRadius === false}
             loading={clockLoading === "out"}
             className={cn(
               "h-16 flex-col gap-1 rounded-2xl text-sm",
-              !clockedIn && "opacity-50"
+              (!clockedIn || isInRadius === false) && "opacity-50"
             )}
           >
             <LogOut className="h-5 w-5" />
             Clock Out
           </Button>
+        </div>
+      )}
+
+      {/* Outside radius warning */}
+      {isInRadius === false && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>
+            Kamu di luar radius kantor ({distanceM}m dari kantor). Absensi hanya bisa dilakukan di dalam area radius.
+          </span>
         </div>
       )}
 
@@ -227,6 +269,17 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground truncate">
                 Radius {profile.companies.radius_meters}m dari kantor
               </p>
+              {distanceM !== null && (
+                <p className={cn(
+                  "text-xs font-semibold mt-0.5",
+                  isInRadius ? "text-emerald-600" : "text-red-600"
+                )}>
+                  {isInRadius ? "✓" : "✗"} {distanceM}m dari kantor
+                </p>
+              )}
+              {distanceM === null && (
+                <p className="text-xs text-muted-foreground mt-0.5">Mendeteksi lokasi...</p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Jam kerja</p>

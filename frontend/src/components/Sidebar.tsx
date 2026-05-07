@@ -14,17 +14,13 @@ const EMPLOYEE_NAV = [
   { to: "/profile",    label: "Profil",     Icon: User },
 ];
 
-const ADMIN_NAV = [
-  { to: "/admin",      label: "Admin Panel", Icon: LayoutDashboard },
-];
-
 export function Sidebar() {
   const { profile, logout } = useAuthStore();
-  const isAdmin = profile?.role === "admin" || profile?.role === "superadmin";
+  const isAdmin = profile?.role === "admin";
 
   const navItems = [
     ...EMPLOYEE_NAV,
-    ...(isAdmin ? ADMIN_NAV : []),
+    ...(isAdmin ? [{ to: "/admin", label: "Admin Panel", Icon: LayoutDashboard }] : []),
   ];
 
   return (

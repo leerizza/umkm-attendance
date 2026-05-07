@@ -99,8 +99,10 @@ async def get_my_corrections(
 @router.get("/admin")
 async def admin_list_corrections(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
     status_filter: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     admin: dict = Depends(require_admin),
 ):
     offset = (page - 1) * per_page
@@ -112,6 +114,10 @@ async def admin_list_corrections(
     )
     if status_filter:
         q = q.eq("status", status_filter)
+    if date_from:
+        q = q.gte("created_at", date_from)
+    if date_to:
+        q = q.lte("created_at", date_to + "T23:59:59")
     res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
 

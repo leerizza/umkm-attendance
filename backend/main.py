@@ -6,7 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
-from routers import auth, attendance, leave, overtime, admin, superadmin, corrections
+from routers import auth, attendance, leave, overtime, admin, corrections
 
 
 # ─── CORS error fallback middleware ───────────────────────────────────────────
@@ -63,7 +63,6 @@ app.include_router(attendance.router)
 app.include_router(leave.router)
 app.include_router(overtime.router)
 app.include_router(admin.router)
-app.include_router(superadmin.router)
 app.include_router(corrections.router)
 
 

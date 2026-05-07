@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { adminApi, leaveApi, overtimeApi, correctionsApi } from "@/lib/api";
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
 
 type AdminTab = "overview" | "attendance" | "leave" | "overtime" | "employees" | "corrections" | "report" | "settings";
 
@@ -29,6 +30,7 @@ const TABS: { id: AdminTab; label: string; Icon: any }[] = [
 ];
 
 export default function AdminPage() {
+  const { profile: adminProfile } = useAuthStore();
   const [tab, setTab] = useState<AdminTab>("overview");
   const [page, setPage] = useState(1);
   const toast = useToast();
@@ -47,7 +49,7 @@ export default function AdminPage() {
 
   const { data: attData, isLoading: attLoading } = useQuery({
     queryKey: ["admin-attendance", page, attDateFrom, attDateTo],
-    queryFn: () => adminApi.attendance(page, attDateFrom || undefined).then((r) => r.data),
+    queryFn: () => adminApi.attendance(page, attDateFrom || undefined, attDateTo || undefined).then((r) => r.data),
     enabled: tab === "attendance",
     placeholderData: (p) => p,
   });
@@ -63,27 +65,33 @@ export default function AdminPage() {
 
   // ── Leave ──────────────────────────────────────────────────
   const [leaveFilter, setLeaveFilter] = useState("pending");
+  const [leaveFrom,   setLeaveFrom]   = useState("");
+  const [leaveTo,     setLeaveTo]     = useState("");
   const { data: leaveData, isLoading: leaveLoading } = useQuery({
-    queryKey: ["admin-leave", page, leaveFilter],
-    queryFn: () => adminApi.leave(page, leaveFilter || undefined).then((r) => r.data),
+    queryKey: ["admin-leave", page, leaveFilter, leaveFrom, leaveTo],
+    queryFn: () => adminApi.leave(page, leaveFilter || undefined, leaveFrom || undefined, leaveTo || undefined).then((r) => r.data),
     enabled: tab === "leave",
     placeholderData: (p) => p,
   });
 
   // ── Overtime ───────────────────────────────────────────────
   const [otFilter, setOtFilter] = useState("pending");
+  const [otFrom,   setOtFrom]   = useState("");
+  const [otTo,     setOtTo]     = useState("");
   const { data: otData, isLoading: otLoading } = useQuery({
-    queryKey: ["admin-overtime", page, otFilter],
-    queryFn: () => adminApi.overtime(page, otFilter || undefined).then((r) => r.data),
+    queryKey: ["admin-overtime", page, otFilter, otFrom, otTo],
+    queryFn: () => adminApi.overtime(page, otFilter || undefined, otFrom || undefined, otTo || undefined).then((r) => r.data),
     enabled: tab === "overtime",
     placeholderData: (p) => p,
   });
 
   // ── Corrections ───────────────────────────────────────────
   const [corrFilter, setCorrFilter] = useState("pending");
+  const [corrFrom,   setCorrFrom]   = useState("");
+  const [corrTo,     setCorrTo]     = useState("");
   const { data: corrData, isLoading: corrLoading } = useQuery({
-    queryKey: ["admin-corrections", page, corrFilter],
-    queryFn: () => correctionsApi.adminList(page, corrFilter || undefined).then((r) => r.data),
+    queryKey: ["admin-corrections", page, corrFilter, corrFrom, corrTo],
+    queryFn: () => correctionsApi.adminList(page, corrFilter || undefined, corrFrom || undefined, corrTo || undefined).then((r) => r.data),
     enabled: tab === "corrections",
     placeholderData: (p) => p,
   });
@@ -112,15 +120,21 @@ export default function AdminPage() {
 
   // ── Employees ──────────────────────────────────────────────
   const [empSearch, setEmpSearch] = useState("");
+  const [empSearchDebounced, setEmpSearchDebounced] = useState("");
   const [empActiveFilter, setEmpActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [empHistModal, setEmpHistModal] = useState<{ id: string; name: string } | null>(null);
   const [empHistPage, setEmpHistPage] = useState(1);
 
+  useEffect(() => {
+    const t = setTimeout(() => setEmpSearchDebounced(empSearch), 350);
+    return () => clearTimeout(t);
+  }, [empSearch]);
+
   const { data: empData, isLoading: empLoading } = useQuery({
-    queryKey: ["admin-employees", page, empSearch, empActiveFilter],
+    queryKey: ["admin-employees", page, empSearchDebounced, empActiveFilter],
     queryFn: () => adminApi.employees(
       page,
-      empSearch || undefined,
+      empSearchDebounced || undefined,
       empActiveFilter === "active" ? true : empActiveFilter === "inactive" ? false : undefined,
     ).then((r) => r.data),
     enabled: tab === "employees",
@@ -425,27 +439,13 @@ export default function AdminPage() {
         {/* ── Attendance table ── */}
         {tab === "attendance" && (
           <div className="space-y-3 animate-fade-in">
-            {/* Filter + Export bar */}
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Dari</label>
-                <input
-                  type="date"
-                  value={attDateFrom}
-                  onChange={(e) => { setAttDateFrom(e.target.value); setExportFrom(e.target.value); resetPage(); }}
-                  className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted-foreground font-medium">Sampai</label>
-                <input
-                  type="date"
-                  value={attDateTo}
-                  min={attDateFrom}
-                  onChange={(e) => { setAttDateTo(e.target.value); setExportTo(e.target.value); resetPage(); }}
-                  className="h-8 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <DateRangeFilter
+                from={attDateFrom} to={attDateTo}
+                onFrom={(v) => { setAttDateFrom(v); setExportFrom(v); resetPage(); }}
+                onTo={(v) => { setAttDateTo(v); setExportTo(v); resetPage(); }}
+                onClear={() => { setAttDateFrom(""); setAttDateTo(""); setExportFrom(""); setExportTo(""); resetPage(); }}
+              />
               <Button size="sm" variant="outline" onClick={handleExport} loading={exporting}>
                 <Download className="h-3.5 w-3.5" />
                 Export CSV
@@ -476,34 +476,45 @@ export default function AdminPage() {
               emptyIcon={<Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Belum ada data absensi"
               renderRow={(row: any) => {
-                const workMinutes =
-                  row.clock_in && row.clock_out
-                    ? Math.floor(
-                        (new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000
-                      )
-                    : null;
+                const workMinutes = row.clock_in && row.clock_out
+                  ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
+                  : null;
                 return (
-                <Fragment key={row.id}>
-                  <tr className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs">{fmtDate(row.date)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-purple-600">
-                      {workMinutes != null ? fmtDuration(workMinutes) : "—"}
-                    </td>
-                    <td className="px-4 py-3"><Badge status={row.status} /></td>
-                  </tr>
-                  {row.notes && (
-                    <tr className="border-b border-border/50 bg-muted/20">
-                      <td colSpan={6} className="px-4 py-2">
-                        <p className="text-xs text-muted-foreground">
-                          <span className="font-semibold">Catatan:</span> {row.notes}
-                        </p>
-                      </td>
+                  <Fragment key={row.id}>
+                    <tr className="border-b border-border/50 hover:bg-muted/30">
+                      <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs">{fmtDate(row.date)}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : "—"}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : "—"}</td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-purple-600">{workMinutes != null ? fmtDuration(workMinutes) : "—"}</td>
+                      <td className="px-4 py-3"><Badge status={row.status} /></td>
                     </tr>
-                  )}
-                </Fragment>
+                    {row.notes && (
+                      <tr className="border-b border-border/50 bg-muted/20">
+                        <td colSpan={6} className="px-4 py-2 text-xs text-muted-foreground"><span className="font-semibold">Catatan:</span> {row.notes}</td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              }}
+              renderCard={(row: any) => {
+                const workMinutes = row.clock_in && row.clock_out
+                  ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
+                  : null;
+                return (
+                  <div key={row.id} className="px-4 py-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
+                      <Badge status={row.status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{fmtDate(row.date)}</p>
+                    <div className="flex gap-3 text-xs font-mono">
+                      <span>Masuk: <span className="font-semibold">{row.clock_in ? fmtTime(row.clock_in) : "—"}</span></span>
+                      <span>Keluar: <span className="font-semibold">{row.clock_out ? fmtTime(row.clock_out) : "—"}</span></span>
+                      {workMinutes != null && <span className="text-purple-600 font-bold">{fmtDuration(workMinutes)}</span>}
+                    </div>
+                    {row.notes && <p className="text-xs text-muted-foreground truncate">📝 {row.notes}</p>}
+                  </div>
                 );
               }}
             />
@@ -513,16 +524,24 @@ export default function AdminPage() {
         {/* ── Leave table ── */}
         {tab === "leave" && (
           <div className="space-y-3 animate-fade-in">
-            <FilterBar
-              value={leaveFilter}
-              onChange={(v) => { setLeaveFilter(v); resetPage(); }}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "approved", label: "Disetujui" },
-                { value: "rejected", label: "Ditolak" },
-                { value: "", label: "Semua" },
-              ]}
-            />
+            <div className="flex flex-wrap gap-2 items-center">
+              <FilterBar
+                value={leaveFilter}
+                onChange={(v) => { setLeaveFilter(v); resetPage(); }}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Disetujui" },
+                  { value: "rejected", label: "Ditolak" },
+                  { value: "", label: "Semua" },
+                ]}
+              />
+              <DateRangeFilter
+                from={leaveFrom} to={leaveTo}
+                onFrom={(v) => { setLeaveFrom(v); resetPage(); }}
+                onTo={(v) => { setLeaveTo(v); resetPage(); }}
+                onClear={() => { setLeaveFrom(""); setLeaveTo(""); resetPage(); }}
+              />
+            </div>
             <TableWrapper
               isLoading={leaveLoading}
               data={leaveData}
@@ -534,31 +553,43 @@ export default function AdminPage() {
               renderRow={(row: any) => (
                 <tr key={row.id} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs capitalize">{row.leave_type}</td>
-                  <td className="px-4 py-3 text-xs">{fmtDate(row.start_date)}</td>
+                  <td className="px-4 py-3 text-xs capitalize">{row.leave_type === "annual" ? "Tahunan" : row.leave_type === "sick" ? "Sakit" : row.leave_type === "personal" ? "Pribadi" : "Lainnya"}</td>
+                  <td className="px-4 py-3 text-xs">{fmtDate(row.start_date)}{row.start_date !== row.end_date && ` – ${fmtDate(row.end_date)}`}</td>
                   <td className="px-4 py-3 text-center font-semibold">{row.days_count}</td>
                   <td className="px-4 py-3"><Badge status={row.status} /></td>
                   <td className="px-4 py-3">
                     {row.status === "pending" && (
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")}
-                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                          title="Setujui"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                          title="Tolak"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors" title="Setujui"><CheckCircle2 className="h-4 w-4" /></button>
+                        <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Tolak"><XCircle className="h-4 w-4" /></button>
                       </div>
                     )}
                   </td>
                 </tr>
+              )}
+              renderCard={(row: any) => (
+                <div key={row.id} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge status={row.status} />
+                      {row.status === "pending" && (
+                        <>
+                          <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
+                          <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span className="capitalize">{row.leave_type === "annual" ? "Cuti Tahunan" : row.leave_type === "sick" ? "Sakit" : row.leave_type === "personal" ? "Keperluan Pribadi" : "Lainnya"}</span>
+                    <span>•</span>
+                    <span>{row.days_count} hari</span>
+                    <span>•</span>
+                    <span>{fmtDate(row.start_date)}{row.start_date !== row.end_date && ` – ${fmtDate(row.end_date)}`}</span>
+                  </div>
+                  {row.reviewer_note && <p className="text-xs text-muted-foreground italic">"{row.reviewer_note}"</p>}
+                </div>
               )}
             />
           </div>
@@ -567,16 +598,24 @@ export default function AdminPage() {
         {/* ── Overtime table ── */}
         {tab === "overtime" && (
           <div className="space-y-3 animate-fade-in">
-            <FilterBar
-              value={otFilter}
-              onChange={(v) => { setOtFilter(v); resetPage(); }}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "approved", label: "Disetujui" },
-                { value: "rejected", label: "Ditolak" },
-                { value: "", label: "Semua" },
-              ]}
-            />
+            <div className="flex flex-wrap gap-2 items-center">
+              <FilterBar
+                value={otFilter}
+                onChange={(v) => { setOtFilter(v); resetPage(); }}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Disetujui" },
+                  { value: "rejected", label: "Ditolak" },
+                  { value: "", label: "Semua" },
+                ]}
+              />
+              <DateRangeFilter
+                from={otFrom} to={otTo}
+                onFrom={(v) => { setOtFrom(v); resetPage(); }}
+                onTo={(v) => { setOtTo(v); resetPage(); }}
+                onClear={() => { setOtFrom(""); setOtTo(""); resetPage(); }}
+              />
+            </div>
             <TableWrapper
               isLoading={otLoading}
               data={otData}
@@ -589,32 +628,42 @@ export default function AdminPage() {
                 <tr key={row.id} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
                   <td className="px-4 py-3 text-xs">{fmtDate(row.date)}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {row.start_time.slice(0,5)} – {row.end_time.slice(0,5)}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-amber-600 text-xs">
-                    {fmtDuration(row.duration_minutes)}
-                  </td>
+                  <td className="px-4 py-3 font-mono text-xs">{row.start_time.slice(0,5)} – {row.end_time.slice(0,5)}</td>
+                  <td className="px-4 py-3 font-semibold text-amber-600 text-xs">{fmtDuration(row.duration_minutes)}</td>
                   <td className="px-4 py-3"><Badge status={row.status} /></td>
                   <td className="px-4 py-3">
                     {row.status === "pending" && (
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => openReview("overtime", row.id, "approved", row.profiles?.full_name ?? "")}
-                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openReview("overtime", row.id, "rejected", row.profiles?.full_name ?? "")}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => openReview("overtime", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"><CheckCircle2 className="h-4 w-4" /></button>
+                        <button onClick={() => openReview("overtime", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"><XCircle className="h-4 w-4" /></button>
                       </div>
                     )}
                   </td>
                 </tr>
+              )}
+              renderCard={(row: any) => (
+                <div key={row.id} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge status={row.status} />
+                      {row.status === "pending" && (
+                        <>
+                          <button onClick={() => openReview("overtime", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
+                          <button onClick={() => openReview("overtime", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span>{fmtDate(row.date)}</span>
+                    <span>•</span>
+                    <span className="font-mono">{row.start_time.slice(0,5)} – {row.end_time.slice(0,5)}</span>
+                    <span>•</span>
+                    <span className="text-amber-600 font-semibold">{fmtDuration(row.duration_minutes)}</span>
+                  </div>
+                  {row.reviewer_note && <p className="text-xs text-muted-foreground italic">"{row.reviewer_note}"</p>}
+                </div>
               )}
             />
           </div>
@@ -623,59 +672,71 @@ export default function AdminPage() {
         {/* ── Corrections ── */}
         {tab === "corrections" && (
           <div className="space-y-3 animate-fade-in">
-            <FilterBar
-              value={corrFilter}
-              onChange={(v) => { setCorrFilter(v); resetPage(); }}
-              options={[
-                { value: "pending",  label: "Pending" },
-                { value: "approved", label: "Disetujui" },
-                { value: "rejected", label: "Ditolak" },
-                { value: "",         label: "Semua" },
-              ]}
-            />
+            <div className="flex flex-wrap gap-2 items-center">
+              <FilterBar
+                value={corrFilter}
+                onChange={(v) => { setCorrFilter(v); resetPage(); }}
+                options={[
+                  { value: "pending",  label: "Pending" },
+                  { value: "approved", label: "Disetujui" },
+                  { value: "rejected", label: "Ditolak" },
+                  { value: "",         label: "Semua" },
+                ]}
+              />
+              <DateRangeFilter
+                from={corrFrom} to={corrTo}
+                onFrom={(v) => { setCorrFrom(v); resetPage(); }}
+                onTo={(v) => { setCorrTo(v); resetPage(); }}
+                onClear={() => { setCorrFrom(""); setCorrTo(""); resetPage(); }}
+              />
+            </div>
             <TableWrapper
               isLoading={corrLoading}
               data={corrData}
               page={page}
               setPage={setPage}
-              cols={["Karyawan", "Tanggal", "Jam Masuk Baru", "Jam Keluar Baru", "Alasan", "Status", "Aksi"]}
+              cols={["Karyawan", "Tgl Absen", "Masuk Baru", "Keluar Baru", "Alasan", "Status", "Aksi"]}
               emptyIcon={<Pencil className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Tidak ada pengajuan koreksi"
               renderRow={(row: any) => (
                 <tr key={row.id} className="border-b border-border/50 hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
                   <td className="px-4 py-3 text-xs">{fmtDate(row.attendance?.date)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-indigo-600">
-                    {row.requested_clock_in ? fmtTime(row.requested_clock_in) : "—"}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-indigo-600">
-                    {row.requested_clock_out ? fmtTime(row.requested_clock_out) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-xs max-w-[140px] truncate" title={row.reason}>{row.reason}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-indigo-600">{row.requested_clock_in ? fmtTime(row.requested_clock_in) : "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-indigo-600">{row.requested_clock_out ? fmtTime(row.requested_clock_out) : "—"}</td>
+                  <td className="px-4 py-3 text-xs max-w-[120px] truncate" title={row.reason}>{row.reason}</td>
                   <td className="px-4 py-3"><Badge status={row.status} /></td>
                   <td className="px-4 py-3">
                     {row.status === "pending" && (
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })}
-                          disabled={approveCorr.isPending}
-                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                          title="Setujui"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => approveCorr.mutate({ id: row.id, status: "rejected" })}
-                          disabled={approveCorr.isPending}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                          title="Tolak"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors" title="Setujui"><CheckCircle2 className="h-4 w-4" /></button>
+                        <button onClick={() => approveCorr.mutate({ id: row.id, status: "rejected" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Tolak"><XCircle className="h-4 w-4" /></button>
                       </div>
                     )}
                   </td>
                 </tr>
+              )}
+              renderCard={(row: any) => (
+                <div key={row.id} className="px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge status={row.status} />
+                      {row.status === "pending" && (
+                        <>
+                          <button onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
+                          <button onClick={() => approveCorr.mutate({ id: row.id, status: "rejected" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{fmtDate(row.attendance?.date)}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-mono">
+                    {row.requested_clock_in && <span>Masuk → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_in)}</span></span>}
+                    {row.requested_clock_out && <span>Keluar → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_out)}</span></span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{row.reason}</p>
+                </div>
               )}
             />
           </div>
@@ -726,40 +787,52 @@ export default function AdminPage() {
               renderRow={(row: any) => (
                 <tr key={row.id} className={cn("border-b border-border/50 hover:bg-muted/30", !row.is_active && "opacity-50")}>
                   <td className="px-4 py-3 font-medium text-sm">
-                    <button
-                      onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }}
-                      className="text-left hover:text-primary hover:underline transition-colors"
-                    >
+                    <button onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }} className="text-left hover:text-primary hover:underline transition-colors">
                       {row.full_name}
                     </button>
                     {!row.is_active && <span className="ml-1.5 text-[10px] text-red-500 font-normal">(nonaktif)</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <select
-                      value={row.role}
-                      onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })}
-                      className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
+                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary">
                       <option value="employee">employee</option>
                       <option value="admin">admin</option>
                     </select>
                   </td>
                   <td className="px-4 py-3 text-xs font-mono">{row.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })}
-                      className={cn(
-                        "text-xs px-2 py-1 rounded-lg font-medium transition-colors",
-                        row.is_active
-                          ? "bg-red-50 text-red-600 hover:bg-red-100"
-                          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                      )}
-                    >
-                      {row.is_active ? "Nonaktifkan" : "Aktifkan"}
-                    </button>
+                    {row.id !== adminProfile?.id && (
+                      <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors", row.is_active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
+                        {row.is_active ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    )}
                   </td>
                 </tr>
+              )}
+              renderCard={(row: any) => (
+                <div key={row.id} className={cn("px-4 py-3 space-y-2", !row.is_active && "opacity-60")}>
+                  <div className="flex items-center justify-between gap-2">
+                    <button onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }} className="font-semibold text-sm text-left hover:text-primary truncate">
+                      {row.full_name}
+                    </button>
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0", row.is_active !== false ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600")}>
+                      {row.is_active !== false ? "Aktif" : "Nonaktif"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">{row.position ?? "—"}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary">
+                      <option value="employee">employee</option>
+                      <option value="admin">admin</option>
+                    </select>
+                    {row.id !== adminProfile?.id && (
+                      <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors ml-auto", row.is_active !== false ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
+                        {row.is_active !== false ? "Nonaktifkan" : "Aktifkan"}
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
             />
           </div>
@@ -1048,8 +1121,41 @@ function FilterBar({
   );
 }
 
+function DateRangeFilter({
+  from, to, onFrom, onTo, onClear,
+}: {
+  from: string; to: string;
+  onFrom: (v: string) => void;
+  onTo: (v: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <input
+        type="date"
+        value={from}
+        onChange={(e) => onFrom(e.target.value)}
+        className="h-7 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+      <span className="text-xs text-muted-foreground">–</span>
+      <input
+        type="date"
+        value={to}
+        min={from}
+        onChange={(e) => onTo(e.target.value)}
+        className="h-7 rounded-lg border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+      {(from || to) && (
+        <button onClick={onClear} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border">
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function TableWrapper({
-  isLoading, data, page, setPage, cols, emptyIcon, emptyText, renderRow,
+  isLoading, data, page, setPage, cols, emptyIcon, emptyText, renderRow, renderCard,
 }: {
   isLoading: boolean;
   data: any;
@@ -1059,17 +1165,56 @@ function TableWrapper({
   emptyIcon: React.ReactNode;
   emptyText: string;
   renderRow: (row: any) => React.ReactNode;
+  renderCard?: (row: any) => React.ReactNode;
 }) {
-  const totalPages = data ? Math.ceil(data.total / (data.per_page ?? 20)) : 1;
+  const totalPages = data ? Math.ceil(data.total / (data.per_page ?? 10)) : 1;
+
+  const emptyState = (colSpan: number) => (
+    <tr>
+      <td colSpan={colSpan} className="text-center py-12 text-muted-foreground text-sm">
+        {emptyIcon}
+        {emptyText}
+      </td>
+    </tr>
+  );
+
+  const pagination = totalPages > 1 && (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+      <p className="text-xs text-muted-foreground">
+        Hal. {page}/{totalPages} &bull; {data?.total} data
+      </p>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-card">
-      <div className="overflow-x-auto">
+      {/* Mobile: card list */}
+      {renderCard && (
+        <div className="md:hidden divide-y divide-border">
+          {isLoading
+            ? <div className="p-4 space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>
+            : data?.data?.length === 0
+            ? <div className="py-12 text-center text-muted-foreground text-sm">{emptyIcon}{emptyText}</div>
+            : data?.data?.map(renderCard)
+          }
+        </div>
+      )}
+
+      {/* Desktop table (always) / Mobile table (when no renderCard) */}
+      <div className={cn("overflow-x-auto", renderCard && "hidden md:block")}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50 border-b border-border">
               {cols.map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                   {h}
                 </th>
               ))}
@@ -1077,39 +1222,16 @@ function TableWrapper({
           </thead>
           <tbody>
             {isLoading
-              ? Array.from({ length: 6 }).map((_, i) => (
-                  <TableRowSkeleton key={i} cols={cols.length} />
-                ))
+              ? Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={cols.length} />)
               : data?.data?.length === 0
-              ? (
-                <tr>
-                  <td colSpan={cols.length} className="text-center py-12 text-muted-foreground text-sm">
-                    {emptyIcon}
-                    {emptyText}
-                  </td>
-                </tr>
-              )
+              ? emptyState(cols.length)
               : data?.data?.map(renderRow)
             }
           </tbody>
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Halaman {page} dari {totalPages} &bull; {data?.total} data
-          </p>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {pagination}
     </div>
   );
 }

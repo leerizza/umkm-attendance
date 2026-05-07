@@ -71,18 +71,12 @@ async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
         raise HTTPException(status_code=404, detail="Profile not found")
     if not res.data:
         raise HTTPException(status_code=404, detail="Profile not found")
-    if not res.data.get("is_active", True):
+    if res.data.get("is_active") is False:
         raise HTTPException(status_code=403, detail="Akun Anda telah dinonaktifkan")
     return res.data
 
 
 async def require_admin(profile: dict = Depends(get_current_profile)) -> dict:
-    if profile["role"] not in ("admin", "superadmin"):
+    if profile["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
-    return profile
-
-
-async def require_superadmin(profile: dict = Depends(get_current_profile)) -> dict:
-    if profile["role"] != "superadmin":
-        raise HTTPException(status_code=403, detail="Superadmin access required")
     return profile

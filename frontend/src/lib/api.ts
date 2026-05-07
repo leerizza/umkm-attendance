@@ -22,6 +22,15 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
+
+    // Force logout if account has been deactivated
+    if (err.response?.status === 403 &&
+        err.response?.data?.detail === "Akun Anda telah dinonaktifkan") {
+      useAuthStore.getState().logout();
+      window.location.href = "/login";
+      return Promise.reject(err);
+    }
+
     if (err.response?.status !== 401 || original._retry) {
       return Promise.reject(err);
     }
@@ -67,6 +76,8 @@ api.interceptors.response.use(
 export const authApi = {
   login:           (email: string, password: string) =>
     api.post("/auth/login", { email, password }),
+  me:              (token: string) =>
+    api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } }),
   register:        (data: RegisterPayload) =>
     api.post("/auth/register", data),
   registerCompany: (data: RegisterCompanyPayload) =>
@@ -83,15 +94,15 @@ export const attendanceApi = {
     api.post("/attendance/clock-in", { lat, lng, notes }),
   clockOut:     (lat: number, lng: number, notes?: string) =>
     api.post("/attendance/clock-out", { lat, lng, notes }),
-  history:      (page = 1, per_page = 20) =>
-    api.get("/attendance/history", { params: { page, per_page } }),
+  history:      (page = 1, per_page = 10, date_from?: string, date_to?: string) =>
+    api.get("/attendance/history", { params: { page, per_page, date_from, date_to } }),
   monthlyStats: () => api.get("/attendance/monthly-stats"),
 };
 
 export const leaveApi = {
   create:  (data: LeavePayload) => api.post("/leave", data),
-  list:    (page = 1, per_page = 20) =>
-    api.get("/leave", { params: { page, per_page } }),
+  list:    (page = 1, per_page = 10, date_from?: string, date_to?: string) =>
+    api.get("/leave", { params: { page, per_page, date_from, date_to } }),
   balance: () => api.get("/leave/balance"),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/leave/${id}/approve`, { status, reviewer_note }),
@@ -99,24 +110,24 @@ export const leaveApi = {
 
 export const overtimeApi = {
   create: (data: OvertimePayload) => api.post("/overtime", data),
-  list:   (page = 1, per_page = 20) =>
-    api.get("/overtime", { params: { page, per_page } }),
+  list:   (page = 1, per_page = 10, date_from?: string, date_to?: string) =>
+    api.get("/overtime", { params: { page, per_page, date_from, date_to } }),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/overtime/${id}/approve`, { status, reviewer_note }),
 };
 
 export const adminApi = {
   stats:           () => api.get("/admin/stats"),
-  attendance:      (page = 1, date_filter?: string) =>
-    api.get("/admin/attendance", { params: { page, date_filter } }),
-  leave:           (page = 1, status_filter?: string) =>
-    api.get("/admin/leave", { params: { page, status_filter } }),
-  overtime:        (page = 1, status_filter?: string) =>
-    api.get("/admin/overtime", { params: { page, status_filter } }),
+  attendance:      (page = 1, date_from?: string, date_to?: string) =>
+    api.get("/admin/attendance", { params: { page, per_page: 10, date_from, date_to } }),
+  leave:           (page = 1, status_filter?: string, date_from?: string, date_to?: string) =>
+    api.get("/admin/leave", { params: { page, per_page: 10, status_filter, date_from, date_to } }),
+  overtime:        (page = 1, status_filter?: string, date_from?: string, date_to?: string) =>
+    api.get("/admin/overtime", { params: { page, per_page: 10, status_filter, date_from, date_to } }),
   employees:       (page = 1, search?: string, is_active?: boolean) =>
-    api.get("/admin/employees", { params: { page, search: search || undefined, is_active } }),
+    api.get("/admin/employees", { params: { page, per_page: 10, search: search || undefined, is_active } }),
   employeeAttendance: (user_id: string, page = 1) =>
-    api.get(`/admin/employees/${user_id}/attendance`, { params: { page } }),
+    api.get(`/admin/employees/${user_id}/attendance`, { params: { page, per_page: 10 } }),
   getCompany:           () => api.get("/admin/company"),
   updateCompany:        (data: CompanyUpdatePayload) => api.patch("/admin/company", data),
   exportAttendance:     (date_from?: string, date_to?: string) =>
@@ -142,24 +153,11 @@ export const adminApi = {
 export const correctionsApi = {
   create:  (data: { attendance_id: string; requested_clock_in?: string; requested_clock_out?: string; reason: string }) =>
     api.post("/corrections", data),
-  list:    (page = 1) => api.get("/corrections", { params: { page } }),
-  adminList:   (page = 1, status_filter?: string) =>
-    api.get("/corrections/admin", { params: { page, status_filter } }),
+  list:    (page = 1, per_page = 20) => api.get("/corrections", { params: { page, per_page } }),
+  adminList:   (page = 1, status_filter?: string, date_from?: string, date_to?: string) =>
+    api.get("/corrections/admin", { params: { page, per_page: 10, status_filter, date_from, date_to } }),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/corrections/${id}/approve`, { status, reviewer_note }),
-};
-
-export const superadminApi = {
-  stats:           () => api.get("/superadmin/stats"),
-  listCompanies:   (page = 1) => api.get("/superadmin/companies", { params: { page } }),
-  createCompany:   (data: CompanyCreatePayload) => api.post("/superadmin/companies", data),
-  getCompany:      (id: string) => api.get(`/superadmin/companies/${id}`),
-  updateCompany:   (id: string, data: Partial<CompanyCreatePayload>) =>
-    api.patch(`/superadmin/companies/${id}`, data),
-  listEmployees:   (company_id: string, page = 1) =>
-    api.get(`/superadmin/companies/${company_id}/employees`, { params: { page } }),
-  updateRole:      (company_id: string, user_id: string, role: string) =>
-    api.patch(`/superadmin/companies/${company_id}/employees/${user_id}/role`, null, { params: { role } }),
 };
 
 export interface CompanyCreatePayload {

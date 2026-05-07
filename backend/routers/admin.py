@@ -61,8 +61,9 @@ async def get_stats(admin: dict = Depends(require_admin)):
 @router.get("/attendance")
 async def admin_attendance(
     page: int = 1,
-    per_page: int = 20,
-    date_filter: str = None,
+    per_page: int = 10,
+    date_from: str = None,
+    date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
     offset = (page - 1) * per_page
@@ -73,8 +74,10 @@ async def admin_attendance(
         .order("date", desc=True)
         .order("clock_in", desc=True)
     )
-    if date_filter:
-        q = q.eq("date", date_filter)
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
 
     res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
@@ -83,8 +86,10 @@ async def admin_attendance(
 @router.get("/leave")
 async def admin_leave(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
     status_filter: str = None,
+    date_from: str = None,
+    date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
     offset = (page - 1) * per_page
@@ -96,6 +101,10 @@ async def admin_leave(
     )
     if status_filter:
         q = q.eq("status", status_filter)
+    if date_from:
+        q = q.gte("start_date", date_from)
+    if date_to:
+        q = q.lte("start_date", date_to)
 
     res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
@@ -104,8 +113,10 @@ async def admin_leave(
 @router.get("/overtime")
 async def admin_overtime(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
     status_filter: str = None,
+    date_from: str = None,
+    date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
     offset = (page - 1) * per_page
@@ -117,6 +128,10 @@ async def admin_overtime(
     )
     if status_filter:
         q = q.eq("status", status_filter)
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
 
     res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
@@ -125,7 +140,7 @@ async def admin_overtime(
 @router.get("/employees")
 async def admin_employees(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
     search: str = None,
     is_active: bool = None,
     admin: dict = Depends(require_admin),
@@ -251,7 +266,7 @@ async def monthly_report(
     att_rows = att_res.data or []
 
     # Approved leaves in range
-    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").gte("start_date", first_day).lte("end_date", last_day).execute()
+    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").lte("start_date", last_day).gte("end_date", first_day).execute()
     leave_rows = leave_res.data or []
 
     # Approved overtime in range
@@ -276,7 +291,7 @@ async def monthly_report(
         uid  = emp["id"]
         rows = att_by_user[uid]
 
-        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late"))
+        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
         terlambat = sum(1 for r in rows if r.get("status") == "late")
         work_min  = 0
         for r in rows:
@@ -328,7 +343,7 @@ async def export_monthly_report_csv(
     att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
     att_rows = att_res.data or []
 
-    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").gte("start_date", first_day).lte("end_date", last_day).execute()
+    leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").lte("start_date", last_day).gte("end_date", first_day).execute()
     leave_rows = leave_res.data or []
 
     ot_res = supabase.table("overtime_requests").select("user_id, duration_minutes").eq("company_id", company_id).eq("status", "approved").gte("date", first_day).lte("date", last_day).execute()
@@ -355,7 +370,7 @@ async def export_monthly_report_csv(
     for emp in employees:
         uid  = emp["id"]
         rows = att_by_user[uid]
-        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late"))
+        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
         terlambat = sum(1 for r in rows if r.get("status") == "late")
         work_min  = 0
         for r in rows:
@@ -495,7 +510,7 @@ async def correct_attendance(
 
     # Validate clock_out > clock_in if both are being set or one already exists
     final_in  = updates.get("clock_in")  or rec.data.get("clock_in")
-    final_out = updates.get("clock_out")
+    final_out = updates.get("clock_out") or rec.data.get("clock_out")
     if final_in and final_out and final_out <= final_in:
         raise HTTPException(400, "Jam keluar harus setelah jam masuk")
 

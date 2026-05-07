@@ -50,18 +50,23 @@ async def create_overtime(
 @router.get("")
 async def get_my_overtime(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
+    date_from: str = None,
+    date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
     offset = (page - 1) * per_page
-    res = (
+    q = (
         supabase.table("overtime_requests")
         .select("*", count="exact")
         .eq("user_id", profile["id"])
         .order("created_at", desc=True)
-        .range(offset, offset + per_page - 1)
-        .execute()
     )
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
+    res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
 
 

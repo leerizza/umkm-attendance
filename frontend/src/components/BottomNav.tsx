@@ -14,7 +14,8 @@ const BASE_NAV = [
 export function BottomNav() {
   const location = useLocation();
   const { profile } = useAuthStore();
-  const isAdmin = profile?.role === "admin" || profile?.role === "superadmin";
+
+  const isAdmin = profile?.role === "admin";
 
   const NAV_ITEMS = [
     ...BASE_NAV,

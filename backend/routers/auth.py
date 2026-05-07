@@ -207,6 +207,12 @@ async def change_password(
     return {"message": "Password berhasil diubah"}
 
 
+@router.get("/me")
+async def get_me(profile: dict = Depends(get_current_profile)):
+    """Return current user's profile + company."""
+    return profile
+
+
 @router.patch("/profile/me")
 async def update_profile(
     body: ProfileUpdateRequest,

@@ -94,18 +94,23 @@ async def get_leave_balance(
 @router.get("")
 async def get_my_leave(
     page: int = 1,
-    per_page: int = 20,
+    per_page: int = 10,
+    date_from: str = None,
+    date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
     offset = (page - 1) * per_page
-    res = (
+    q = (
         supabase.table("leave_requests")
         .select("*", count="exact")
         .eq("user_id", profile["id"])
         .order("created_at", desc=True)
-        .range(offset, offset + per_page - 1)
-        .execute()
     )
+    if date_from:
+        q = q.gte("start_date", date_from)
+    if date_to:
+        q = q.lte("start_date", date_to)
+    res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
 
 

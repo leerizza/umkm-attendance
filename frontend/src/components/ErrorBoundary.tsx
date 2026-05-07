@@ -20,8 +20,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Log to console in dev; swap for a real error tracker (Sentry, etc.) in prod
     console.error("[ErrorBoundary]", error, info.componentStack);
+    // Auto-reload on chunk fetch failures (stale service worker cache)
+    if (error?.name === "ChunkLoadError" || /failed to fetch dynamically imported/i.test(error?.message ?? "")) {
+      window.location.reload();
+    }
   }
 
   handleReset = () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui/toast";
@@ -7,15 +7,31 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuthStore } from "@/stores/auth";
 import { Skeleton } from "@/components/ui/badge";
 
-// Lazy-loaded pages (code splitting)
-const LoginPage         = lazy(() => import("@/pages/Login"));
-const ResetPasswordPage = lazy(() => import("@/pages/ResetPassword"));
-const Dashboard         = lazy(() => import("@/pages/Dashboard"));
-const AttendancePage    = lazy(() => import("@/pages/Attendance"));
-const LeavePage         = lazy(() => import("@/pages/Leave"));
-const OvertimePage      = lazy(() => import("@/pages/Overtime"));
-const ProfilePage       = lazy(() => import("@/pages/Profile"));
-const AdminPage         = lazy(() => import("@/pages/Admin"));
+// Lazy import with automatic page reload on ChunkLoadError.
+// Old service worker versions can cache stale chunk hashes; a reload
+// fetches fresh HTML + chunks and resolves the mismatch.
+function lazyPage<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(() =>
+    factory().catch((err) => {
+      // Only reload for chunk/network errors, not for syntax errors
+      if (err?.name === "ChunkLoadError" || /failed to fetch/i.test(err?.message ?? "")) {
+        window.location.reload();
+      }
+      throw err;
+    })
+  );
+}
+
+const LoginPage         = lazyPage(() => import("@/pages/Login"));
+const ResetPasswordPage = lazyPage(() => import("@/pages/ResetPassword"));
+const Dashboard         = lazyPage(() => import("@/pages/Dashboard"));
+const AttendancePage    = lazyPage(() => import("@/pages/Attendance"));
+const LeavePage         = lazyPage(() => import("@/pages/Leave"));
+const OvertimePage      = lazyPage(() => import("@/pages/Overtime"));
+const ProfilePage       = lazyPage(() => import("@/pages/Profile"));
+const AdminPage         = lazyPage(() => import("@/pages/Admin"));
 
 const queryClient = new QueryClient({
   defaultOptions: {

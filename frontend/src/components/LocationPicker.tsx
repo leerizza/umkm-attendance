@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { MapPin, Search, LocateFixed, Loader2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 interface LocationPickerProps {
@@ -16,6 +17,7 @@ interface NominatimResult {
 }
 
 export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
+  const toast = useToast();
   const [query, setQuery]           = useState("");
   const [results, setResults]       = useState<NominatimResult[]>([]);
   const [searching, setSearching]   = useState(false);
@@ -33,7 +35,7 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
 
   // Reverse-geocode when lat/lng provided on initial load
   useEffect(() => {
-    if (!lat || !lng || address) return;
+    if (lat == null || lng == null || address) return;
     fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
       { headers: { "Accept-Language": "id" } }
@@ -55,9 +57,10 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
       const data = await res.json();
       setResults(data);
       if (data.length === 0) {
-        // hint user to try manual input
-        alert("Alamat tidak ditemukan. Coba masukkan koordinat manual dari Google Maps.");
+        toast.error("Alamat tidak ditemukan", "Coba masukkan koordinat manual dari Google Maps.");
       }
+    } catch {
+      toast.error("Gagal mencari alamat", "Periksa koneksi internet.");
     } finally {
       setSearching(false);
     }
@@ -71,15 +74,22 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
   }
 
   function useGPS() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast.error("GPS tidak tersedia", "Browser tidak mendukung geolocation.");
+      return;
+    }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords: { latitude, longitude } }) => {
         onChange(latitude, longitude);
         setAddress("");
         setGpsLoading(false);
+        toast.success("Lokasi GPS berhasil didapat");
       },
-      () => setGpsLoading(false),
+      () => {
+        setGpsLoading(false);
+        toast.error("GPS gagal", "Izinkan akses lokasi di browser.");
+      },
       { enableHighAccuracy: true, timeout: 10_000 }
     );
   }
@@ -95,19 +105,23 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
       onChange(parsedLat, parsedLng);
       setAddress("");
       setManualMode(false);
+      toast.success("Koordinat diterapkan");
+    } else {
+      toast.error("Koordinat tidak valid", "Pastikan format latitude dan longitude benar.");
     }
   }
 
   // Google Maps embed — no API key needed for basic usage
-  const mapSrc = lat && lng
+  const hasLocation = lat != null && lng != null;
+  const mapSrc = hasLocation
     ? `https://maps.google.com/maps?q=${lat},${lng}&hl=id&z=17&output=embed`
     : null;
 
   return (
     <div className="space-y-3">
-      {/* Search + GPS + Manual toggle row */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      {/* Search row — wraps on mobile */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             value={query}
@@ -117,42 +131,44 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
             className="w-full h-9 pl-8 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <Button size="sm" variant="outline" onClick={searchAddress} disabled={searching}>
-          {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cari"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={useGPS} disabled={gpsLoading} title="Gunakan lokasi saya">
-          {gpsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-        </Button>
-        <Button
-          size="sm"
-          variant={manualMode ? "default" : "outline"}
-          onClick={() => setManualMode(!manualMode)}
-          title="Input koordinat manual"
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button size="sm" variant="outline" onClick={searchAddress} disabled={searching}>
+            {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cari"}
+          </Button>
+          <Button size="sm" variant="outline" onClick={useGPS} disabled={gpsLoading} title="Gunakan lokasi saya">
+            {gpsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+          </Button>
+          <Button
+            size="sm"
+            variant={manualMode ? "default" : "outline"}
+            onClick={() => setManualMode(!manualMode)}
+            title="Input koordinat manual"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
-      {/* Manual coordinate input */}
+      {/* Manual coordinate input — stacked on mobile */}
       {manualMode && (
         <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
           <p className="text-xs text-muted-foreground font-medium">
             Koordinat Manual — salin dari Google Maps (klik kanan → "What's here?")
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               value={manualLat}
               onChange={(e) => setManualLat(e.target.value)}
               placeholder="Latitude (contoh: -6.2088)"
-              className="flex-1 h-8 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 h-9 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <input
               value={manualLng}
               onChange={(e) => setManualLng(e.target.value)}
               placeholder="Longitude (contoh: 106.8456)"
-              className="flex-1 h-8 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="flex-1 h-9 px-2.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <Button size="sm" onClick={applyManual}>Terapkan</Button>
+            <Button size="sm" onClick={applyManual} className="shrink-0">Terapkan</Button>
           </div>
         </div>
       )}
@@ -176,12 +192,12 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
         </div>
       )}
 
-      {/* Map preview — Google Maps */}
+      {/* Map preview */}
       {mapSrc ? (
         <div className="space-y-2">
           <iframe
             src={mapSrc}
-            className="w-full h-48 rounded-xl border border-border"
+            className="w-full h-52 rounded-xl border border-border"
             title="Lokasi Kantor"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
@@ -194,9 +210,9 @@ export function LocationPicker({ lat, lng, onChange }: LocationPickerProps) {
           </div>
         </div>
       ) : (
-        <div className="h-48 rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+        <div className="h-40 rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <MapPin className="h-8 w-8 opacity-30" />
-          <p className="text-xs">Cari alamat, gunakan GPS, atau input koordinat manual</p>
+          <p className="text-xs text-center px-4">Cari alamat, gunakan GPS, atau input koordinat manual</p>
         </div>
       )}
     </div>

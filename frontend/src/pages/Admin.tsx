@@ -1060,72 +1060,112 @@ export default function AdminPage() {
 
         {/* ── Settings ── */}
         {tab === "settings" && (
-          <div className="space-y-4 animate-fade-in max-w-lg">
-            <Card>
-              <CardContent className="p-5 space-y-4">
-                <p className="text-sm font-semibold text-foreground">Informasi Perusahaan</p>
-                <Input
-                  label="Nama Perusahaan"
-                  value={companyForm.name}
-                  onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
-                />
-                <Input
-                  label="Alamat"
-                  value={companyForm.address}
-                  onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
-                />
-              </CardContent>
-            </Card>
+          <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
+            {companyLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-5 space-y-3">
+                      <div className="h-4 bg-muted rounded animate-pulse w-32" />
+                      <div className="h-10 bg-muted rounded-lg animate-pulse" />
+                      <div className="h-10 bg-muted rounded-lg animate-pulse" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Company info */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Informasi Perusahaan</p>
 
-            <Card>
-              <CardContent className="p-5 space-y-4">
-                <p className="text-sm font-semibold text-foreground">Lokasi Kantor</p>
-                <LocationPicker
-                  lat={companyForm.lat ? parseFloat(companyForm.lat) : null}
-                  lng={companyForm.lng ? parseFloat(companyForm.lng) : null}
-                  onChange={(lat, lng) => setCompanyForm({ ...companyForm, lat: lat.toString(), lng: lng.toString() })}
-                />
-                <Input
-                  label="Radius Absensi (meter)"
-                  type="number"
-                  min="10"
-                  max="50000"
-                  placeholder="100"
-                  value={companyForm.radius_meters}
-                  onChange={(e) => setCompanyForm({ ...companyForm, radius_meters: e.target.value })}
-                />
-              </CardContent>
-            </Card>
+                    {/* Kode perusahaan — read only */}
+                    {companyData?.code && (
+                      <div className="flex items-center justify-between rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
+                        <div>
+                          <p className="text-xs text-indigo-500 font-medium">Kode Perusahaan</p>
+                          <p className="text-lg font-extrabold text-indigo-700 tracking-widest font-mono">{companyData.code}</p>
+                        </div>
+                        <p className="text-xs text-indigo-400 text-right max-w-[140px] leading-relaxed">Bagikan ke karyawan untuk bergabung</p>
+                      </div>
+                    )}
 
-            <Card>
-              <CardContent className="p-5 space-y-4">
-                <p className="text-sm font-semibold text-foreground">Jam Kerja</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Jam Masuk"
-                    type="time"
-                    value={companyForm.work_start}
-                    onChange={(e) => setCompanyForm({ ...companyForm, work_start: e.target.value })}
-                  />
-                  <Input
-                    label="Jam Pulang"
-                    type="time"
-                    value={companyForm.work_end}
-                    onChange={(e) => setCompanyForm({ ...companyForm, work_end: e.target.value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                    <Input
+                      label="Nama Perusahaan"
+                      value={companyForm.name}
+                      onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
+                    />
+                    <Input
+                      label="Alamat"
+                      value={companyForm.address}
+                      onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })}
+                    />
+                  </CardContent>
+                </Card>
 
-            <Button
-              className="w-full"
-              size="lg"
-              loading={saveCompany.isPending}
-              disabled={companyLoading}
-              onClick={() => saveCompany.mutate()}
-            >
-              Simpan Pengaturan
-            </Button>
+                {/* Office location */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Lokasi Kantor</p>
+                    <LocationPicker
+                      lat={companyForm.lat ? parseFloat(companyForm.lat) : null}
+                      lng={companyForm.lng ? parseFloat(companyForm.lng) : null}
+                      onChange={(lat, lng) => setCompanyForm({ ...companyForm, lat: lat.toString(), lng: lng.toString() })}
+                    />
+                    <Input
+                      label="Radius Absensi (meter)"
+                      type="number"
+                      min="10"
+                      max="50000"
+                      placeholder="100"
+                      value={companyForm.radius_meters}
+                      onChange={(e) => setCompanyForm({ ...companyForm, radius_meters: e.target.value })}
+                    />
+                    {companyForm.radius_meters && (
+                      <p className="text-xs text-muted-foreground">
+                        Karyawan harus berada dalam radius <span className="font-semibold text-foreground">{companyForm.radius_meters}m</span> dari koordinat kantor untuk bisa absen.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Work hours */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Jam Kerja</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        label="Jam Masuk"
+                        type="time"
+                        value={companyForm.work_start}
+                        onChange={(e) => setCompanyForm({ ...companyForm, work_start: e.target.value })}
+                      />
+                      <Input
+                        label="Jam Pulang"
+                        type="time"
+                        value={companyForm.work_end}
+                        onChange={(e) => setCompanyForm({ ...companyForm, work_end: e.target.value })}
+                      />
+                    </div>
+                    {companyForm.work_start && companyForm.work_end && (
+                      <p className="text-xs text-muted-foreground">
+                        Jam kerja: <span className="font-semibold text-foreground">{companyForm.work_start} – {companyForm.work_end}</span>
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Button
+                  className="w-full"
+                  size="lg"
+                  loading={saveCompany.isPending}
+                  onClick={() => saveCompany.mutate()}
+                >
+                  Simpan Pengaturan
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>

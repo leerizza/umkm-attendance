@@ -55,6 +55,7 @@ async def get_my_overtime(
     date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("overtime_requests")

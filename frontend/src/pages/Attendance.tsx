@@ -45,6 +45,8 @@ export default function AttendancePage() {
   const { data: corrData } = useQuery({
     queryKey: ["my-corrections"],
     queryFn: () => correctionsApi.list(1, 100).then((r) => r.data),
+    retry: 1,
+    staleTime: 60_000,
   });
 
   const corrByAttId: Record<string, string> = {};

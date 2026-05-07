@@ -1,4 +1,5 @@
 import time
+import hashlib
 import asyncio
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -13,8 +14,13 @@ _auth_cache: dict[str, tuple[dict, float]] = {}
 _AUTH_CACHE_TTL = 300  # 5 minutes
 
 
+def _token_key(token: str) -> str:
+    """SHA-256 hash of the full token — collision-safe cache key."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def _get_cached_user(token: str) -> dict | None:
-    key = token[-40:]  # last 40 chars of JWT signature — unique per token
+    key = _token_key(token)
     entry = _auth_cache.get(key)
     if entry:
         user, expire = entry
@@ -25,7 +31,7 @@ def _get_cached_user(token: str) -> dict | None:
 
 
 def _cache_user(token: str, user: dict):
-    key = token[-40:]
+    key = _token_key(token)
     # Evict expired entries if cache grows large
     if len(_auth_cache) > 500:
         now = time.time()

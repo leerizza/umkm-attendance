@@ -40,7 +40,7 @@ async def clock_in(
         raise HTTPException(400, "Already clocked in today")
 
     # Validate GPS radius
-    if company["lat"] and company["lng"]:
+    if company.get("lat") is not None and company.get("lng") is not None:
         within, distance = is_within_radius(
             body.lat, body.lng,
             company["lat"], company["lng"],
@@ -119,7 +119,7 @@ async def clock_out(
         raise HTTPException(400, "Already clocked out today")
 
     # GPS validation
-    if company["lat"] and company["lng"]:
+    if company.get("lat") is not None and company.get("lng") is not None:
         within, distance = is_within_radius(
             body.lat, body.lng,
             company["lat"], company["lng"],
@@ -170,6 +170,7 @@ async def get_history(
     date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance")

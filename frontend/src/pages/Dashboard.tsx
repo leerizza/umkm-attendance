@@ -50,7 +50,7 @@ export default function Dashboard() {
   }, []);
 
   const company = profile?.companies;
-  const distanceM = livePos && company?.lat && company?.lng
+  const distanceM = livePos && company?.lat != null && company?.lng != null
     ? Math.round(haversine(livePos.lat, livePos.lng, company.lat, company.lng))
     : null;
   const isInRadius = distanceM !== null && company?.radius_meters

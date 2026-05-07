@@ -1,21 +1,31 @@
 import csv
 import io
+import re
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from utils.auth import require_admin
 from db import supabase
 
+_TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
+
 
 class CompanyUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    lat: Optional[float] = None
-    lng: Optional[float] = None
-    radius_meters: Optional[int] = None
+    name: Optional[str] = Field(default=None, max_length=100)
+    address: Optional[str] = Field(default=None, max_length=255)
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    radius_meters: Optional[int] = Field(default=None, ge=10, le=50000)
     work_start: Optional[str] = None  # "HH:MM"
     work_end: Optional[str] = None    # "HH:MM"
+
+    @field_validator("work_start", "work_end")
+    @classmethod
+    def validate_time(cls, v):
+        if v is not None and not _TIME_RE.match(v):
+            raise ValueError("Format waktu harus HH:MM (contoh: 08:00)")
+        return v
 
 
 class AttendanceCorrectionRequest(BaseModel):
@@ -66,6 +76,7 @@ async def admin_attendance(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance")
@@ -92,6 +103,7 @@ async def admin_leave(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("leave_requests")
@@ -119,6 +131,7 @@ async def admin_overtime(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("overtime_requests")
@@ -145,6 +158,7 @@ async def admin_employees(
     is_active: bool = None,
     admin: dict = Depends(require_admin),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("profiles")
@@ -174,6 +188,7 @@ async def employee_attendance_history(
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
         raise HTTPException(404, "Karyawan tidak ditemukan")
 
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     res = (
         supabase.table("attendance")

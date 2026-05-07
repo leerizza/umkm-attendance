@@ -82,6 +82,7 @@ async def get_my_corrections(
     per_page: int = 20,
     profile: dict = Depends(get_current_profile),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     res = (
         supabase.table("attendance_corrections")
@@ -105,6 +106,7 @@ async def admin_list_corrections(
     date_to: Optional[str] = None,
     admin: dict = Depends(require_admin),
 ):
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance_corrections")
@@ -139,6 +141,8 @@ async def approve_correction(
         raise HTTPException(404, "Pengajuan koreksi tidak ditemukan")
     if corr.data["status"] != "pending":
         raise HTTPException(400, "Pengajuan ini sudah diproses sebelumnya")
+    if corr.data["user_id"] == admin["id"]:
+        raise HTTPException(403, "Tidak dapat menyetujui pengajuan koreksi milik sendiri")
 
     # Update correction record
     supabase.table("attendance_corrections").update({

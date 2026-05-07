@@ -144,9 +144,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      let res;
       if (regType === "employee") {
-        res = await authApi.verifyRegister({
+        await authApi.verifyRegister({
           email: regOtpEmail,
           token: regOtpCode,
           full_name: regForm.full_name,
@@ -155,7 +154,7 @@ export default function LoginPage() {
           position: regForm.position || undefined,
         });
       } else {
-        res = await authApi.verifyRegisterCompany({
+        await authApi.verifyRegisterCompany({
           email: regOtpEmail,
           token: regOtpCode,
           full_name: ownerForm.full_name,
@@ -163,25 +162,16 @@ export default function LoginPage() {
           company_code: ownerForm.company_code,
           phone: ownerForm.phone || undefined,
         });
-        if (res.data.company_code) {
-          toast.success(
-            "Perusahaan berhasil dibuat!",
-            `Kode perusahaan: ${res.data.company_code} — bagikan ke karyawan.`
-          );
-        }
       }
 
-      const { access_token, refresh_token } = res.data;
-      await supabase.auth.setSession({ access_token, refresh_token });
-
-      const profileRes = await authApi.me(access_token);
-      const profile = profileRes.data;
-
-      setAuth(access_token, { ...profile, email: regOtpEmail });
-      if (regType === "employee") {
-        toast.success("Registrasi berhasil!", `Selamat datang, ${profile.full_name}`);
-      }
-      navigate("/");
+      // Registrasi selesai — arahkan ke login, jangan auto-login
+      // untuk mencegah session bleed dari user yang sebelumnya login
+      toast.success("Registrasi berhasil!", "Silakan login dengan akun baru kamu.");
+      setTab("login");
+      setLoginForm({ email: regOtpEmail, password: "" });
+      setRegStep("form");
+      setRegOtpCode("");
+      setRegOtpEmail("");
     } catch (err) {
       toast.error("Verifikasi Gagal", getErrMsg(err));
     } finally {

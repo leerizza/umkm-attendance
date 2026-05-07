@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { supabase } from "@/lib/supabase";
 
 export interface UserProfile {
   id: string;
@@ -43,8 +44,10 @@ export const useAuthStore = create<AuthState>()(
 
       setProfile: (profile) => set({ profile }),
 
-      logout: () =>
-        set({ token: null, profile: null, isAuthenticated: false }),
+      logout: () => {
+        supabase.auth.signOut();
+        set({ token: null, profile: null, isAuthenticated: false });
+      },
     }),
     {
       name: "umkm_auth_store",

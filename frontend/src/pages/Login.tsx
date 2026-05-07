@@ -276,7 +276,7 @@ export default function LoginPage() {
                       label="Kode OTP"
                       type="text"
                       inputMode="numeric"
-                      placeholder="6 digit kode"
+                      placeholder="8 digit kode"
                       value={forgotOtp}
                       onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
                       leftIcon={<KeyRound className="h-4 w-4" />}
@@ -379,7 +379,7 @@ export default function LoginPage() {
                     label="Kode OTP"
                     type="text"
                     inputMode="numeric"
-                    placeholder="6 digit kode"
+                    placeholder="8 digit kode"
                     value={regOtpCode}
                     onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     leftIcon={<KeyRound className="h-4 w-4" />}

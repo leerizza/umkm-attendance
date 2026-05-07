@@ -244,7 +244,7 @@ export default function ProfilePage() {
                     label="Kode OTP"
                     type="text"
                     inputMode="numeric"
-                    placeholder="6 digit kode"
+                    placeholder="8 digit kode"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     leftIcon={<KeyRound className="h-4 w-4" />}

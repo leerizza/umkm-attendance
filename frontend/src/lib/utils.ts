@@ -40,8 +40,8 @@ export function fmtDuration(minutes: number) {
 export function statusColor(status: string): string {
   const map: Record<string, string> = {
     present:     "badge-present",
-    late:        "badge-late",
-    early_leave: "badge-late",
+    late:        "badge-present",
+    early_leave: "badge-present",
     absent:      "badge-absent",
     pending:     "badge-pending",
     approved:    "badge-approved",
@@ -53,8 +53,8 @@ export function statusColor(status: string): string {
 export function statusLabel(status: string): string {
   const map: Record<string, string> = {
     present:     "Hadir",
-    late:        "Terlambat",
-    early_leave: "Pulang Awal",
+    late:        "Hadir",
+    early_leave: "Hadir",
     absent:      "Absen",
     pending:     "Menunggu",
     approved:    "Disetujui",

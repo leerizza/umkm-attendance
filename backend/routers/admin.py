@@ -306,9 +306,8 @@ async def monthly_report(
         uid  = emp["id"]
         rows = att_by_user[uid]
 
-        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
-        terlambat = sum(1 for r in rows if r.get("status") == "late")
-        work_min  = 0
+        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        work_min = 0
         for r in rows:
             if r.get("clock_in") and r.get("clock_out"):
                 try:
@@ -319,14 +318,13 @@ async def monthly_report(
                     pass
 
         result.append({
-            "user_id":          uid,
-            "full_name":        emp["full_name"],
-            "position":         emp.get("position"),
-            "hadir":            hadir,
-            "terlambat":        terlambat,
-            "cuti_days":        leave_by_user[uid],
-            "lembur_minutes":   ot_by_user[uid],
-            "work_minutes":     work_min,
+            "user_id":        uid,
+            "full_name":      emp["full_name"],
+            "position":       emp.get("position"),
+            "hadir":          hadir,
+            "cuti_days":      leave_by_user[uid],
+            "lembur_minutes": ot_by_user[uid],
+            "work_minutes":   work_min,
         })
 
     return {"year": year, "month": month, "data": result}
@@ -380,14 +378,13 @@ async def export_monthly_report_csv(
     month_name = f"{year}-{month:02d}"
     writer.writerow(["Rekap Absensi Bulanan", month_name])
     writer.writerow([])
-    writer.writerow(["Nama", "Jabatan", "Hadir", "Terlambat", "Cuti (hari)", "Lembur (menit)", "Total Kerja (jam)"])
+    writer.writerow(["Nama", "Jabatan", "Hadir", "Cuti (hari)", "Lembur (menit)", "Total Kerja (jam)"])
 
     for emp in employees:
         uid  = emp["id"]
         rows = att_by_user[uid]
-        hadir     = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
-        terlambat = sum(1 for r in rows if r.get("status") == "late")
-        work_min  = 0
+        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        work_min = 0
         for r in rows:
             if r.get("clock_in") and r.get("clock_out"):
                 try:
@@ -400,7 +397,6 @@ async def export_monthly_report_csv(
             emp["full_name"],
             emp.get("position") or "",
             hadir,
-            terlambat,
             leave_by_user[uid],
             ot_by_user[uid],
             round(work_min / 60, 1),

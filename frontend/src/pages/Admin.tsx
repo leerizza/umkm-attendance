@@ -970,7 +970,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">
-                      {["Karyawan", "Jabatan", "Hadir", "Terlambat", "Cuti", "Lembur", "Total Jam"].map((h) => (
+                      {["Karyawan", "Jabatan", "Hadir", "Cuti", "Lembur", "Total Jam"].map((h) => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                           {h}
                         </th>
@@ -981,7 +981,7 @@ export default function AdminPage() {
                     {reportLoading
                       ? Array.from({ length: 5 }).map((_, i) => (
                           <tr key={i} className="border-b border-border/50">
-                            {Array.from({ length: 7 }).map((_, j) => (
+                            {Array.from({ length: 6 }).map((_, j) => (
                               <td key={j} className="px-4 py-3">
                                 <div className="h-3 bg-muted rounded animate-pulse w-16" />
                               </td>
@@ -991,7 +991,7 @@ export default function AdminPage() {
                       : !reportData?.data?.length
                       ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
+                          <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
                             <BarChart2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
                             Tidak ada data untuk bulan ini
                           </td>
@@ -1003,11 +1003,6 @@ export default function AdminPage() {
                           <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
                           <td className="px-4 py-3 text-center">
                             <span className="font-bold text-emerald-600">{row.hadir}</span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={cn("font-semibold text-sm", row.terlambat > 0 ? "text-amber-600" : "text-muted-foreground")}>
-                              {row.terlambat}
-                            </span>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className="font-semibold text-blue-600">{row.cuti_days}</span>

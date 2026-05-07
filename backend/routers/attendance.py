@@ -57,11 +57,7 @@ async def clock_in(
 
     now_utc = datetime.now(timezone.utc)
     now = now_utc.isoformat()
-
-    # Determine late status — compare in local (WIB) time
-    work_start = company.get("work_start", "08:00:00")
-    clock_time = now_utc.astimezone(WIB).strftime("%H:%M:%S")
-    status = "late" if clock_time > work_start else "present"
+    status = "present"
 
     if existing:
         # Update existing row (created by admin absence marking)
@@ -135,14 +131,7 @@ async def clock_out(
 
     now_utc = datetime.now(timezone.utc)
     now = now_utc.isoformat()
-
-    # Check early leave — compare in local (WIB) time
-    # Only override to early_leave if not already late (preserve late status)
-    work_end = company.get("work_end", "17:00:00")
-    clock_time = now_utc.astimezone(WIB).strftime("%H:%M:%S")
-    status = existing["status"]
-    if clock_time < work_end and status != "late":
-        status = "early_leave"
+    status = existing["status"]  # preserve clock-in status
 
     supabase.table("attendance").update({
         "clock_out": now,

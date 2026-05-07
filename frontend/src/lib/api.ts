@@ -74,12 +74,12 @@ api.interceptors.response.use(
 // ─── Typed helpers ───────────────────────────────────────────────────────────
 
 export const authApi = {
-  login:           (email: string, password: string) =>
-    api.post("/auth/login", { email, password }),
+  login:           (email: string, password: string, captchaToken?: string) =>
+    api.post("/auth/login", { email, password, captcha_token: captchaToken }),
   me:              (token: string) =>
     api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } }),
-  sendOtp:              (email: string) =>
-    api.post("/auth/send-otp", { email }),
+  sendOtp:              (email: string, captchaToken?: string) =>
+    api.post("/auth/send-otp", { email, captcha_token: captchaToken }),
   verifyOtp:            (email: string, token: string) =>
     api.post("/auth/verify-otp", { email, token }),
   resetPasswordOtp:     (email: string, token: string, new_password: string) =>

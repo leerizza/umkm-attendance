@@ -31,10 +31,12 @@ class RegisterCompanyRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    captcha_token: Optional[str] = None
 
 
 class SendOTPRequest(BaseModel):
     email: str
+    captcha_token: Optional[str] = None
 
 
 class VerifyOTPRequest(BaseModel):

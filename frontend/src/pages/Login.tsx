@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, Briefcase, Building2, KeyRound } from "lucide-react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
@@ -8,6 +9,8 @@ import { useToast } from "@/components/ui/toast";
 import { authApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string;
 
 type Tab = "login" | "register";
 type RegType = "employee" | "owner";
@@ -19,6 +22,15 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const toast = useToast();
+
+  // ── Captcha ───────────────────────────────────────────────────────────────
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
+  function resetCaptcha() {
+    setCaptchaToken(null);
+    turnstileRef.current?.reset();
+  }
 
   // ── Login form ────────────────────────────────────────────────────────────
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -46,9 +58,13 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (!captchaToken) {
+      toast.error("Verifikasi captcha dulu", "Centang kotak di bawah sebelum login.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await authApi.login(loginForm.email, loginForm.password);
+      const res = await authApi.login(loginForm.email, loginForm.password, captchaToken);
       const { access_token, refresh_token } = res.data;
 
       await supabase.auth.setSession({ access_token, refresh_token });
@@ -65,6 +81,7 @@ export default function LoginPage() {
         ? "Periksa koneksi internet kamu"
         : getErrMsg(err);
       toast.error("Login Gagal", msg);
+      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -75,11 +92,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await authApi.sendOtp(forgotEmail);
+      await authApi.sendOtp(forgotEmail, captchaToken ?? undefined);
       setForgotStep("otp");
+      resetCaptcha();
       toast.success("OTP terkirim!", `Cek inbox ${forgotEmail}`);
     } catch (err) {
       toast.error("Gagal mengirim OTP", getErrMsg(err));
+      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -242,12 +261,20 @@ export default function LoginPage() {
                       required
                       autoFocus
                     />
-                    <Button type="submit" className="w-full" size="lg" loading={loading}>
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={TURNSTILE_SITE_KEY}
+                      onSuccess={(token) => setCaptchaToken(token)}
+                      onExpire={resetCaptcha}
+                      onError={resetCaptcha}
+                      options={{ theme: "light", size: "flexible" }}
+                    />
+                    <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
                       Kirim Kode OTP
                     </Button>
                     <button
                       type="button"
-                      onClick={() => { setForgotMode(false); setForgotStep("email"); setForgotEmail(""); }}
+                      onClick={() => { setForgotMode(false); setForgotStep("email"); setForgotEmail(""); resetCaptcha(); }}
                       className="w-full text-xs text-muted-foreground hover:text-foreground"
                     >
                       Batal, kembali ke login
@@ -336,7 +363,15 @@ export default function LoginPage() {
                       tabIndex={-1}
                     />
                   </div>
-                  <Button type="submit" className="w-full" size="lg" loading={loading}>
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={resetCaptcha}
+                    onError={resetCaptcha}
+                    options={{ theme: "light", size: "flexible" }}
+                  />
+                  <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
                     Masuk
                   </Button>
                   <div className="text-center">

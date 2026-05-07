@@ -259,7 +259,11 @@ async def login(request: Request, body: LoginRequest):
                 "apikey": settings.supabase_service_key,
                 "Content-Type": "application/json",
             },
-            json={"email": body.email, "password": body.password},
+            json={
+                "email": body.email,
+                "password": body.password,
+                **({"gotrue_meta_security": {"captcha_token": body.captcha_token}} if body.captcha_token else {}),
+            },
             timeout=10.0,
         )
 
@@ -281,7 +285,7 @@ async def login(request: Request, body: LoginRequest):
 @router.post("/send-otp")
 @limiter.limit("3/minute")
 async def send_otp(request: Request, body: SendOTPRequest):
-    """Send a 6-digit OTP to the user's email via Supabase."""
+    """Send OTP to the user's email via Supabase."""
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{settings.supabase_url}/auth/v1/otp",
@@ -289,7 +293,11 @@ async def send_otp(request: Request, body: SendOTPRequest):
                 "apikey": settings.supabase_service_key,
                 "Content-Type": "application/json",
             },
-            json={"email": body.email, "create_user": False},
+            json={
+                "email": body.email,
+                "create_user": False,
+                **({"gotrue_meta_security": {"captcha_token": body.captcha_token}} if body.captcha_token else {}),
+            },
             timeout=10.0,
         )
 

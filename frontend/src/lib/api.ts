@@ -78,6 +78,14 @@ export const authApi = {
     api.post("/auth/login", { email, password }),
   me:              (token: string) =>
     api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } }),
+  sendOtp:              (email: string) =>
+    api.post("/auth/send-otp", { email }),
+  verifyOtp:            (email: string, token: string) =>
+    api.post("/auth/verify-otp", { email, token }),
+  resetPasswordOtp:     (email: string, token: string, new_password: string) =>
+    api.post("/auth/reset-password-otp", { email, token, new_password }),
+  changePasswordOtp:    (token: string, new_password: string) =>
+    api.post("/auth/change-password-otp", { token, new_password }),
   register:        (data: RegisterPayload) =>
     api.post("/auth/register", data),
   registerCompany: (data: RegisterCompanyPayload) =>

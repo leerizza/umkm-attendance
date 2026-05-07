@@ -10,7 +10,7 @@ import { authApi } from "@/lib/api";
 import { getInitials, getErrMsg } from "@/lib/utils";
 import {
   User, Mail, Phone, Briefcase, Building2,
-  MapPin, Clock, LogOut, Shield, Pencil, X, Lock, Eye, EyeOff,
+  MapPin, Clock, LogOut, Shield, Pencil, X, Lock, Eye, EyeOff, KeyRound,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -18,8 +18,10 @@ export default function ProfilePage() {
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
+  const [changePwStep, setChangePwStep] = useState<"form" | "otp">("form");
   const [showPw, setShowPw] = useState(false);
   const [newPw, setNewPw] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
@@ -38,12 +40,23 @@ export default function ProfilePage() {
     onError: (err) => toast.error("Gagal memperbarui", getErrMsg(err)),
   });
 
+  const sendOtpMutation = useMutation({
+    mutationFn: () => authApi.sendOtp(profile!.email),
+    onSuccess: () => {
+      setChangePwStep("otp");
+      toast.success("OTP terkirim!", `Cek inbox ${profile!.email}`);
+    },
+    onError: (err) => toast.error("Gagal mengirim OTP", getErrMsg(err)),
+  });
+
   const pwMutation = useMutation({
-    mutationFn: () => authApi.changePassword(newPw),
+    mutationFn: () => authApi.changePasswordOtp(otpCode, newPw),
     onSuccess: () => {
       toast.success("Password berhasil diubah!");
       setChangingPw(false);
+      setChangePwStep("form");
       setNewPw("");
+      setOtpCode("");
     },
     onError: (err) => toast.error("Gagal mengubah password", getErrMsg(err)),
   });
@@ -172,7 +185,7 @@ export default function ProfilePage() {
             variant="outline"
             size="lg"
             className="w-full"
-            onClick={() => { setChangingPw(true); setEditing(false); }}
+            onClick={() => { setChangingPw(true); setChangePwStep("form"); setEditing(false); }}
           >
             <Lock className="h-4 w-4" />
             Ganti Password
@@ -182,36 +195,80 @@ export default function ProfilePage() {
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">Ganti Password</p>
-                <button onClick={() => { setChangingPw(false); setNewPw(""); }} className="text-muted-foreground">
+                <button
+                  onClick={() => { setChangingPw(false); setChangePwStep("form"); setNewPw(""); setOtpCode(""); }}
+                  className="text-muted-foreground"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="relative">
-                <Input
-                  label="Password Baru"
-                  type={showPw ? "text" : "password"}
-                  placeholder="Minimal 6 karakter"
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  leftIcon={<Lock className="h-4 w-4" />}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-9 text-muted-foreground"
-                  onClick={() => setShowPw(!showPw)}
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <Button
-                className="w-full"
-                size="lg"
-                loading={pwMutation.isPending}
-                onClick={() => pwMutation.mutate()}
-                disabled={newPw.length < 6}
-              >
-                Simpan Password
-              </Button>
+
+              {changePwStep === "form" ? (
+                <>
+                  <div className="relative">
+                    <Input
+                      label="Password Baru"
+                      type={showPw ? "text" : "password"}
+                      placeholder="Minimal 6 karakter"
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      leftIcon={<Lock className="h-4 w-4" />}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-9 text-muted-foreground"
+                      onClick={() => setShowPw(!showPw)}
+                    >
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Kode OTP akan dikirim ke <span className="font-medium">{profile.email}</span> untuk konfirmasi.
+                  </p>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    loading={sendOtpMutation.isPending}
+                    onClick={() => sendOtpMutation.mutate()}
+                    disabled={newPw.length < 6}
+                  >
+                    Kirim Kode OTP
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Masukkan kode OTP dari <span className="font-medium">{profile.email}</span>.
+                  </p>
+                  <Input
+                    label="Kode OTP"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="6 digit kode"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    leftIcon={<KeyRound className="h-4 w-4" />}
+                    autoFocus
+                  />
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    loading={pwMutation.isPending}
+                    onClick={() => pwMutation.mutate()}
+                    disabled={otpCode.length < 6}
+                  >
+                    Simpan Password
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => sendOtpMutation.mutate()}
+                    disabled={sendOtpMutation.isPending}
+                    className="w-full text-xs text-primary font-medium disabled:opacity-50"
+                  >
+                    Kirim ulang OTP
+                  </button>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

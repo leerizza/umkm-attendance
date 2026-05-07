@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Mail, Lock, User, Phone, Briefcase, Building2, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, Phone, Briefcase, Building2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
@@ -10,30 +10,35 @@ import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
 
 type Tab = "login" | "register";
+type RegType = "employee" | "owner";
 
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("login");
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotSent, setForgotSent] = useState(false);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const toast = useToast();
 
-  // Login form
+  // ── Login form ────────────────────────────────────────────────────────────
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
-  // Register form — employee (join existing company)
+  // ── Forgot password (OTP flow) ────────────────────────────────────────────
+  const [forgotMode, setForgotMode]   = useState(false);
+  const [forgotStep, setForgotStep]   = useState<"email" | "otp">("email");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp]     = useState("");
+  const [forgotNewPw, setForgotNewPw] = useState("");
+
+  // ── Register form ─────────────────────────────────────────────────────────
+  const [regType, setRegType] = useState<RegType>("employee");
+  const [regStep, setRegStep] = useState<"form" | "verify">("form");
+  const [regOtpEmail, setRegOtpEmail] = useState("");
+  const [regOtpCode, setRegOtpCode]   = useState("");
   const [regForm, setRegForm] = useState({
     full_name: "", email: "", password: "",
     company_code: "", phone: "", position: "",
   });
-
-  // Register form — admin (create new company)
-  type RegType = "employee" | "owner";
-  const [regType, setRegType] = useState<RegType>("employee");
   const [ownerForm, setOwnerForm] = useState({
     full_name: "", email: "", password: "",
     phone: "", company_name: "", company_code: "",
@@ -46,10 +51,8 @@ export default function LoginPage() {
       const res = await authApi.login(loginForm.email, loginForm.password);
       const { access_token, refresh_token } = res.data;
 
-      // Set Supabase session for the token-refresh interceptor (must be awaited)
       await supabase.auth.setSession({ access_token, refresh_token });
 
-      // Fetch profile via backend (avoids direct Supabase RLS/storage issues on mobile)
       const profileRes = await authApi.me(access_token);
       const profile = profileRes.data;
 
@@ -67,30 +70,49 @@ export default function LoginPage() {
     }
   }
 
-  async function handleForgot(e: React.FormEvent) {
+  // ── Forgot password: step 1 — send OTP ───────────────────────────────────
+  async function handleForgotSendOtp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      setForgotSent(true);
+      await authApi.sendOtp(forgotEmail);
+      setForgotStep("otp");
+      toast.success("OTP terkirim!", `Cek inbox ${forgotEmail}`);
     } catch (err) {
-      toast.error("Gagal mengirim email", getErrMsg(err));
+      toast.error("Gagal mengirim OTP", getErrMsg(err));
     } finally {
       setLoading(false);
     }
   }
 
+  // ── Forgot password: step 2 — verify OTP + set new password ──────────────
+  async function handleForgotReset(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authApi.resetPasswordOtp(forgotEmail, forgotOtp, forgotNewPw);
+      toast.success("Password berhasil direset!", "Silakan login dengan password baru.");
+      setForgotMode(false);
+      setForgotStep("email");
+      setForgotEmail("");
+      setForgotOtp("");
+      setForgotNewPw("");
+    } catch (err) {
+      toast.error("Gagal reset password", getErrMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Register employee ─────────────────────────────────────────────────────
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       await authApi.register(regForm);
-      toast.success("Registrasi berhasil!", "Silakan login dengan akun baru kamu.");
-      setTab("login");
-      setLoginForm({ email: regForm.email, password: "" });
+      setRegOtpEmail(regForm.email);
+      setRegStep("verify");
+      toast.success("Akun dibuat!", `Masukkan kode OTP yang dikirim ke ${regForm.email}`);
     } catch (err) {
       toast.error("Registrasi Gagal", getErrMsg(err));
     } finally {
@@ -98,6 +120,7 @@ export default function LoginPage() {
     }
   }
 
+  // ── Register owner ────────────────────────────────────────────────────────
   async function handleRegisterOwner(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -108,12 +131,48 @@ export default function LoginPage() {
       });
       toast.success(
         "Perusahaan berhasil dibuat!",
-        `Kode perusahaan: ${res.data.company_code} — bagikan ke karyawan.`
+        `Kode perusahaan: ${res.data.company_code}`
       );
-      setTab("login");
-      setLoginForm({ email: ownerForm.email, password: "" });
+      setRegOtpEmail(ownerForm.email);
+      setRegStep("verify");
     } catch (err) {
       toast.error("Gagal Daftar", getErrMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── OTP verification after register → auto-login ──────────────────────────
+  async function handleVerifyRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await authApi.verifyOtp(regOtpEmail, regOtpCode);
+      const { access_token, refresh_token } = res.data;
+
+      await supabase.auth.setSession({ access_token, refresh_token });
+
+      const profileRes = await authApi.me(access_token);
+      const profile = profileRes.data;
+
+      setAuth(access_token, { ...profile, email: regOtpEmail });
+      toast.success("Email terverifikasi!", `Selamat datang, ${profile.full_name}`);
+      navigate("/");
+    } catch (err) {
+      toast.error("Verifikasi Gagal", getErrMsg(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Resend OTP ────────────────────────────────────────────────────────────
+  async function handleResendOtp(email: string) {
+    setLoading(true);
+    try {
+      await authApi.sendOtp(email);
+      toast.success("OTP dikirim ulang!", `Cek inbox ${email}`);
+    } catch (err) {
+      toast.error("Gagal kirim ulang", getErrMsg(err));
     } finally {
       setLoading(false);
     }
@@ -136,7 +195,7 @@ export default function LoginPage() {
             {(["login", "register"] as Tab[]).map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => { setTab(t); setRegStep("form"); }}
                 className={cn(
                   "flex-1 py-3.5 text-sm font-semibold transition-colors",
                   tab === t
@@ -153,29 +212,11 @@ export default function LoginPage() {
             {tab === "login" ? (
               forgotMode ? (
                 /* ── Forgot password ── */
-                forgotSent ? (
-                  <div className="text-center space-y-4 py-2">
-                    <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground">Email terkirim!</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Cek inbox <span className="font-medium">{forgotEmail}</span> dan klik link untuk reset password.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(""); }}
-                      className="text-xs text-primary font-medium"
-                    >
-                      Kembali ke login
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleForgot} className="space-y-4">
+                forgotStep === "email" ? (
+                  <form onSubmit={handleForgotSendOtp} className="space-y-4">
                     <div>
                       <p className="font-bold text-foreground text-sm mb-1">Lupa Password?</p>
-                      <p className="text-xs text-muted-foreground">Masukkan email kamu, kami kirim link reset.</p>
+                      <p className="text-xs text-muted-foreground">Masukkan email kamu, kami kirim kode OTP.</p>
                     </div>
                     <Input
                       label="Email"
@@ -188,206 +229,306 @@ export default function LoginPage() {
                       autoFocus
                     />
                     <Button type="submit" className="w-full" size="lg" loading={loading}>
-                      Kirim Link Reset
+                      Kirim Kode OTP
                     </Button>
                     <button
                       type="button"
-                      onClick={() => setForgotMode(false)}
+                      onClick={() => { setForgotMode(false); setForgotStep("email"); setForgotEmail(""); }}
                       className="w-full text-xs text-muted-foreground hover:text-foreground"
                     >
                       Batal, kembali ke login
                     </button>
                   </form>
+                ) : (
+                  /* Step 2: OTP + new password */
+                  <form onSubmit={handleForgotReset} className="space-y-4">
+                    <div>
+                      <p className="font-bold text-foreground text-sm mb-1">Reset Password</p>
+                      <p className="text-xs text-muted-foreground">
+                        Masukkan kode OTP dari <span className="font-medium">{forgotEmail}</span> dan password baru.
+                      </p>
+                    </div>
+                    <Input
+                      label="Kode OTP"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="6 digit kode"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      leftIcon={<KeyRound className="h-4 w-4" />}
+                      required
+                      autoFocus
+                    />
+                    <Input
+                      label="Password Baru"
+                      type="password"
+                      placeholder="Min. 6 karakter"
+                      value={forgotNewPw}
+                      onChange={(e) => setForgotNewPw(e.target.value)}
+                      leftIcon={<Lock className="h-4 w-4" />}
+                      required
+                      minLength={6}
+                    />
+                    <Button type="submit" className="w-full" size="lg" loading={loading}>
+                      Reset Password
+                    </Button>
+                    <div className="flex justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setForgotStep("email")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Ganti email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResendOtp(forgotEmail)}
+                        disabled={loading}
+                        className="text-primary font-medium disabled:opacity-50"
+                      >
+                        Kirim ulang OTP
+                      </button>
+                    </div>
+                  </form>
                 )
               ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  placeholder="nama@email.com"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  leftIcon={<Mail className="h-4 w-4" />}
-                  required
-                  autoComplete="email"
-                />
-                <div>
+                /* ── Login form ── */
+                <form onSubmit={handleLogin} className="space-y-4">
                   <Input
-                    label="Password"
-                    type={showPass ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    leftIcon={<Lock className="h-4 w-4" />}
+                    label="Email"
+                    type="email"
+                    placeholder="nama@email.com"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                    leftIcon={<Mail className="h-4 w-4" />}
                     required
-                    autoComplete="current-password"
+                    autoComplete="email"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    tabIndex={-1}
-                  />
-                </div>
-                <Button type="submit" className="w-full" size="lg" loading={loading}>
-                  Masuk
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => { setForgotMode(true); setForgotEmail(loginForm.email); }}
-                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Lupa password?
-                  </button>
-                </div>
-              </form>
+                  <div>
+                    <Input
+                      label="Password"
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={loginForm.password}
+                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      leftIcon={<Lock className="h-4 w-4" />}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      tabIndex={-1}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" loading={loading}>
+                    Masuk
+                  </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => { setForgotMode(true); setForgotStep("email"); setForgotEmail(loginForm.email); }}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Lupa password?
+                    </button>
+                  </div>
+                </form>
               )
             ) : (
-              <div className="space-y-3">
-                {/* Toggle: employee vs owner */}
-                <div className="flex rounded-xl border border-border overflow-hidden">
-                  {(["employee", "owner"] as RegType[]).map((t) => (
+              /* ── Register tab ── */
+              regStep === "verify" ? (
+                /* OTP verification step */
+                <form onSubmit={handleVerifyRegister} className="space-y-4">
+                  <div className="text-center space-y-1 pb-1">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-2">
+                      <KeyRound className="h-5 w-5 text-primary" />
+                    </div>
+                    <p className="font-bold text-foreground text-sm">Verifikasi Email</p>
+                    <p className="text-xs text-muted-foreground">
+                      Masukkan kode OTP yang dikirim ke{" "}
+                      <span className="font-medium">{regOtpEmail}</span>
+                    </p>
+                  </div>
+                  <Input
+                    label="Kode OTP"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="6 digit kode"
+                    value={regOtpCode}
+                    onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    leftIcon={<KeyRound className="h-4 w-4" />}
+                    required
+                    autoFocus
+                  />
+                  <Button type="submit" className="w-full" size="lg" loading={loading}>
+                    Verifikasi & Masuk
+                  </Button>
+                  <div className="flex justify-between text-xs">
                     <button
-                      key={t}
                       type="button"
-                      onClick={() => setRegType(t)}
-                      className={cn(
-                        "flex-1 py-2 text-xs font-semibold transition-colors",
-                        regType === t
-                          ? "bg-primary text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
+                      onClick={() => { setRegStep("form"); setRegOtpCode(""); }}
+                      className="text-muted-foreground hover:text-foreground"
                     >
-                      {t === "employee" ? "Saya Karyawan" : "Saya Pemilik / Admin"}
+                      Kembali
                     </button>
-                  ))}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => handleResendOtp(regOtpEmail)}
+                      disabled={loading}
+                      className="text-primary font-medium disabled:opacity-50"
+                    >
+                      Kirim ulang OTP
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-3">
+                  {/* Toggle: employee vs owner */}
+                  <div className="flex rounded-xl border border-border overflow-hidden">
+                    {(["employee", "owner"] as RegType[]).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setRegType(t)}
+                        className={cn(
+                          "flex-1 py-2 text-xs font-semibold transition-colors",
+                          regType === t
+                            ? "bg-primary text-white"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {t === "employee" ? "Saya Karyawan" : "Saya Pemilik / Admin"}
+                      </button>
+                    ))}
+                  </div>
 
-                {regType === "employee" ? (
-                  /* ── Employee: join existing company ── */
-                  <form onSubmit={handleRegister} className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Minta <strong>Kode Perusahaan</strong> ke admin/pemilik usahamu.
-                    </p>
-                    <Input
-                      label="Nama Lengkap"
-                      placeholder="Budi Santoso"
-                      value={regForm.full_name}
-                      onChange={(e) => setRegForm({ ...regForm, full_name: e.target.value })}
-                      leftIcon={<User className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="Email"
-                      type="email"
-                      placeholder="nama@email.com"
-                      value={regForm.email}
-                      onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                      leftIcon={<Mail className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="Password"
-                      type="password"
-                      placeholder="Min. 6 karakter"
-                      value={regForm.password}
-                      onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                      leftIcon={<Lock className="h-4 w-4" />}
-                      required
-                      minLength={6}
-                    />
-                    <Input
-                      label="Kode Perusahaan"
-                      placeholder="Contoh: TOKO2025"
-                      value={regForm.company_code}
-                      onChange={(e) => setRegForm({ ...regForm, company_code: e.target.value.toUpperCase() })}
-                      leftIcon={<Building2 className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="No. HP (Opsional)"
-                      type="tel"
-                      placeholder="08xx-xxxx-xxxx"
-                      value={regForm.phone}
-                      onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                      leftIcon={<Phone className="h-4 w-4" />}
-                    />
-                    <Input
-                      label="Jabatan (Opsional)"
-                      placeholder="Staff, Kasir, dll."
-                      value={regForm.position}
-                      onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
-                      leftIcon={<Briefcase className="h-4 w-4" />}
-                    />
-                    <Button type="submit" className="w-full" size="lg" loading={loading}>
-                      Buat Akun
-                    </Button>
-                  </form>
-                ) : (
-                  /* ── Owner: create new company + admin account ── */
-                  <form onSubmit={handleRegisterOwner} className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Daftarkan usahamu sekaligus buat akun admin. Kode perusahaan akan dibagikan ke karyawan.
-                    </p>
-                    <Input
-                      label="Nama Kamu"
-                      placeholder="Budi Santoso"
-                      value={ownerForm.full_name}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, full_name: e.target.value })}
-                      leftIcon={<User className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="Email"
-                      type="email"
-                      placeholder="nama@email.com"
-                      value={ownerForm.email}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })}
-                      leftIcon={<Mail className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="Password"
-                      type="password"
-                      placeholder="Min. 6 karakter"
-                      value={ownerForm.password}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, password: e.target.value })}
-                      leftIcon={<Lock className="h-4 w-4" />}
-                      required
-                      minLength={6}
-                    />
-                    <Input
-                      label="Nama Usaha / Perusahaan"
-                      placeholder="Toko Budi Jaya"
-                      value={ownerForm.company_name}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, company_name: e.target.value })}
-                      leftIcon={<Building2 className="h-4 w-4" />}
-                      required
-                    />
-                    <Input
-                      label="Kode Perusahaan"
-                      placeholder="Contoh: BUDIJAYA25 (unik, huruf kapital)"
-                      value={ownerForm.company_code}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, company_code: e.target.value.toUpperCase() })}
-                      leftIcon={<Briefcase className="h-4 w-4" />}
-                      required
-                      minLength={3}
-                    />
-                    <Input
-                      label="No. HP (Opsional)"
-                      type="tel"
-                      placeholder="08xx-xxxx-xxxx"
-                      value={ownerForm.phone}
-                      onChange={(e) => setOwnerForm({ ...ownerForm, phone: e.target.value })}
-                      leftIcon={<Phone className="h-4 w-4" />}
-                    />
-                    <Button type="submit" className="w-full" size="lg" loading={loading}>
-                      Daftarkan Usaha & Buat Akun
-                    </Button>
-                  </form>
-                )}
-              </div>
+                  {regType === "employee" ? (
+                    /* ── Employee: join existing company ── */
+                    <form onSubmit={handleRegister} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Minta <strong>Kode Perusahaan</strong> ke admin/pemilik usahamu.
+                      </p>
+                      <Input
+                        label="Nama Lengkap"
+                        placeholder="Budi Santoso"
+                        value={regForm.full_name}
+                        onChange={(e) => setRegForm({ ...regForm, full_name: e.target.value })}
+                        leftIcon={<User className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="Email"
+                        type="email"
+                        placeholder="nama@email.com"
+                        value={regForm.email}
+                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                        leftIcon={<Mail className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="Password"
+                        type="password"
+                        placeholder="Min. 6 karakter"
+                        value={regForm.password}
+                        onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                        leftIcon={<Lock className="h-4 w-4" />}
+                        required
+                        minLength={6}
+                      />
+                      <Input
+                        label="Kode Perusahaan"
+                        placeholder="Contoh: TOKO2025"
+                        value={regForm.company_code}
+                        onChange={(e) => setRegForm({ ...regForm, company_code: e.target.value.toUpperCase() })}
+                        leftIcon={<Building2 className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="No. HP (Opsional)"
+                        type="tel"
+                        placeholder="08xx-xxxx-xxxx"
+                        value={regForm.phone}
+                        onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                        leftIcon={<Phone className="h-4 w-4" />}
+                      />
+                      <Input
+                        label="Jabatan (Opsional)"
+                        placeholder="Staff, Kasir, dll."
+                        value={regForm.position}
+                        onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
+                        leftIcon={<Briefcase className="h-4 w-4" />}
+                      />
+                      <Button type="submit" className="w-full" size="lg" loading={loading}>
+                        Buat Akun
+                      </Button>
+                    </form>
+                  ) : (
+                    /* ── Owner: create new company + admin account ── */
+                    <form onSubmit={handleRegisterOwner} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Daftarkan usahamu sekaligus buat akun admin. Kode perusahaan akan dibagikan ke karyawan.
+                      </p>
+                      <Input
+                        label="Nama Kamu"
+                        placeholder="Budi Santoso"
+                        value={ownerForm.full_name}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, full_name: e.target.value })}
+                        leftIcon={<User className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="Email"
+                        type="email"
+                        placeholder="nama@email.com"
+                        value={ownerForm.email}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, email: e.target.value })}
+                        leftIcon={<Mail className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="Password"
+                        type="password"
+                        placeholder="Min. 6 karakter"
+                        value={ownerForm.password}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, password: e.target.value })}
+                        leftIcon={<Lock className="h-4 w-4" />}
+                        required
+                        minLength={6}
+                      />
+                      <Input
+                        label="Nama Usaha / Perusahaan"
+                        placeholder="Toko Budi Jaya"
+                        value={ownerForm.company_name}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, company_name: e.target.value })}
+                        leftIcon={<Building2 className="h-4 w-4" />}
+                        required
+                      />
+                      <Input
+                        label="Kode Perusahaan"
+                        placeholder="Contoh: BUDIJAYA25 (unik, huruf kapital)"
+                        value={ownerForm.company_code}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, company_code: e.target.value.toUpperCase() })}
+                        leftIcon={<Briefcase className="h-4 w-4" />}
+                        required
+                        minLength={3}
+                      />
+                      <Input
+                        label="No. HP (Opsional)"
+                        type="tel"
+                        placeholder="08xx-xxxx-xxxx"
+                        value={ownerForm.phone}
+                        onChange={(e) => setOwnerForm({ ...ownerForm, phone: e.target.value })}
+                        leftIcon={<Phone className="h-4 w-4" />}
+                      />
+                      <Button type="submit" className="w-full" size="lg" loading={loading}>
+                        Daftarkan Usaha & Buat Akun
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )
             )}
           </div>
         </div>

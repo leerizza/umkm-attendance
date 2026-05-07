@@ -33,6 +33,26 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SendOTPRequest(BaseModel):
+    email: str
+
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    token: str = Field(min_length=6, max_length=6)
+
+
+class ResetPasswordOTPRequest(BaseModel):
+    email: str
+    token: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=6, max_length=72)
+
+
+class ChangePasswordOTPRequest(BaseModel):
+    token: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=6, max_length=72)
+
+
 # ─── Attendance ──────────────────────────────────────────────────────────────
 
 class ClockInRequest(BaseModel):

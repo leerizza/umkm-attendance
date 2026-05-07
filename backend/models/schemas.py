@@ -16,6 +16,7 @@ class RegisterRequest(BaseModel):
     company_code: str = Field(min_length=1, max_length=20)
     phone: Optional[str] = Field(default=None, max_length=20)
     position: Optional[str] = Field(default=None, max_length=100)
+    captcha_token: Optional[str] = None
 
 
 class RegisterCompanyRequest(BaseModel):
@@ -26,6 +27,7 @@ class RegisterCompanyRequest(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=20)
     company_name: str = Field(min_length=1, max_length=100)
     company_code: str = Field(min_length=3, max_length=20)  # will be uppercased
+    captcha_token: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

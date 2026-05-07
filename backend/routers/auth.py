@@ -88,7 +88,11 @@ async def register(request: Request, body: RegisterRequest):
         otp_resp = await client.post(
             f"{settings.supabase_url}/auth/v1/otp",
             headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
-            json={"email": body.email, "create_user": False},
+            json={
+                "email": body.email,
+                "create_user": False,
+                **({"gotrue_meta_security": {"captcha_token": body.captcha_token}} if body.captcha_token else {}),
+            },
             timeout=8.0,
         )
     if otp_resp.status_code not in (200, 204):
@@ -182,7 +186,11 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
         otp_resp = await client.post(
             f"{settings.supabase_url}/auth/v1/otp",
             headers={"apikey": settings.supabase_service_key, "Content-Type": "application/json"},
-            json={"email": body.email, "create_user": False},
+            json={
+                "email": body.email,
+                "create_user": False,
+                **({"gotrue_meta_security": {"captcha_token": body.captcha_token}} if body.captcha_token else {}),
+            },
             timeout=8.0,
         )
     if otp_resp.status_code not in (200, 204):

@@ -144,7 +144,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await authApi.register(regForm);
+      await authApi.register(regForm, captchaToken ?? undefined);
+      resetCaptcha();
       setRegOtpEmail(regForm.email);
       setRegStep("verify");
       startCountdown();
@@ -164,7 +165,8 @@ export default function LoginPage() {
       await authApi.registerCompany({
         ...ownerForm,
         company_code: ownerForm.company_code.toUpperCase(),
-      });
+      }, captchaToken ?? undefined);
+      resetCaptcha();
       setRegOtpEmail(ownerForm.email);
       setRegStep("verify");
       startCountdown();
@@ -542,7 +544,15 @@ export default function LoginPage() {
                         onChange={(e) => setRegForm({ ...regForm, position: e.target.value })}
                         leftIcon={<Briefcase className="h-4 w-4" />}
                       />
-                      <Button type="submit" className="w-full" size="lg" loading={loading}>
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => setCaptchaToken(token)}
+                        onExpire={resetCaptcha}
+                        onError={resetCaptcha}
+                        options={{ theme: "light", size: "flexible" }}
+                      />
+                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
                         Buat Akun
                       </Button>
                     </form>
@@ -604,7 +614,15 @@ export default function LoginPage() {
                         onChange={(e) => setOwnerForm({ ...ownerForm, phone: e.target.value })}
                         leftIcon={<Phone className="h-4 w-4" />}
                       />
-                      <Button type="submit" className="w-full" size="lg" loading={loading}>
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => setCaptchaToken(token)}
+                        onExpire={resetCaptcha}
+                        onError={resetCaptcha}
+                        options={{ theme: "light", size: "flexible" }}
+                      />
+                      <Button type="submit" className="w-full" size="lg" loading={loading} disabled={!captchaToken}>
                         Daftarkan Usaha & Buat Akun
                       </Button>
                     </form>

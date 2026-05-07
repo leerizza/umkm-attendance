@@ -90,10 +90,10 @@ export const authApi = {
     api.post("/auth/verify-register", data),
   verifyRegisterCompany: (data: VerifyRegisterOwnerPayload) =>
     api.post("/auth/verify-register-company", data),
-  register:        (data: RegisterPayload) =>
-    api.post("/auth/register", data),
-  registerCompany: (data: RegisterCompanyPayload) =>
-    api.post("/auth/register-company", data),
+  register:        (data: RegisterPayload, captchaToken?: string) =>
+    api.post("/auth/register", { ...data, captcha_token: captchaToken }),
+  registerCompany: (data: RegisterCompanyPayload, captchaToken?: string) =>
+    api.post("/auth/register-company", { ...data, captcha_token: captchaToken }),
   updateProfile:   (data: { full_name?: string; phone?: string; position?: string }) =>
     api.patch("/auth/profile/me", data),
   changePassword:  (new_password: string) =>

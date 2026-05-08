@@ -79,7 +79,18 @@ async def register(request: Request, body: RegisterRequest):
                 profile_check = supabase.table("profiles").select("id").eq("id", uid).execute()
                 if profile_check.data:
                     raise HTTPException(400, "Email sudah terdaftar, silakan login")
-            # No profile yet → resend OTP
+                # No profile yet — update password to the one entered now, then resend OTP
+                async with httpx.AsyncClient() as client3:
+                    await client3.put(
+                        f"{settings.supabase_url}/auth/v1/admin/users/{uid}",
+                        headers={
+                            "apikey": settings.supabase_service_key,
+                            "Authorization": f"Bearer {settings.supabase_service_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={"password": body.password},
+                        timeout=10.0,
+                    )
         else:
             raise HTTPException(400, data.get("msg") or data.get("message") or "Registrasi gagal")
 
@@ -179,7 +190,31 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
         err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
         if "already been registered" not in err:
             raise HTTPException(400, data.get("msg") or data.get("message") or "Gagal membuat akun")
-        # Already exists but no profile yet → resend OTP
+        # Already exists but no company/profile yet — update password then resend OTP
+        async with httpx.AsyncClient() as client2:
+            user_list = await client2.get(
+                f"{settings.supabase_url}/auth/v1/admin/users",
+                headers={
+                    "apikey": settings.supabase_service_key,
+                    "Authorization": f"Bearer {settings.supabase_service_key}",
+                },
+                params={"email": body.email},
+                timeout=10.0,
+            )
+        users = user_list.json().get("users", [])
+        if users:
+            uid = users[0]["id"]
+            async with httpx.AsyncClient() as client3:
+                await client3.put(
+                    f"{settings.supabase_url}/auth/v1/admin/users/{uid}",
+                    headers={
+                        "apikey": settings.supabase_service_key,
+                        "Authorization": f"Bearer {settings.supabase_service_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"password": body.password},
+                    timeout=10.0,
+                )
 
     # 3. Send OTP
     async with httpx.AsyncClient() as client:

@@ -40,6 +40,13 @@ api.interceptors.response.use(
     }
     original._retry = true;
 
+    // Don't attempt refresh if there is no active Supabase session (e.g. the 401
+    // came from /auth/login itself with wrong credentials — no session exists yet).
+    const { data: sessionCheck } = await supabase.auth.getSession();
+    if (!sessionCheck?.session) {
+      return Promise.reject(err);
+    }
+
     if (_refreshing) {
       return new Promise<string>((resolve, reject) => {
         _queue.push({ resolve, reject });

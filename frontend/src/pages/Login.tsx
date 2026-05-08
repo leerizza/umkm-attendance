@@ -85,7 +85,8 @@ export default function LoginPage() {
       const res = await authApi.login(loginForm.email, loginForm.password, captchaToken);
       const { access_token, refresh_token } = res.data;
 
-      await supabase.auth.setSession({ access_token, refresh_token });
+      const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (sessionError) throw sessionError;
 
       const profileRes = await authApi.me(access_token);
       const profile = profileRes.data;
@@ -94,8 +95,6 @@ export default function LoginPage() {
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {
-      // err.response is undefined for genuine network errors AND for non-Axios errors
-      // (e.g. Supabase SDK errors from the refresh interceptor). Distinguish them:
       const isNetworkErr = !err?.response && err?.message === "Network Error";
       const msg = isNetworkErr
         ? "Periksa koneksi internet kamu"

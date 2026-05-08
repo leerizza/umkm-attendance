@@ -242,7 +242,6 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
         company_res = (
             supabase.table("companies")
             .insert({"name": body.company_name, "code": code})
-            .select("id")
             .execute()
         )
         if not company_res.data:

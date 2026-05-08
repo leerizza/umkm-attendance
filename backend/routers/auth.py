@@ -203,6 +203,8 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
 @limiter.limit("5/minute")
 async def verify_register_company(request: Request, body: VerifyRegisterOwnerRequest):
     """Verify OTP then create company + admin profile — completes owner registration."""
+    import logging
+    logger = logging.getLogger(__name__)
     code = body.company_code.upper()
 
     # 1. Verify OTP
@@ -217,39 +219,65 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
         raise HTTPException(401, "Kode OTP salah atau sudah kadaluarsa")
 
     data = verify.json()
-    user_id = data["user"]["id"]
+    try:
+        user_id = data["user"]["id"]
+        access_token = data["access_token"]
+        refresh_token = data["refresh_token"]
+        expires_at = data["expires_at"]
+    except (KeyError, TypeError) as exc:
+        logger.error("Unexpected Supabase verify response: %s | error: %s", data, exc)
+        raise HTTPException(500, "Respons verifikasi tidak valid, coba lagi")
 
     # 2. Check company code still available
-    existing = supabase.table("companies").select("id").eq("code", code).execute()
+    try:
+        existing = supabase.table("companies").select("id").eq("code", code).execute()
+    except Exception as exc:
+        logger.error("Company code check failed: %s", exc)
+        raise HTTPException(500, "Gagal memeriksa kode perusahaan, coba lagi")
     if existing.data:
         raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
 
     # 3. Create company
-    company_res = (
-        supabase.table("companies")
-        .insert({"name": body.company_name, "code": code})
-        .select("id")
-        .execute()
-    )
-    if not company_res.data:
-        raise HTTPException(500, "Gagal membuat perusahaan")
-    company_id = company_res.data[0]["id"]
+    try:
+        company_res = (
+            supabase.table("companies")
+            .insert({"name": body.company_name, "code": code})
+            .select("id")
+            .execute()
+        )
+        if not company_res.data:
+            raise HTTPException(500, "Gagal membuat perusahaan, coba lagi")
+        company_id = company_res.data[0]["id"]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Company insert failed for code=%s: %s", code, exc)
+        raise HTTPException(500, f"Gagal membuat perusahaan: {exc}")
 
     # 4. Insert admin profile (idempotent)
-    existing_profile = supabase.table("profiles").select("id").eq("id", user_id).execute()
-    if not existing_profile.data:
-        supabase.table("profiles").insert({
-            "id": user_id,
-            "company_id": company_id,
-            "full_name": body.full_name,
-            "phone": body.phone,
-            "role": "admin",
-        }).execute()
+    try:
+        existing_profile = supabase.table("profiles").select("id").eq("id", user_id).execute()
+        if not existing_profile.data:
+            supabase.table("profiles").insert({
+                "id": user_id,
+                "company_id": company_id,
+                "full_name": body.full_name,
+                "phone": body.phone,
+                "role": "admin",
+            }).execute()
+    except Exception as exc:
+        logger.error("Profile insert failed for user=%s: %s", user_id, exc)
+        # Company was created; clean it up to keep state consistent
+        try:
+            supabase.table("companies").delete().eq("id", company_id).execute()
+        except Exception:
+            pass
+        raise HTTPException(500, f"Gagal membuat profil admin: {exc}")
 
     return {
-        "access_token": data["access_token"],
-        "refresh_token": data["refresh_token"],
-        "expires_at": data["expires_at"],
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at,
         "company_code": code,
     }
 

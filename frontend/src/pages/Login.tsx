@@ -94,10 +94,12 @@ export default function LoginPage() {
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {
-      const isNetworkErr = !err?.response;
+      // err.response is undefined for genuine network errors AND for non-Axios errors
+      // (e.g. Supabase SDK errors from the refresh interceptor). Distinguish them:
+      const isNetworkErr = !err?.response && err?.message === "Network Error";
       const msg = isNetworkErr
         ? "Periksa koneksi internet kamu"
-        : getErrMsg(err);
+        : getErrMsg(err) || err?.message || "Terjadi kesalahan, coba lagi";
       toast.error("Login Gagal", msg);
       resetCaptcha();
     } finally {

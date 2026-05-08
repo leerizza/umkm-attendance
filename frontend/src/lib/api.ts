@@ -7,10 +7,14 @@ export const api = axios.create({
   timeout: 12_000,
 });
 
-// Inject Bearer token from Zustand store on every request
+// Inject Bearer token from Zustand store, but never override an explicitly-set header.
+// During login, authApi.me(newToken) passes the token explicitly before setAuth() is
+// called, so the store still holds the previous user's token at that moment.
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
@@ -48,7 +52,9 @@ api.interceptors.response.use(
     _refreshing = true;
     try {
       const { data, error } = await supabase.auth.refreshSession();
-      if (error || !data.session) throw error;
+      if (error || !data.session) {
+        throw error ?? new Error("Session expired, please login again");
+      }
 
       const newToken = data.session.access_token;
       const store = useAuthStore.getState();

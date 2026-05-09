@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Phone, Briefcase, Building2, KeyRound } from "lucide-react";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
@@ -30,6 +30,10 @@ export default function LoginPage() {
   // ── OTP countdown ─────────────────────────────────────────────────────────
   const [otpCountdown, setOtpCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, []);
 
   function startCountdown() {
     if (countdownRef.current) clearInterval(countdownRef.current);

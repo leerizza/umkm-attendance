@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,6 +25,10 @@ export default function ProfilePage() {
   const [otpCountdown, setOtpCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, []);
+
   function startCountdown() {
     if (countdownRef.current) clearInterval(countdownRef.current);
     setOtpCountdown(60);
@@ -34,6 +38,15 @@ export default function ProfilePage() {
         return prev - 1;
       });
     }, 1000);
+  }
+
+  function cancelChangePw() {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setOtpCountdown(0);
+    setChangingPw(false);
+    setChangePwStep("form");
+    setNewPw("");
+    setOtpCode("");
   }
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
@@ -101,7 +114,7 @@ export default function ProfilePage() {
                 setForm({ full_name: profile.full_name, phone: profile.phone ?? "", position: profile.position ?? "" });
               }
               setEditing(!editing);
-              setChangingPw(false);
+              cancelChangePw();
             }}
           >
             {editing ? <><X className="h-4 w-4" /> Batal</> : <><Pencil className="h-4 w-4" /> Edit</>}
@@ -212,7 +225,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">Ganti Password</p>
                 <button
-                  onClick={() => { setChangingPw(false); setChangePwStep("form"); setNewPw(""); setOtpCode(""); }}
+                  onClick={cancelChangePw}
                   className="text-muted-foreground"
                 >
                   <X className="h-4 w-4" />

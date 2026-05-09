@@ -152,7 +152,7 @@ export const adminApi = {
   employees:       (page = 1, search?: string, is_active?: boolean) =>
     api.get("/admin/employees", { params: { page, per_page: 10, search: search || undefined, is_active } }),
   employeeAttendance: (user_id: string, page = 1) =>
-    api.get(`/admin/employees/${user_id}/attendance`, { params: { page, per_page: 10 } }),
+    api.get(`/admin/employees/${user_id}/attendance`, { params: { page, per_page: 20 } }),
   getCompany:           () => api.get("/admin/company"),
   updateCompany:        (data: CompanyUpdatePayload) => api.patch("/admin/company", data),
   exportAttendance:     (date_from?: string, date_to?: string) =>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Lock, CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -11,6 +11,7 @@ export default function ResetPasswordPage() {
   const toast = useToast();
   const [ready, setReady]       = useState(false);
   const [invalid, setInvalid]   = useState(false);
+  const readyRef                = useRef(false);
   const [done, setDone]         = useState(false);
   const [loading, setLoading]   = useState(false);
   const [password, setPassword] = useState("");
@@ -21,6 +22,7 @@ export default function ResetPasswordPage() {
     // Listen for PASSWORD_RECOVERY event to confirm it's a valid reset link.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
+        readyRef.current = true;
         setReady(true);
       }
     });
@@ -28,11 +30,13 @@ export default function ResetPasswordPage() {
     // Fallback: check hash directly in case event already fired
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
+      readyRef.current = true;
       setReady(true);
     } else {
-      // Give Supabase a moment to process the hash before declaring invalid
+      // Give Supabase a moment to process the hash before declaring invalid.
+      // Use readyRef (not the `ready` state) to avoid stale closure.
       const timer = setTimeout(() => {
-        if (!ready) setInvalid(true);
+        if (!readyRef.current) setInvalid(true);
       }, 2000);
       return () => {
         clearTimeout(timer);

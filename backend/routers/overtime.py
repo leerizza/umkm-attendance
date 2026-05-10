@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from datetime import datetime, timezone
 from models.schemas import OvertimeCreateRequest, OvertimeApproveRequest
 from utils.auth import get_current_profile, require_admin
+from utils.email import send_overtime_decision_email
 from db import supabase
 
 router = APIRouter(prefix="/overtime", tags=["overtime"])
@@ -95,6 +96,7 @@ async def cancel_overtime(
 async def approve_overtime(
     ot_id: str,
     body: OvertimeApproveRequest,
+    background_tasks: BackgroundTasks,
     admin: dict = Depends(require_admin),
 ):
     if body.status not in ("approved", "rejected"):
@@ -119,5 +121,25 @@ async def approve_overtime(
         "reviewed_at": datetime.now(timezone.utc).isoformat(),
         "reviewer_note": body.reviewer_note,
     }).eq("id", ot_id).execute()
+
+    # Fetch employee name for email
+    full_name = "Karyawan"
+    try:
+        p = supabase.table("profiles").select("full_name").eq("id", res.data["user_id"]).single().execute()
+        if p.data:
+            full_name = p.data.get("full_name", "Karyawan")
+    except Exception:
+        pass
+
+    background_tasks.add_task(
+        send_overtime_decision_email,
+        user_id=res.data["user_id"],
+        full_name=full_name,
+        date=res.data["date"],
+        start_time=res.data["start_time"],
+        end_time=res.data["end_time"],
+        status=body.status,
+        reviewer_note=body.reviewer_note,
+    )
 
     return {"message": f"Overtime request {body.status}"}

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from datetime import datetime, timezone, date, timedelta
 from models.schemas import LeaveCreateRequest, LeaveApproveRequest
 from utils.auth import get_current_profile, require_admin
+from utils.email import send_leave_decision_email
 from db import supabase
 
 # Default annual leave allowance (days/year) if not set per company
@@ -220,6 +221,7 @@ async def cancel_leave(
 async def approve_leave(
     leave_id: str,
     body: LeaveApproveRequest,
+    background_tasks: BackgroundTasks,
     admin: dict = Depends(require_admin),
 ):
     if body.status not in ("approved", "rejected"):
@@ -245,5 +247,25 @@ async def approve_leave(
         "reviewed_at": datetime.now(timezone.utc).isoformat(),
         "reviewer_note": body.reviewer_note,
     }).eq("id", leave_id).execute()
+
+    # Fetch employee name for email
+    full_name = "Karyawan"
+    try:
+        p = supabase.table("profiles").select("full_name").eq("id", res.data["user_id"]).single().execute()
+        if p.data:
+            full_name = p.data.get("full_name", "Karyawan")
+    except Exception:
+        pass
+
+    background_tasks.add_task(
+        send_leave_decision_email,
+        user_id=res.data["user_id"],
+        full_name=full_name,
+        leave_type=res.data["leave_type"],
+        start_date=res.data["start_date"],
+        end_date=res.data["end_date"],
+        status=body.status,
+        reviewer_note=body.reviewer_note,
+    )
 
     return {"message": f"Leave request {body.status}"}

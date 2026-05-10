@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Example: https://myapp.vercel.app,https://myapp-git-main-user.vercel.app
     frontend_url: str = "https://umkm-attendance-1-1.vercel.app"
 
+    resend_api_key: str = ""
+    from_email: str = "Donkap <noreply@donkap.id>"
+
     @property
     def allowed_origins(self) -> List[str]:
         origins = [o.strip() for o in self.frontend_url.split(",") if o.strip()]

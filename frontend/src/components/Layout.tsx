@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { AttendanceNotifier } from "./AttendanceNotifier";
+import { InstallPrompt } from "./InstallPrompt";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff } from "lucide-react";
 
@@ -29,6 +30,7 @@ export function Layout() {
       </div>
 
       <BottomNav />
+      <InstallPrompt />
     </div>
   );
 }

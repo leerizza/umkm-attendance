@@ -38,8 +38,9 @@ async def create_leave(
     if _check_overlap(user_id, start, end):
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
-    # Enforce annual leave quota — count approved + pending to prevent over-booking
-    if body.leave_type == "annual":
+    # Enforce annual leave quota for all types except sick leave.
+    # Sick leave is uncapped (can't control illness); annual/personal/other share the quota.
+    if body.leave_type != "sick":
         days_requested = (body.end_date - body.start_date).days + 1
         year = body.start_date.year
         first_day = f"{year}-01-01"
@@ -57,7 +58,7 @@ async def create_leave(
             supabase.table("leave_requests")
             .select("days_count")
             .eq("user_id", user_id)
-            .eq("leave_type", "annual")
+            .neq("leave_type", "sick")
             .in_("status", ["approved", "pending"])
             .gte("start_date", first_day)
             .lte("end_date", last_day)
@@ -68,7 +69,7 @@ async def create_leave(
         if days_requested > remaining:
             raise HTTPException(
                 400,
-                f"Sisa jatah cuti tahunan tidak cukup. Sisa: {remaining} hari, diminta: {days_requested} hari."
+                f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari, diminta: {days_requested} hari."
             )
 
     supabase.table("leave_requests").insert({
@@ -103,18 +104,18 @@ async def get_leave_balance(
     except Exception:
         pass
 
-    # Sum approved annual leave days this year
+    # Sum approved non-sick leave days this year (annual + personal + other share the quota)
     res = (
         supabase.table("leave_requests")
         .select("days_count")
         .eq("user_id", user_id)
-        .eq("leave_type", "annual")
+        .neq("leave_type", "sick")
         .eq("status", "approved")
         .gte("start_date", first_day)
         .lte("end_date", last_day)
         .execute()
     )
-    used = sum(r["days_count"] for r in (res.data or []))
+    used = sum(r.get("days_count") or 0 for r in (res.data or []))
 
     return {
         "year": year,

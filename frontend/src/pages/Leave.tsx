@@ -66,7 +66,8 @@ export default function LeavePage() {
   const days = form.start_date && form.end_date
     ? Math.max(0, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000) + 1)
     : 0;
-  const exceedsBalance = form.leave_type === "annual" && balance != null && days > balance.remaining;
+  // Sick leave is uncapped; all other types (annual, personal, other) share the quota
+  const exceedsBalance = form.leave_type !== "sick" && balance != null && days > balance.remaining;
 
   return (
     <div>
@@ -181,8 +182,8 @@ export default function LeavePage() {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Jatah Cuti", value: balance.allowance, color: "text-blue-600 bg-blue-50" },
-              { label: "Sudah Dipakai", value: balance.used,      color: "text-amber-600 bg-amber-50" },
-              { label: "Sisa Cuti",    value: balance.remaining,  color: balance.remaining <= 3 ? "text-red-600 bg-red-50" : "text-emerald-600 bg-emerald-50" },
+              { label: "Terpakai",   value: balance.used,      color: "text-amber-600 bg-amber-50" },
+              { label: "Sisa",       value: balance.remaining, color: balance.remaining <= 3 ? "text-red-600 bg-red-50" : "text-emerald-600 bg-emerald-50" },
             ].map(({ label, value, color }) => (
               <Card key={label}>
                 <CardContent className="p-3 text-center space-y-1">

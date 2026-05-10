@@ -38,6 +38,39 @@ async def create_leave(
     if _check_overlap(user_id, start, end):
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
+    # Enforce annual leave quota — count approved + pending to prevent over-booking
+    if body.leave_type == "annual":
+        days_requested = (body.end_date - body.start_date).days + 1
+        year = body.start_date.year
+        first_day = f"{year}-01-01"
+        last_day  = f"{year}-12-31"
+
+        allowance = DEFAULT_ANNUAL_ALLOWANCE
+        try:
+            comp = supabase.table("companies").select("leave_allowance").eq("id", profile["company_id"]).single().execute()
+            if comp.data and comp.data.get("leave_allowance"):
+                allowance = comp.data["leave_allowance"]
+        except Exception:
+            pass
+
+        used_res = (
+            supabase.table("leave_requests")
+            .select("days_count")
+            .eq("user_id", user_id)
+            .eq("leave_type", "annual")
+            .in_("status", ["approved", "pending"])
+            .gte("start_date", first_day)
+            .lte("end_date", last_day)
+            .execute()
+        )
+        used = sum(r.get("days_count") or 0 for r in (used_res.data or []))
+        remaining = allowance - used
+        if days_requested > remaining:
+            raise HTTPException(
+                400,
+                f"Sisa jatah cuti tahunan tidak cukup. Sisa: {remaining} hari, diminta: {days_requested} hari."
+            )
+
     supabase.table("leave_requests").insert({
         "user_id": user_id,
         "company_id": profile["company_id"],

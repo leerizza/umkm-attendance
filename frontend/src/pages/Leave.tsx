@@ -66,6 +66,7 @@ export default function LeavePage() {
   const days = form.start_date && form.end_date
     ? Math.max(0, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000) + 1)
     : 0;
+  const exceedsBalance = form.leave_type === "annual" && balance != null && days > balance.remaining;
 
   return (
     <div>
@@ -141,8 +142,14 @@ export default function LeavePage() {
               </div>
 
               {days > 0 && (
-                <p className="text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-2 rounded-lg">
+                <p className={cn(
+                  "text-xs font-medium px-3 py-2 rounded-lg",
+                  exceedsBalance
+                    ? "text-red-600 bg-red-50"
+                    : "text-indigo-600 bg-indigo-50"
+                )}>
                   Total: {days} hari (termasuk akhir pekan)
+                  {exceedsBalance && balance != null && ` — melebihi sisa jatah (${balance.remaining} hari)`}
                 </p>
               )}
 
@@ -159,7 +166,7 @@ export default function LeavePage() {
                 size="lg"
                 loading={mutation.isPending}
                 onClick={() => mutation.mutate()}
-                disabled={!form.start_date || !form.end_date || !form.reason || days < 1}
+                disabled={!form.start_date || !form.end_date || !form.reason || days < 1 || exceedsBalance}
               >
                 Kirim Pengajuan
               </Button>

@@ -26,6 +26,12 @@ export default function LoginPage() {
   // ── Captcha ───────────────────────────────────────────────────────────────
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const hcaptchaRef = useRef<HCaptcha>(null);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+
+  // Login: captcha only after 3 failed attempts (progressive captcha)
+  // Register / forgot-password: always show captcha if site key is set
+  const captchaRequired      = !!HCAPTCHA_SITE_KEY;
+  const loginCaptchaRequired = !!HCAPTCHA_SITE_KEY && loginAttempts >= 3;
 
   // ── OTP countdown ─────────────────────────────────────────────────────────
   const [otpCountdown, setOtpCountdown] = useState(0);
@@ -45,9 +51,6 @@ export default function LoginPage() {
       });
     }, 1000);
   }
-
-  // If no site key configured, captcha is not required
-  const captchaRequired = !!HCAPTCHA_SITE_KEY;
 
   function resetCaptcha() {
     setCaptchaToken(null);
@@ -80,13 +83,13 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!captchaToken) {
+    if (loginCaptchaRequired && !captchaToken) {
       toast.error("Verifikasi captcha dulu", "Centang kotak di bawah sebelum login.");
       return;
     }
     setLoading(true);
     try {
-      const res = await authApi.login(loginForm.email, loginForm.password, captchaToken);
+      const res = await authApi.login(loginForm.email, loginForm.password, captchaToken ?? undefined);
       const { access_token, refresh_token } = res.data;
 
       const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
@@ -96,6 +99,7 @@ export default function LoginPage() {
       const profile = profileRes.data;
 
       setAuth(access_token, { ...profile, email: loginForm.email });
+      setLoginAttempts(0);
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {
@@ -103,6 +107,7 @@ export default function LoginPage() {
       const msg = isNetworkErr
         ? "Periksa koneksi internet kamu"
         : getErrMsg(err) || err?.message || "Terjadi kesalahan, coba lagi";
+      setLoginAttempts((n) => n + 1);
       toast.error("Login Gagal", msg);
       resetCaptcha();
     } finally {
@@ -400,7 +405,7 @@ export default function LoginPage() {
                       tabIndex={-1}
                     />
                   </div>
-                  {captchaRequired && (
+                  {loginCaptchaRequired && (
                     <HCaptcha
                       ref={hcaptchaRef}
                       sitekey={HCAPTCHA_SITE_KEY}
@@ -409,7 +414,12 @@ export default function LoginPage() {
                       onError={resetCaptcha}
                     />
                   )}
-                  <Button type="submit" className="w-full" size="lg" loading={loading} disabled={captchaRequired && !captchaToken}>
+                  {captchaRequired && !loginCaptchaRequired && loginAttempts > 0 && (
+                    <p className="text-xs text-amber-600 text-center">
+                      {3 - loginAttempts} percobaan lagi sebelum captcha diperlukan
+                    </p>
+                  )}
+                  <Button type="submit" className="w-full" size="lg" loading={loading} disabled={loginCaptchaRequired && !captchaToken}>
                     Masuk
                   </Button>
                   <div className="text-center">

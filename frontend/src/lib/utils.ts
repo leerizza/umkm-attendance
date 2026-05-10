@@ -46,6 +46,7 @@ export function statusColor(status: string): string {
     pending:     "badge-pending",
     approved:    "badge-approved",
     rejected:    "badge-rejected",
+    cancelled:   "bg-gray-100 text-gray-500",
   };
   return map[status] ?? "badge-pending";
 }
@@ -59,6 +60,7 @@ export function statusLabel(status: string): string {
     pending:     "Menunggu",
     approved:    "Disetujui",
     rejected:    "Ditolak",
+    cancelled:   "Dibatalkan",
     annual:      "Cuti Tahunan",
     sick:        "Sakit",
     personal:    "Keperluan Pribadi",

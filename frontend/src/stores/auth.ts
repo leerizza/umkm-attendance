@@ -20,6 +20,8 @@ export interface UserProfile {
     radius_meters: number;
     work_start: string;
     work_end: string;
+    work_saturday?: boolean;
+    work_sunday?: boolean;
   };
 }
 

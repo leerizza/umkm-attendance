@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from models.schemas import LeaveCreateRequest, LeaveApproveRequest
 from utils.auth import get_current_profile, require_admin
 from db import supabase
@@ -8,6 +8,25 @@ from db import supabase
 DEFAULT_ANNUAL_ALLOWANCE = 12
 
 router = APIRouter(prefix="/leave", tags=["leave"])
+
+
+def _count_business_days(
+    start: date, end: date,
+    work_saturday: bool = False, work_sunday: bool = False,
+) -> int:
+    """Count work days between start and end inclusive, respecting company schedule."""
+    count = 0
+    cur = start
+    while cur <= end:
+        wd = cur.weekday()  # 0=Mon … 6=Sun
+        if wd < 5:
+            count += 1
+        elif wd == 5 and work_saturday:
+            count += 1
+        elif wd == 6 and work_sunday:
+            count += 1
+        cur += timedelta(days=1)
+    return count
 
 
 def _check_overlap(user_id: str, start: str, end: str, exclude_id: str = None):
@@ -39,24 +58,33 @@ async def create_leave(
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
     # Enforce annual leave quota for all types except sick leave.
-    # Sick leave is uncapped (can't control illness); annual/personal/other share the quota.
+    # Sick leave is uncapped; annual/personal/other share the quota.
+    # Quota is counted in business days (Mon–Fri) only.
     if body.leave_type != "sick":
-        days_requested = (body.end_date - body.start_date).days + 1
+        days_requested = _count_business_days(body.start_date, body.end_date)
+        if days_requested == 0:
+            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja (Senin–Jumat).")
+
         year = body.start_date.year
         first_day = f"{year}-01-01"
         last_day  = f"{year}-12-31"
 
         allowance = DEFAULT_ANNUAL_ALLOWANCE
+        work_saturday = False
+        work_sunday = False
         try:
-            comp = supabase.table("companies").select("leave_allowance").eq("id", profile["company_id"]).single().execute()
-            if comp.data and comp.data.get("leave_allowance"):
-                allowance = comp.data["leave_allowance"]
+            comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
+            if comp.data:
+                if comp.data.get("leave_allowance"):
+                    allowance = comp.data["leave_allowance"]
+                work_saturday = bool(comp.data.get("work_saturday"))
+                work_sunday   = bool(comp.data.get("work_sunday"))
         except Exception:
             pass
 
         used_res = (
             supabase.table("leave_requests")
-            .select("days_count")
+            .select("start_date, end_date")
             .eq("user_id", user_id)
             .neq("leave_type", "sick")
             .in_("status", ["approved", "pending"])
@@ -64,12 +92,19 @@ async def create_leave(
             .lte("end_date", last_day)
             .execute()
         )
-        used = sum(r.get("days_count") or 0 for r in (used_res.data or []))
+        used = sum(
+            _count_business_days(
+                date.fromisoformat(r["start_date"]),
+                date.fromisoformat(r["end_date"]),
+                work_saturday, work_sunday,
+            )
+            for r in (used_res.data or [])
+        )
         remaining = allowance - used
         if days_requested > remaining:
             raise HTTPException(
                 400,
-                f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari, diminta: {days_requested} hari."
+                f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari kerja, diminta: {days_requested} hari kerja."
             )
 
     supabase.table("leave_requests").insert({
@@ -89,25 +124,30 @@ async def create_leave(
 async def get_leave_balance(
     profile: dict = Depends(get_current_profile),
 ):
-    """Return annual leave balance for the current user this year."""
+    """Return annual leave balance for the current user this year (in business days)."""
     user_id = profile["id"]
     year = date.today().year
     first_day = f"{year}-01-01"
     last_day  = f"{year}-12-31"
 
-    # Company allowance (use leave_allowance column if it exists, else default)
+    # Company allowance + work schedule
     allowance = DEFAULT_ANNUAL_ALLOWANCE
+    work_saturday = False
+    work_sunday = False
     try:
-        comp = supabase.table("companies").select("leave_allowance").eq("id", profile["company_id"]).single().execute()
-        if comp.data and comp.data.get("leave_allowance"):
-            allowance = comp.data["leave_allowance"]
+        comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
+        if comp.data:
+            if comp.data.get("leave_allowance"):
+                allowance = comp.data["leave_allowance"]
+            work_saturday = bool(comp.data.get("work_saturday"))
+            work_sunday   = bool(comp.data.get("work_sunday"))
     except Exception:
         pass
 
-    # Sum approved non-sick leave days this year (annual + personal + other share the quota)
+    # Sum approved non-sick leave days this year, counted as work days
     res = (
         supabase.table("leave_requests")
-        .select("days_count")
+        .select("start_date, end_date")
         .eq("user_id", user_id)
         .neq("leave_type", "sick")
         .eq("status", "approved")
@@ -115,7 +155,14 @@ async def get_leave_balance(
         .lte("end_date", last_day)
         .execute()
     )
-    used = sum(r.get("days_count") or 0 for r in (res.data or []))
+    used = sum(
+        _count_business_days(
+            date.fromisoformat(r["start_date"]),
+            date.fromisoformat(r["end_date"]),
+            work_saturday, work_sunday,
+        )
+        for r in (res.data or [])
+    )
 
     return {
         "year": year,
@@ -147,6 +194,26 @@ async def get_my_leave(
         q = q.lte("start_date", date_to)
     res = q.range(offset, offset + per_page - 1).execute()
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
+
+
+@router.delete("/{leave_id}")
+async def cancel_leave(
+    leave_id: str,
+    profile: dict = Depends(get_current_profile),
+):
+    try:
+        res = supabase.table("leave_requests").select("user_id, status").eq("id", leave_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Leave request not found")
+    if not res.data:
+        raise HTTPException(404, "Leave request not found")
+    if res.data["user_id"] != profile["id"]:
+        raise HTTPException(403, "Not authorized")
+    if res.data["status"] != "pending":
+        raise HTTPException(400, "Hanya pengajuan yang masih menunggu yang bisa dibatalkan")
+
+    supabase.table("leave_requests").update({"status": "cancelled"}).eq("id", leave_id).execute()
+    return {"message": "Leave request cancelled"}
 
 
 @router.post("/{leave_id}/approve")

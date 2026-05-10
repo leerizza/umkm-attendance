@@ -338,6 +338,10 @@ async def login(request: Request, body: LoginRequest):
         )
 
     if resp.status_code != 200:
+        err_body = resp.json()
+        err_desc = (err_body.get("error_description") or err_body.get("msg") or "").lower()
+        if "captcha" in err_desc:
+            raise HTTPException(400, "captcha_required")
         raise HTTPException(401, "Email atau password salah")
 
     data = resp.json()

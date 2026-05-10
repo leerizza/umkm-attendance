@@ -103,6 +103,13 @@ export default function LoginPage() {
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      if (detail === "captcha_required") {
+        setLoginAttempts(3);
+        resetCaptcha();
+        toast.error("Verifikasi captcha diperlukan", "Centang kotak captcha di bawah lalu coba lagi.");
+        return;
+      }
       const isNetworkErr = !err?.response && err?.message === "Network Error";
       const msg = isNetworkErr
         ? "Periksa koneksi internet kamu"

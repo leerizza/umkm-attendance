@@ -71,6 +71,26 @@ async def get_my_overtime(
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
 
 
+@router.delete("/{ot_id}")
+async def cancel_overtime(
+    ot_id: str,
+    profile: dict = Depends(get_current_profile),
+):
+    try:
+        res = supabase.table("overtime_requests").select("user_id, status").eq("id", ot_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Overtime request not found")
+    if not res.data:
+        raise HTTPException(404, "Overtime request not found")
+    if res.data["user_id"] != profile["id"]:
+        raise HTTPException(403, "Not authorized")
+    if res.data["status"] != "pending":
+        raise HTTPException(400, "Hanya pengajuan yang masih menunggu yang bisa dibatalkan")
+
+    supabase.table("overtime_requests").update({"status": "cancelled"}).eq("id", ot_id).execute()
+    return {"message": "Overtime request cancelled"}
+
+
 @router.post("/{ot_id}/approve")
 async def approve_overtime(
     ot_id: str,

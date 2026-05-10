@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Timer, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Plus, X, Timer, ChevronLeft, ChevronRight, Filter, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,15 @@ export default function OvertimePage() {
       setForm({ date: "", start_time: "", end_time: "", reason: "" });
     },
     onError: (err) => toast.error("Gagal mengajukan", getErrMsg(err)),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => overtimeApi.cancel(id),
+    onSuccess: () => {
+      toast.success("Pengajuan dibatalkan");
+      qc.invalidateQueries({ queryKey: ["overtime"] });
+    },
+    onError: (err) => toast.error("Gagal membatalkan", getErrMsg(err)),
   });
 
   const durationMins = form.start_time && form.end_time
@@ -173,7 +182,19 @@ export default function OvertimePage() {
                 <div key={row.id} className="px-4 py-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-sm">{fmtDate(row.date)}</span>
-                    <Badge status={row.status} />
+                    <div className="flex items-center gap-2">
+                      <Badge status={row.status} />
+                      {row.status === "pending" && (
+                        <button
+                          onClick={() => { if (window.confirm("Batalkan pengajuan lembur ini?")) cancelMutation.mutate(row.id); }}
+                          disabled={cancelMutation.isPending}
+                          className="p-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                          title="Batalkan"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-3 text-xs font-mono text-muted-foreground">
                     <span>{row.start_time.slice(0, 5)} – {row.end_time.slice(0, 5)}</span>
@@ -195,7 +216,7 @@ export default function OvertimePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
-                  {["Tanggal", "Waktu", "Durasi", "Alasan", "Status"].map((h) => (
+                  {["Tanggal", "Waktu", "Durasi", "Alasan", "Status", ""].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {h}
                     </th>
@@ -208,7 +229,7 @@ export default function OvertimePage() {
                   : data?.data.length === 0
                   ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-muted-foreground text-sm">
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
                         <Timer className="h-8 w-8 mx-auto mb-2 opacity-30" />
                         Belum ada pengajuan lembur
                       </td>
@@ -226,10 +247,22 @@ export default function OvertimePage() {
                         </td>
                         <td className="px-4 py-3 text-xs max-w-[120px] truncate">{row.reason}</td>
                         <td className="px-4 py-3"><Badge status={row.status} /></td>
+                        <td className="px-4 py-3">
+                          {row.status === "pending" && (
+                            <button
+                              onClick={() => { if (window.confirm("Batalkan pengajuan lembur ini?")) cancelMutation.mutate(row.id); }}
+                              disabled={cancelMutation.isPending}
+                              className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                              title="Batalkan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </td>
                       </tr>
                       {row.reviewer_note && (
                         <tr key={`${row.id}-note`} className="border-b border-border/50 bg-muted/20">
-                          <td colSpan={5} className="px-4 py-2">
+                          <td colSpan={6} className="px-4 py-2">
                             <p className="text-xs text-muted-foreground">
                               <span className="font-semibold">Catatan admin:</span> {row.reviewer_note}
                             </p>

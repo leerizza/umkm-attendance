@@ -131,6 +131,7 @@ export const leaveApi = {
   balance: () => api.get("/leave/balance"),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/leave/${id}/approve`, { status, reviewer_note }),
+  cancel:  (id: string) => api.delete(`/leave/${id}`),
 };
 
 export const overtimeApi = {
@@ -139,6 +140,7 @@ export const overtimeApi = {
     api.get("/overtime", { params: { page, per_page, date_from, date_to } }),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/overtime/${id}/approve`, { status, reviewer_note }),
+  cancel:  (id: string) => api.delete(`/overtime/${id}`),
 };
 
 export const adminApi = {
@@ -204,6 +206,8 @@ export interface CompanyUpdatePayload {
   radius_meters?: number;
   work_start?: string;
   work_end?: string;
+  work_saturday?: boolean;
+  work_sunday?: boolean;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter } from "lucide-react";
+import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { leaveApi } from "@/lib/api";
 import { fmtDate, getErrMsg, cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+
+function countBusinessDays(start: string, end: string, workSaturday = false, workSunday = false): number {
+  const s = new Date(start + "T00:00:00");
+  const e = new Date(end + "T00:00:00");
+  let count = 0;
+  const cur = new Date(s);
+  while (cur <= e) {
+    const day = cur.getDay(); // 0=Sun, 6=Sat
+    if (day !== 0 && day !== 6) count++;
+    else if (day === 6 && workSaturday) count++;
+    else if (day === 0 && workSunday) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
 
 const LEAVE_TYPES = [
   { value: "annual",   label: "Cuti Tahunan" },
@@ -23,6 +39,10 @@ const leaveTypeLabel = (t: string) =>
 const PER_PAGE = 10;
 
 export default function LeavePage() {
+  const { profile } = useAuthStore();
+  const workSaturday = profile?.companies?.work_saturday ?? false;
+  const workSunday   = profile?.companies?.work_sunday   ?? false;
+
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
@@ -61,10 +81,20 @@ export default function LeavePage() {
     onError: (err) => toast.error("Gagal mengajukan", getErrMsg(err)),
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => leaveApi.cancel(id),
+    onSuccess: () => {
+      toast.success("Pengajuan dibatalkan");
+      qc.invalidateQueries({ queryKey: ["leave"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+    },
+    onError: (err) => toast.error("Gagal membatalkan", getErrMsg(err)),
+  });
+
   const totalPages = data ? Math.ceil(data.total / PER_PAGE) : 1;
   const hasFilter = dateFrom || dateTo;
   const days = form.start_date && form.end_date
-    ? Math.max(0, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000) + 1)
+    ? countBusinessDays(form.start_date, form.end_date, workSaturday, workSunday)
     : 0;
   // Sick leave is uncapped; all other types (annual, personal, other) share the quota
   const exceedsBalance = form.leave_type !== "sick" && balance != null && days > balance.remaining;
@@ -149,8 +179,8 @@ export default function LeavePage() {
                     ? "text-red-600 bg-red-50"
                     : "text-indigo-600 bg-indigo-50"
                 )}>
-                  Total: {days} hari (termasuk akhir pekan)
-                  {exceedsBalance && balance != null && ` — melebihi sisa jatah (${balance.remaining} hari)`}
+                  Total: {days} hari kerja
+                  {exceedsBalance && balance != null && ` — melebihi sisa jatah (${balance.remaining} hari kerja)`}
                 </p>
               )}
 
@@ -229,10 +259,22 @@ export default function LeavePage() {
                 <div key={row.id} className="px-4 py-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-sm">{leaveTypeLabel(row.leave_type)}</span>
-                    <Badge status={row.status} />
+                    <div className="flex items-center gap-2">
+                      <Badge status={row.status} />
+                      {row.status === "pending" && (
+                        <button
+                          onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
+                          disabled={cancelMutation.isPending}
+                          className="p-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                          title="Batalkan"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {fmtDate(row.start_date)}{row.start_date !== row.end_date ? ` – ${fmtDate(row.end_date)}` : ""} · <span className="font-semibold text-foreground">{row.days_count} hari</span>
+                    {fmtDate(row.start_date)}{row.start_date !== row.end_date ? ` – ${fmtDate(row.end_date)}` : ""} · <span className="font-semibold text-foreground">{countBusinessDays(row.start_date, row.end_date, workSaturday, workSunday)} hari kerja</span>
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{row.reason}</p>
                   {row.reviewer_note && (
@@ -250,7 +292,7 @@ export default function LeavePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
-                  {["Jenis", "Tanggal", "Hari", "Alasan", "Status"].map((h) => (
+                  {["Jenis", "Tanggal", "Hari", "Alasan", "Status", ""].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {h}
                     </th>
@@ -263,7 +305,7 @@ export default function LeavePage() {
                   : data?.data.length === 0
                   ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-muted-foreground text-sm">
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
                         <CalendarOff className="h-8 w-8 mx-auto mb-2 opacity-30" />
                         Belum ada pengajuan cuti
                       </td>
@@ -276,13 +318,25 @@ export default function LeavePage() {
                         <td className="px-4 py-3 text-xs text-muted-foreground">
                           {fmtDate(row.start_date)}{row.start_date !== row.end_date ? ` – ${fmtDate(row.end_date)}` : ""}
                         </td>
-                        <td className="px-4 py-3 text-center font-semibold">{row.days_count}</td>
+                        <td className="px-4 py-3 text-center font-semibold">{countBusinessDays(row.start_date, row.end_date, workSaturday, workSunday)}</td>
                         <td className="px-4 py-3 text-xs max-w-[120px] truncate">{row.reason}</td>
                         <td className="px-4 py-3"><Badge status={row.status} /></td>
+                        <td className="px-4 py-3">
+                          {row.status === "pending" && (
+                            <button
+                              onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
+                              disabled={cancelMutation.isPending}
+                              className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                              title="Batalkan"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </td>
                       </tr>
                       {row.reviewer_note && (
                         <tr key={`${row.id}-note`} className="border-b border-border/50 bg-muted/20">
-                          <td colSpan={5} className="px-4 py-2">
+                          <td colSpan={6} className="px-4 py-2">
                             <p className="text-xs text-muted-foreground">
                               <span className="font-semibold">Catatan admin:</span> {row.reviewer_note}
                             </p>

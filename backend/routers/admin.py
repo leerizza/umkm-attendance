@@ -19,6 +19,8 @@ class CompanyUpdateRequest(BaseModel):
     radius_meters: Optional[int] = Field(default=None, ge=10, le=50000)
     work_start: Optional[str] = None  # "HH:MM"
     work_end: Optional[str] = None    # "HH:MM"
+    work_saturday: Optional[bool] = None
+    work_sunday: Optional[bool] = None
 
     @field_validator("work_start", "work_end")
     @classmethod

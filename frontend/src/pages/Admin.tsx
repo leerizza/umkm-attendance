@@ -158,6 +158,7 @@ export default function AdminPage() {
   const [companyForm, setCompanyForm] = useState({
     name: "", address: "", lat: "", lng: "",
     radius_meters: "", work_start: "", work_end: "",
+    work_saturday: false, work_sunday: false,
   });
 
   // Sync form when company data loads or refreshes after save
@@ -171,6 +172,8 @@ export default function AdminPage() {
       radius_meters: companyData.radius_meters?.toString() ?? "",
       work_start:    companyData.work_start?.slice(0, 5) ?? "",
       work_end:      companyData.work_end?.slice(0, 5) ?? "",
+      work_saturday: companyData.work_saturday ?? false,
+      work_sunday:   companyData.work_sunday ?? false,
     });
   }, [companyData]);
 
@@ -190,6 +193,8 @@ export default function AdminPage() {
         radius_meters: radius,
         work_start:    companyForm.work_start || undefined,
         work_end:      companyForm.work_end || undefined,
+        work_saturday: companyForm.work_saturday,
+        work_sunday:   companyForm.work_sunday,
       });
     },
     onSuccess: () => {
@@ -1153,6 +1158,31 @@ export default function AdminPage() {
                         Jam kerja: <span className="font-semibold text-foreground">{companyForm.work_start} – {companyForm.work_end}</span>
                       </p>
                     )}
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs font-medium text-foreground/70">Hari Kerja Tambahan</p>
+                      {([
+                        { key: "work_saturday", label: "Sabtu termasuk hari kerja" },
+                        { key: "work_sunday",   label: "Minggu termasuk hari kerja" },
+                      ] as const).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setCompanyForm((f) => ({ ...f, [key]: !f[key] }))}
+                          className="flex items-center gap-3 w-full text-left"
+                        >
+                          <div className={cn(
+                            "w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0",
+                            companyForm[key] ? "bg-primary" : "bg-muted"
+                          )}>
+                            <div className={cn(
+                              "w-5 h-5 rounded-full bg-white shadow transition-transform",
+                              companyForm[key] ? "translate-x-4" : "translate-x-0"
+                            )} />
+                          </div>
+                          <span className="text-sm text-foreground">{label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
 

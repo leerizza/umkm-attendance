@@ -89,6 +89,11 @@
   </div>
 </div>
 
+<!-- Global message (always visible) -->
+<div style="max-width:1100px;margin:0 auto;padding:0 16px">
+  <div id="msg" class="msg" style="margin-top:16px"></div>
+</div>
+
 <!-- Gate (shown before key is entered) -->
 <div id="gate">
   <p>Masukkan Superadmin Key untuk melanjutkan.</p>
@@ -96,7 +101,6 @@
 
 <!-- Dashboard (hidden until key is valid) -->
 <main id="dashboard" style="display:none">
-  <div id="msg" class="msg"></div>
 
   <!-- Stats -->
   <p class="section-title">Ringkasan</p>
@@ -142,7 +146,7 @@
 </main>
 
 <script>
-  const API = "https://api.donkap.space"; // backend Railway URL
+  const API = "https://umkm-attendance-production.up.railway.app";
   const LS  = "sa_key";
 
   let currentKey  = "";
@@ -183,7 +187,7 @@
       const res = await fetch(`${API}/superadmin/stats`, { headers: headers() });
       if (!res.ok) return handleAuthError(res);
       return await res.json();
-    } catch { showMsg("Gagal terhubung ke server.", "error"); return null; }
+    } catch { showMsg("Gagal terhubung ke server. Cek apakah admin.donkap.space sudah ada di FRONTEND_URL Railway.", "error", true); return null; }
   }
 
   async function fetchCompanies() {
@@ -196,8 +200,8 @@
   }
 
   function handleAuthError(res) {
-    if (res.status === 403) showMsg("Key salah atau tidak valid.", "error");
-    else showMsg(`Error ${res.status} dari server.`, "error");
+    if (res.status === 403) showMsg("Key salah atau tidak valid.", "error", true);
+    else showMsg(`Error ${res.status} dari server.`, "error", true);
     return null;
   }
 
@@ -274,11 +278,11 @@
   function fmtDate(iso) {
     return new Date(iso).toLocaleString("id-ID", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
   }
-  function showMsg(text, type) {
+  function showMsg(text, type, persist = false) {
     const el = document.getElementById("msg");
     el.textContent = text;
     el.className = `msg show ${type}`;
-    setTimeout(() => el.classList.remove("show"), 6000);
+    if (!persist) setTimeout(() => el.classList.remove("show"), 6000);
   }
 </script>
 </body>

@@ -57,8 +57,15 @@ export default function LoginPage() {
     hcaptchaRef.current?.resetCaptcha();
   }
 
+  // ── Demo mode ─────────────────────────────────────────────────────────────
+  const isDemo = window.location.hostname === "demo.donkap.space";
+  const DEMO_ADMIN    = { email: "demo.admin@donkap.space",    password: "DemoAdmin123!" };
+  const DEMO_KARYAWAN = { email: "demo.karyawan@donkap.space", password: "DemoKaryawan123!" };
+
   // ── Login form ────────────────────────────────────────────────────────────
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginForm, setLoginForm] = useState(
+    isDemo ? { email: DEMO_ADMIN.email, password: DEMO_ADMIN.password } : { email: "", password: "" }
+  );
 
   // ── Forgot password (OTP flow) ────────────────────────────────────────────
   const [forgotMode, setForgotMode]   = useState(false);
@@ -261,6 +268,30 @@ export default function LoginPage() {
           <h1 className="text-2xl font-extrabold text-foreground">Donkap</h1>
           <p className="text-sm text-muted-foreground mt-1">Sistem absensi digital untuk UMKM</p>
         </div>
+
+        {/* Demo banner */}
+        {isDemo && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 text-sm">
+            <p className="font-bold text-green-800 mb-2">Mode Demo</p>
+            <div className="space-y-1 text-green-700">
+              <button
+                type="button"
+                onClick={() => setLoginForm({ email: DEMO_ADMIN.email, password: DEMO_ADMIN.password })}
+                className="w-full text-left hover:bg-green-100 rounded-lg px-2 py-1 transition-colors"
+              >
+                <span className="font-semibold">Admin</span> — {DEMO_ADMIN.email}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginForm({ email: DEMO_KARYAWAN.email, password: DEMO_KARYAWAN.password })}
+                className="w-full text-left hover:bg-green-100 rounded-lg px-2 py-1 transition-colors"
+              >
+                <span className="font-semibold">Karyawan</span> — {DEMO_KARYAWAN.email}
+              </button>
+            </div>
+            <p className="text-xs text-green-600 mt-2">Klik untuk auto-isi, lalu tekan Login.</p>
+          </div>
+        )}
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-card border border-border overflow-hidden">

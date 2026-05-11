@@ -12,7 +12,7 @@
       theme: {
         extend: {
           colors: {
-            brand: { 50:'#f0fdf4', 100:'#dcfce7', 500:'#22c55e', 600:'#16a34a', 700:'#15803d', 900:'#14532d' }
+            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 200:'#bae6fd', 500:'#0ea5e9', 600:'#0284c7', 700:'#0369a1' }
           },
           fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
         }
@@ -23,10 +23,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     html { scroll-behavior: smooth; }
-    .gradient-hero { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #fff 100%); }
+
+    /* Brand gradient: blue → cyan → green (matching app logo) */
+    .g-brand { background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%); }
+    .g-brand-diag { background: linear-gradient(160deg, #0EA5E9 0%, #06B6D4 45%, #10B981 100%); }
+    .g-text {
+      background: linear-gradient(135deg, #0EA5E9, #10B981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .g-hero { background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 40%, #f0fdf4 100%); }
+    .g-btn {
+      background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%);
+      transition: opacity .2s, transform .1s;
+    }
+    .g-btn:hover { opacity: .9; transform: translateY(-1px); }
+
     .card-hover { transition: transform .2s, box-shadow .2s; }
     .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.08); }
-    .demo-card { background: linear-gradient(135deg, #16a34a, #15803d); }
+
+    /* Glow shadow matching gradient */
+    .g-shadow { box-shadow: 0 8px 32px rgba(6,182,212,.25); }
   </style>
 </head>
 <body class="font-sans text-gray-800 bg-white antialiased">
@@ -34,13 +52,11 @@
   <!-- NAVBAR -->
   <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2">
-        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        </div>
-        <span class="font-bold text-xl text-gray-900">Donkap</span>
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="https://www.donkap.space/icons/icon-192.png" class="w-8 h-8 rounded-xl" alt="Donkap logo" />
+        <span class="font-extrabold text-xl tracking-tight">
+          <span class="g-text">Donkap</span>
+        </span>
       </a>
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
         <a href="#fitur" class="hover:text-brand-600 transition-colors">Fitur</a>
@@ -50,27 +66,27 @@
       </div>
       <div class="flex items-center gap-3">
         <a href="https://www.donkap.space" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Masuk</a>
-        <a href="#demo" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Coba Gratis</a>
+        <a href="#demo" class="g-btn text-white text-sm font-semibold px-4 py-2 rounded-lg g-shadow">Coba Gratis</a>
       </div>
     </div>
   </nav>
 
   <!-- HERO -->
-  <section class="gradient-hero pt-20 pb-24 px-4">
+  <section class="g-hero pt-20 pb-24 px-4">
     <div class="max-w-6xl mx-auto text-center">
-      <div class="inline-flex items-center gap-2 bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-        <span class="w-1.5 h-1.5 bg-brand-600 rounded-full"></span>
+      <div class="inline-flex items-center gap-2 bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
         Khusus untuk UMKM Indonesia
       </div>
       <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
         Absensi Karyawan<br class="hidden sm:block"/>
-        <span class="text-brand-600">Simpel & Digital</span>
+        <span class="g-text">Simpel &amp; Digital</span>
       </h1>
       <p class="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10">
         Kelola absensi, cuti, dan lembur karyawan UMKM kamu langsung dari HP. Tanpa kertas, tanpa ribet, langsung pakai hari ini.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="#demo" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-colors shadow-lg shadow-brand-200">
+        <a href="#demo" class="g-btn text-white font-semibold px-8 py-3.5 rounded-xl text-base g-shadow">
           Coba Demo Sekarang →
         </a>
         <a href="https://www.donkap.space" class="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-8 py-3.5 rounded-xl text-base border border-gray-200 transition-colors">
@@ -89,19 +105,19 @@
             <div class="ml-4 bg-white rounded-md px-3 py-1 text-xs text-gray-400 border border-gray-200 flex-1 max-w-xs mx-auto text-center">www.donkap.space</div>
           </div>
           <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-green-50 rounded-xl p-4 text-left">
+            <div class="bg-emerald-50 rounded-xl p-4 text-left">
               <p class="text-xs text-gray-400 mb-1">Status Hari Ini</p>
-              <p class="text-sm font-bold text-green-600">✓ Hadir</p>
+              <p class="text-sm font-bold text-emerald-600">✓ Hadir</p>
               <p class="text-xs text-gray-500 mt-1">08:02 WIB</p>
             </div>
-            <div class="bg-blue-50 rounded-xl p-4 text-left">
+            <div class="bg-sky-50 rounded-xl p-4 text-left">
               <p class="text-xs text-gray-400 mb-1">Sisa Cuti</p>
-              <p class="text-2xl font-bold text-blue-600">9</p>
+              <p class="text-2xl font-bold text-sky-600">9</p>
               <p class="text-xs text-gray-500 mt-1">hari tersisa</p>
             </div>
-            <div class="bg-purple-50 rounded-xl p-4 text-left">
+            <div class="bg-cyan-50 rounded-xl p-4 text-left">
               <p class="text-xs text-gray-400 mb-1">Lembur Bulan Ini</p>
-              <p class="text-2xl font-bold text-purple-600">4</p>
+              <p class="text-2xl font-bold text-cyan-600">4</p>
               <p class="text-xs text-gray-500 mt-1">jam disetujui</p>
             </div>
             <div class="bg-orange-50 rounded-xl p-4 text-left">
@@ -115,16 +131,16 @@
               <p class="text-xs font-semibold text-gray-500 mb-3">RIWAYAT ABSENSI</p>
               <div class="space-y-2">
                 <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-700">Senin, 11 Mei 2026</span>
-                  <span class="text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full text-xs">Hadir</span>
+                  <span class="text-gray-700">Senin, 12 Mei 2026</span>
+                  <span class="text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full text-xs">Hadir</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                   <span class="text-gray-700">Jumat, 8 Mei 2026</span>
-                  <span class="text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full text-xs">Hadir</span>
+                  <span class="text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full text-xs">Hadir</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                   <span class="text-gray-700">Kamis, 7 Mei 2026</span>
-                  <span class="text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full text-xs">Cuti</span>
+                  <span class="text-sky-600 font-medium bg-sky-50 px-2 py-0.5 rounded-full text-xs">Cuti</span>
                 </div>
               </div>
             </div>
@@ -134,19 +150,15 @@
     </div>
   </section>
 
-  <!-- LOGOS / SOCIAL PROOF -->
+  <!-- SOCIAL PROOF -->
   <section class="py-10 border-y border-gray-100 bg-gray-50">
     <div class="max-w-4xl mx-auto px-4 text-center">
       <p class="text-sm text-gray-400 mb-6">Dipercaya oleh UMKM di seluruh Indonesia</p>
       <div class="flex flex-wrap justify-center gap-8 text-gray-300 font-semibold text-sm">
-        <span>Toko Berkah</span>
-        <span>•</span>
-        <span>CV Maju Bersama</span>
-        <span>•</span>
-        <span>Warung Bu Siti</span>
-        <span>•</span>
-        <span>UD Cahaya Jaya</span>
-        <span>•</span>
+        <span>Toko Berkah</span><span>•</span>
+        <span>CV Maju Bersama</span><span>•</span>
+        <span>Warung Bu Siti</span><span>•</span>
+        <span>UD Cahaya Jaya</span><span>•</span>
         <span>Salon Cantik</span>
       </div>
     </div>
@@ -162,8 +174,8 @@
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
@@ -172,8 +184,8 @@
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
           </div>
@@ -182,8 +194,8 @@
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
           </div>
@@ -192,8 +204,8 @@
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
@@ -202,18 +214,18 @@
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
           </div>
           <h3 class="font-bold text-gray-900 mb-2">Notifikasi Email</h3>
-          <p class="text-gray-500 text-sm">Karyawan dapat email otomatis saat cuti atau lembur disetujui/ditolak. Admin juga dapat reminder harian.</p>
+          <p class="text-gray-500 text-sm">Karyawan dapat email otomatis saat cuti atau lembur disetujui/ditolak. Admin juga dapat notifikasi pendaftaran.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div class="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mb-4">
-            <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 g-brand">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
             </svg>
           </div>
@@ -234,18 +246,18 @@
       </div>
       <div class="grid sm:grid-cols-3 gap-8">
         <div class="text-center">
-          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4">1</div>
+          <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">1</div>
           <h3 class="font-bold text-gray-900 mb-2">Daftar Perusahaan</h3>
           <p class="text-gray-500 text-sm">Buat akun perusahaan kamu dalam 1 menit. Masukkan nama, alamat, dan jam kerja.</p>
         </div>
         <div class="text-center">
-          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4">2</div>
+          <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">2</div>
           <h3 class="font-bold text-gray-900 mb-2">Undang Karyawan</h3>
           <p class="text-gray-500 text-sm">Bagikan kode perusahaan ke karyawan. Mereka daftar sendiri pakai kode tersebut.</p>
         </div>
         <div class="text-center">
-          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4">3</div>
-          <h3 class="font-bold text-gray-900 mb-2">Verifikasi & Langsung Pakai</h3>
+          <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">3</div>
+          <h3 class="font-bold text-gray-900 mb-2">Verifikasi &amp; Langsung Pakai</h3>
           <p class="text-gray-500 text-sm">Setelah daftar, tim Donkap verifikasi akun kamu (biasanya &lt; 1 jam). Konfirmasi lebih cepat via WhatsApp.</p>
         </div>
       </div>
@@ -262,7 +274,7 @@
       <div class="grid sm:grid-cols-2 gap-6">
 
         <!-- Demo Admin -->
-        <div class="demo-card rounded-2xl p-6 text-white">
+        <div class="g-brand-diag rounded-2xl p-6 text-white g-shadow">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,21 +283,21 @@
             </div>
             <div>
               <p class="font-bold text-lg">Akun Admin</p>
-              <p class="text-green-200 text-sm">Kelola karyawan & persetujuan</p>
+              <p class="text-cyan-100 text-sm">Kelola karyawan &amp; persetujuan</p>
             </div>
           </div>
-          <div class="bg-white/10 rounded-xl p-4 space-y-2 mb-4 font-mono text-sm">
+          <div class="bg-white/15 rounded-xl p-4 space-y-2 mb-4 font-mono text-sm">
             <div class="flex justify-between">
-              <span class="text-green-200">Email</span>
+              <span class="text-cyan-100">Email</span>
               <span class="font-medium">demo.admin@donkap.space</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-green-200">Password</span>
+              <span class="text-cyan-100">Password</span>
               <span class="font-medium">DemoAdmin123!</span>
             </div>
           </div>
           <a href="https://demo.donkap.space" target="_blank"
-             class="block w-full bg-white text-brand-700 font-bold text-center py-3 rounded-xl hover:bg-green-50 transition-colors">
+             class="block w-full bg-white text-sky-700 font-bold text-center py-3 rounded-xl hover:bg-sky-50 transition-colors">
             Login sebagai Admin →
           </a>
         </div>
@@ -336,35 +348,35 @@
       <div class="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
 
         <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
-          <p class="font-bold text-gray-500 text-sm mb-2">GRATIS</p>
+          <p class="font-bold text-gray-400 text-sm mb-2">GRATIS</p>
           <p class="text-4xl font-extrabold text-gray-900 mb-1">Rp 0</p>
           <p class="text-gray-400 text-sm mb-6">Selamanya</p>
           <ul class="space-y-3 text-sm text-gray-600 mb-8">
-            <li class="flex gap-2"><span class="text-green-500">✓</span> Hingga 10 karyawan</li>
-            <li class="flex gap-2"><span class="text-green-500">✓</span> Absensi GPS</li>
-            <li class="flex gap-2"><span class="text-green-500">✓</span> Manajemen cuti & lembur</li>
-            <li class="flex gap-2"><span class="text-green-500">✓</span> Laporan bulanan</li>
+            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Hingga 10 karyawan</li>
+            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Absensi GPS</li>
+            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Manajemen cuti &amp; lembur</li>
+            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Laporan bulanan</li>
           </ul>
           <a href="https://www.donkap.space" class="block text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors">
             Mulai Gratis
           </a>
         </div>
 
-        <div class="bg-brand-600 rounded-2xl p-8 text-white relative overflow-hidden">
+        <div class="g-brand-diag rounded-2xl p-8 text-white relative overflow-hidden g-shadow">
           <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">POPULER</div>
-          <p class="font-bold text-green-200 text-sm mb-2">PRO</p>
+          <p class="font-bold text-cyan-100 text-sm mb-2">PRO</p>
           <p class="text-4xl font-extrabold mb-1">Rp 99rb</p>
-          <p class="text-green-200 text-sm mb-6">per bulan</p>
+          <p class="text-cyan-100 text-sm mb-6">per bulan</p>
           <ul class="space-y-3 text-sm mb-8">
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Karyawan tidak terbatas</li>
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Semua fitur Gratis</li>
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Koreksi absensi oleh admin</li>
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Notifikasi email otomatis</li>
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Export Excel & laporan</li>
-            <li class="flex gap-2"><span class="text-green-300">✓</span> Prioritas support</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Karyawan tidak terbatas</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Semua fitur Gratis</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Koreksi absensi oleh admin</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Notifikasi email otomatis</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Export Excel &amp; laporan</li>
+            <li class="flex gap-2"><span class="text-white/80">✓</span> Prioritas support</li>
           </ul>
           <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Pro" target="_blank"
-             class="block text-center bg-white text-brand-700 font-bold py-3 rounded-xl hover:bg-green-50 transition-colors">
+             class="block text-center bg-white text-sky-700 font-bold py-3 rounded-xl hover:bg-sky-50 transition-colors">
             Mulai Pro
           </a>
         </div>
@@ -374,19 +386,19 @@
   </section>
 
   <!-- CTA -->
-  <section class="py-24 px-4 bg-brand-600">
+  <section class="py-24 px-4 g-brand">
     <div class="max-w-3xl mx-auto text-center text-white">
       <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">Siap kelola absensi lebih mudah?</h2>
-      <p class="text-green-100 text-lg mb-8">Bergabung dengan ratusan UMKM yang sudah pakai Donkap.</p>
+      <p class="text-cyan-100 text-lg mb-8">Bergabung dengan ratusan UMKM yang sudah pakai Donkap.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="https://www.donkap.space" class="bg-white text-brand-700 font-bold px-8 py-3.5 rounded-xl hover:bg-green-50 transition-colors">
+        <a href="https://www.donkap.space" class="bg-white text-sky-700 font-bold px-8 py-3.5 rounded-xl hover:bg-sky-50 transition-colors">
           Daftar Sekarang — Gratis
         </a>
         <a href="#demo" class="border border-white/40 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">
           Lihat Demo
         </a>
       </div>
-      <p class="text-green-200 text-sm mt-6">
+      <p class="text-cyan-100 text-sm mt-6">
         Setelah daftar, konfirmasi via WhatsApp untuk aktivasi lebih cepat →
         <a href="https://wa.me/6281220060169?text=Halo%20Donkap%2C%20saya%20baru%20daftar%20dan%20ingin%20aktivasi%20akun" target="_blank" class="text-white font-semibold underline">0812-2006-0169</a>
       </p>
@@ -398,13 +410,9 @@
     <div class="max-w-6xl mx-auto">
       <div class="flex flex-col sm:flex-row justify-between items-start gap-8 mb-10">
         <div>
-          <div class="flex items-center gap-2 mb-3">
-            <div class="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <span class="font-bold text-white">Donkap</span>
+          <div class="flex items-center gap-2.5 mb-3">
+            <img src="https://www.donkap.space/icons/icon-192.png" class="w-7 h-7 rounded-xl" alt="Donkap" />
+            <span class="font-extrabold text-white text-lg tracking-tight">Donkap</span>
           </div>
           <p class="text-sm max-w-xs">Solusi absensi digital untuk UMKM Indonesia yang simpel dan terjangkau.</p>
         </div>

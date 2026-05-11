@@ -1,7 +1,10 @@
 import asyncio
+import logging
 import httpx
 from config import settings
 from db import supabase
+
+_log = logging.getLogger(__name__)
 
 
 async def _get_user_email(user_id: str) -> str | None:
@@ -11,23 +14,29 @@ async def _get_user_email(user_id: str) -> str | None:
             None, lambda: supabase.auth.admin.get_user_by_id(user_id)
         )
         return res.user.email if res.user else None
-    except Exception:
+    except Exception as e:
+        _log.error("_get_user_email(%s) failed: %s", user_id, e)
         return None
 
 
 async def _send(to: str, subject: str, html: str) -> None:
     if not settings.resend_api_key:
+        _log.warning("RESEND_API_KEY not set — skipping email to %s", to)
         return
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(
+            res = await client.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {settings.resend_api_key}"},
                 json={"from": settings.from_email, "to": [to], "subject": subject, "html": html},
                 timeout=10,
             )
-    except Exception:
-        pass
+            if res.status_code >= 400:
+                _log.error("Resend error %s sending to %s: %s", res.status_code, to, res.text)
+            else:
+                _log.info("Email sent to %s (status %s)", to, res.status_code)
+    except Exception as e:
+        _log.error("_send to %s failed: %s", to, e)
 
 
 _LEAVE_TYPE_LABEL = {

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     frontend_url: str = "https://umkm-attendance-1-1.vercel.app"
 
     resend_api_key: str = ""
-    from_email: str = "Donkap <noreply@donkap.id>"
+    from_email: str = "Donkap <noreply@donkap.space>"
 
     @property
     def allowed_origins(self) -> List[str]:

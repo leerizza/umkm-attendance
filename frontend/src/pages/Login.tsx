@@ -134,7 +134,8 @@ export default function LoginPage() {
       if (err?.response?.data?.detail === "pending_approval") {
         toast.error(
           "Akun sedang diverifikasi",
-          "Perusahaan kamu sedang menunggu persetujuan tim Donkap. Kami akan mengirim email begitu disetujui."
+          "Perusahaan kamu sedang menunggu persetujuan tim Donkap. Kami akan mengirim email begitu disetujui.",
+          10000
         );
         return;
       }
@@ -252,7 +253,8 @@ export default function LoginPage() {
         if (ownerRes.data?.pending_approval) {
           toast.success(
             "Pendaftaran diterima!",
-            "Perusahaan kamu sedang diverifikasi. Kami akan kirim email begitu disetujui."
+            "Perusahaan kamu sedang diverifikasi. Kami akan kirim email begitu disetujui.",
+            10000
           );
           setTab("login");
           setRegStep("form");

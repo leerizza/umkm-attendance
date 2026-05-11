@@ -9,12 +9,13 @@ interface Toast {
   type: ToastType;
   title: string;
   description?: string;
+  duration?: number;
 }
 
 interface ToastContextValue {
   toast: (opts: Omit<Toast, "id">) => void;
-  success: (title: string, description?: string) => void;
-  error: (title: string, description?: string) => void;
+  success: (title: string, description?: string, duration?: number) => void;
+  error: (title: string, description?: string, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -30,14 +31,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Math.random().toString(36).slice(2);
     const toast = { ...opts, id };
     setToasts((prev) => [...prev.slice(-3), toast]);
-    setTimeout(() => remove(id), 4000);
+    setTimeout(() => remove(id), opts.duration ?? 4000);
   }, [remove]);
 
-  const success = useCallback((title: string, description?: string) =>
-    addToast({ type: "success", title, description }), [addToast]);
+  const success = useCallback((title: string, description?: string, duration?: number) =>
+    addToast({ type: "success", title, description, duration }), [addToast]);
 
-  const error = useCallback((title: string, description?: string) =>
-    addToast({ type: "error", title, description }), [addToast]);
+  const error = useCallback((title: string, description?: string, duration?: number) =>
+    addToast({ type: "error", title, description, duration }), [addToast]);
 
   return (
     <ToastContext.Provider value={{ toast: addToast, success, error }}>

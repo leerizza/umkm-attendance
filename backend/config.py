@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     from_email: str = "Donkap <noreply@donkap.space>"
 
+    superadmin_key: str = ""
+    superadmin_email: str = ""
+
     @property
     def allowed_origins(self) -> List[str]:
         origins = [o.strip() for o in self.frontend_url.split(",") if o.strip()]

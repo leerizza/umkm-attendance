@@ -131,6 +131,13 @@ export default function LoginPage() {
         toast.error("Verifikasi captcha diperlukan", "Centang kotak captcha di bawah lalu coba lagi.");
         return;
       }
+      if (err?.response?.data?.detail === "pending_approval") {
+        toast.error(
+          "Akun sedang diverifikasi",
+          "Perusahaan kamu sedang menunggu persetujuan tim Donkap. Kami akan mengirim email begitu disetujui."
+        );
+        return;
+      }
       const isNetworkErr = !err?.response && err?.message === "Network Error";
       const msg = isNetworkErr
         ? "Periksa koneksi internet kamu"
@@ -234,7 +241,7 @@ export default function LoginPage() {
           position: regForm.position || undefined,
         });
       } else {
-        await authApi.verifyRegisterCompany({
+        const ownerRes = await authApi.verifyRegisterCompany({
           email: regOtpEmail,
           token: regOtpCode,
           full_name: ownerForm.full_name,
@@ -242,10 +249,20 @@ export default function LoginPage() {
           company_code: ownerForm.company_code,
           phone: ownerForm.phone || undefined,
         });
+        if (ownerRes.data?.pending_approval) {
+          toast.success(
+            "Pendaftaran diterima!",
+            "Perusahaan kamu sedang diverifikasi. Kami akan kirim email begitu disetujui."
+          );
+          setTab("login");
+          setRegStep("form");
+          setRegOtpCode("");
+          setRegOtpEmail("");
+          return;
+        }
       }
 
       // Registrasi selesai — arahkan ke login, jangan auto-login
-      // untuk mencegah session bleed dari user yang sebelumnya login
       toast.success("Registrasi berhasil!", "Silakan login dengan akun baru kamu.");
       setTab("login");
       setLoginForm({ email: regOtpEmail, password: "" });
@@ -310,22 +327,29 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-card border border-border overflow-hidden">
           {/* Tab switcher */}
-          <div className="flex border-b border-border">
-            {(["login", "register"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => { setTab(t); setRegStep("form"); }}
-                className={cn(
-                  "flex-1 py-3.5 text-sm font-semibold transition-colors",
-                  tab === t
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t === "login" ? "Masuk" : "Daftar"}
-              </button>
-            ))}
-          </div>
+          {!IS_DEMO && (
+            <div className="flex border-b border-border">
+              {(["login", "register"] as Tab[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTab(t); setRegStep("form"); }}
+                  className={cn(
+                    "flex-1 py-3.5 text-sm font-semibold transition-colors",
+                    tab === t
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t === "login" ? "Masuk" : "Daftar"}
+                </button>
+              ))}
+            </div>
+          )}
+          {IS_DEMO && (
+            <div className="border-b border-border px-5 py-3.5">
+              <p className="text-sm font-semibold text-foreground">Masuk</p>
+            </div>
+          )}
 
           <div className="p-5">
             {tab === "login" ? (

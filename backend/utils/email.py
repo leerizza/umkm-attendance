@@ -141,3 +141,55 @@ async def send_overtime_decision_email(
     </table>"""
 
     await _send(email, title, _card(title, color, body))
+
+
+async def send_new_company_notification(
+    company_name: str,
+    company_code: str,
+    owner_email: str,
+    owner_name: str,
+    company_id: str,
+) -> None:
+    if not settings.superadmin_email:
+        return
+    title = "Perusahaan Baru Menunggu Persetujuan"
+    body = f"""
+    <p style="margin:0 0 20px;color:#09090b;font-size:15px;">
+      Ada pendaftaran perusahaan baru yang perlu disetujui.
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%">
+      {_row("Nama Perusahaan:", company_name)}
+      {_row("Kode:", company_code)}
+      {_row("Owner:", owner_name)}
+      {_row("Email:", owner_email)}
+      {_row("Company ID:", company_id)}
+    </table>
+    <p style="margin:20px 0 0;font-size:13px;color:#71717a;">
+      Approve via endpoint:<br/>
+      <code style="background:#f4f4f5;padding:4px 8px;border-radius:4px;font-size:12px;">
+        PATCH /superadmin/companies/{company_id}/approve
+      </code>
+    </p>"""
+    await _send(settings.superadmin_email, title, _card(title, "#2563eb", body))
+
+
+async def send_company_approved_email(
+    owner_email: str,
+    owner_name: str,
+    company_name: str,
+    approved: bool,
+) -> None:
+    if approved:
+        title = "Perusahaan Anda Telah Disetujui"
+        color = "#16a34a"
+        intro = f"Halo <strong>{owner_name}</strong>, perusahaan <strong>{company_name}</strong> telah disetujui. Kamu sudah bisa login dan menggunakan Donkap."
+    else:
+        title = "Pendaftaran Perusahaan Ditolak"
+        color = "#dc2626"
+        intro = f"Halo <strong>{owner_name}</strong>, maaf pendaftaran perusahaan <strong>{company_name}</strong> tidak dapat disetujui. Hubungi kami untuk informasi lebih lanjut."
+
+    body = f"""
+    <p style="margin:0 0 20px;color:#09090b;font-size:15px;">{intro}</p>
+    {"<a href='https://www.donkap.space' style='display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;text-decoration:none;margin-top:8px;'>Login Sekarang</a>" if approved else ""}"""
+
+    await _send(owner_email, title, _card(title, color, body))

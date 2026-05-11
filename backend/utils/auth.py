@@ -40,6 +40,16 @@ def _cache_user(token: str, user: dict):
     _auth_cache[key] = (user, time.time() + _AUTH_CACHE_TTL)
 
 
+async def _get_auth_email(user_id: str) -> str | None:
+    try:
+        res = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: supabase.auth.admin.get_user_by_id(user_id)
+        )
+        return res.user.email if res.user else None
+    except Exception:
+        return None
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
 ) -> dict:
@@ -83,6 +93,9 @@ async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
         raise HTTPException(status_code=404, detail="Profile not found")
     if res.data.get("is_active") is False:
         raise HTTPException(status_code=403, detail="Akun Anda telah dinonaktifkan")
+    company = res.data.get("companies") or {}
+    if company.get("is_approved") is False:
+        raise HTTPException(status_code=403, detail="pending_approval")
     return res.data
 
 

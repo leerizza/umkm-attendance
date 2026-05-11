@@ -8,6 +8,7 @@ from models.schemas import (
     VerifyRegisterRequest, VerifyRegisterOwnerRequest,
 )
 from utils.auth import get_current_profile, get_current_user
+from utils.email import send_new_company_notification
 from db import supabase
 from config import settings
 from gotrue.errors import AuthApiError
@@ -276,7 +277,7 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
     try:
         company_res = (
             supabase.table("companies")
-            .insert({"name": body.company_name, "code": code})
+            .insert({"name": body.company_name, "code": code, "is_approved": False})
             .execute()
         )
         if not company_res.data:
@@ -308,11 +309,23 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
             pass
         raise HTTPException(500, f"Gagal membuat profil admin: {exc}")
 
+    # Notify superadmin about new company pending approval
+    if settings.superadmin_email:
+        import asyncio
+        asyncio.create_task(send_new_company_notification(
+            company_name=body.company_name,
+            company_code=code,
+            owner_email=body.email,
+            owner_name=body.full_name,
+            company_id=company_id,
+        ))
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "expires_at": expires_at,
         "company_code": code,
+        "pending_approval": True,
     }
 
 

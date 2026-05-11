@@ -27,9 +27,11 @@ api.interceptors.response.use(
   async (err) => {
     const original = err.config;
 
-    // Force logout if account has been deactivated
-    if (err.response?.status === 403 &&
-        err.response?.data?.detail === "Akun Anda telah dinonaktifkan") {
+    // Force logout if account has been deactivated or is pending approval
+    if (err.response?.status === 403 && (
+      err.response?.data?.detail === "Akun Anda telah dinonaktifkan" ||
+      err.response?.data?.detail === "pending_approval"
+    )) {
       useAuthStore.getState().logout();
       window.location.href = "/login";
       return Promise.reject(err);

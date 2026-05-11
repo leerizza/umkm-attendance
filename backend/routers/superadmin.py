@@ -1,3 +1,5 @@
+import logging
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Header
 from typing import Optional
 from config import settings
@@ -5,11 +7,71 @@ from db import supabase
 from utils.email import send_company_approved_email
 
 router = APIRouter(prefix="/superadmin", tags=["superadmin"])
+_log = logging.getLogger(__name__)
 
 
 def require_superadmin(x_superadmin_key: Optional[str] = Header(None)):
     if not settings.superadmin_key or x_superadmin_key != settings.superadmin_key:
         raise HTTPException(403, "Invalid or missing superadmin key")
+
+
+@router.get("/stats", dependencies=[Depends(require_superadmin)])
+async def get_stats():
+    companies_res = supabase.table("companies").select("id, is_approved").execute()
+    companies = companies_res.data or []
+    total_companies  = len(companies)
+    approved_companies = sum(1 for c in companies if c.get("is_approved"))
+    pending_companies  = total_companies - approved_companies
+
+    profiles_res = supabase.table("profiles").select("role, is_active").execute()
+    profiles = profiles_res.data or []
+    total_admins     = sum(1 for p in profiles if p.get("role") == "admin")
+    total_employees  = sum(1 for p in profiles if p.get("role") == "employee")
+    active_accounts  = sum(1 for p in profiles if p.get("is_active") is not False)
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
+    att_res = (
+        supabase.table("attendance")
+        .select("user_id")
+        .gte("date", cutoff)
+        .execute()
+    )
+    recently_active = len({r["user_id"] for r in (att_res.data or [])})
+
+    return {
+        "companies": {
+            "total": total_companies,
+            "approved": approved_companies,
+            "pending": pending_companies,
+        },
+        "users": {
+            "total": len(profiles),
+            "admins": total_admins,
+            "employees": total_employees,
+            "active_accounts": active_accounts,
+            "recently_active_30d": recently_active,
+        },
+    }
+
+
+@router.get("/companies/all", dependencies=[Depends(require_superadmin)])
+async def list_all_companies():
+    res = (
+        supabase.table("companies")
+        .select("id, name, code, is_approved, created_at")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    data = res.data or []
+    for company in data:
+        p = (
+            supabase.table("profiles")
+            .select("id, full_name, is_active")
+            .eq("company_id", company["id"])
+            .execute()
+        )
+        company["user_count"] = len(p.data or [])
+    return {"data": data, "total": len(data)}
 
 
 @router.get("/companies/pending", dependencies=[Depends(require_superadmin)])
@@ -35,7 +97,6 @@ async def approve_company(company_id: str, approved: bool = True):
 
     supabase.table("companies").update({"is_approved": approved}).eq("id", company_id).execute()
 
-    # Get owner profile + email
     try:
         profile = (
             supabase.table("profiles")
@@ -55,8 +116,8 @@ async def approve_company(company_id: str, approved: bool = True):
                     company_name=company.data["name"],
                     approved=approved,
                 )
-    except Exception:
-        pass
+    except Exception as e:
+        _log.error("Failed to send approval email: %s", e)
 
     status = "approved" if approved else "rejected"
     return {"message": f"Company {status}", "company_id": company_id}

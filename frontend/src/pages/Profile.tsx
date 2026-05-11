@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { authApi } from "@/lib/api";
 import { getInitials, getErrMsg } from "@/lib/utils";
+import { IS_DEMO } from "@/lib/demo";
 import {
   User, Mail, Phone, Briefcase, Building2,
   MapPin, Clock, LogOut, Shield, Pencil, X, Lock, Eye, EyeOff, KeyRound,
@@ -106,19 +107,21 @@ export default function ProfilePage() {
       <PageHeader
         title="Profil Saya"
         action={
-          <Button
-            size="sm"
-            variant={editing ? "outline" : "default"}
-            onClick={() => {
-              if (editing) {
-                setForm({ full_name: profile.full_name, phone: profile.phone ?? "", position: profile.position ?? "" });
-              }
-              setEditing(!editing);
-              cancelChangePw();
-            }}
-          >
-            {editing ? <><X className="h-4 w-4" /> Batal</> : <><Pencil className="h-4 w-4" /> Edit</>}
-          </Button>
+          !IS_DEMO && (
+            <Button
+              size="sm"
+              variant={editing ? "outline" : "default"}
+              onClick={() => {
+                if (editing) {
+                  setForm({ full_name: profile.full_name, phone: profile.phone ?? "", position: profile.position ?? "" });
+                }
+                setEditing(!editing);
+                cancelChangePw();
+              }}
+            >
+              {editing ? <><X className="h-4 w-4" /> Batal</> : <><Pencil className="h-4 w-4" /> Edit</>}
+            </Button>
+          )
         }
       />
 
@@ -210,15 +213,21 @@ export default function ProfilePage() {
 
         {/* Change password section */}
         {!changingPw ? (
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={() => { setChangingPw(true); setChangePwStep("form"); setEditing(false); }}
-          >
-            <Lock className="h-4 w-4" />
-            Ganti Password
-          </Button>
+          IS_DEMO ? (
+            <div className="w-full text-center text-sm text-muted-foreground py-3 border border-dashed border-border rounded-xl">
+              Ganti password tidak tersedia di mode demo
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => { setChangingPw(true); setChangePwStep("form"); setEditing(false); }}
+            >
+              <Lock className="h-4 w-4" />
+              Ganti Password
+            </Button>
+          )
         ) : (
           <Card>
             <CardContent className="p-5 space-y-4">

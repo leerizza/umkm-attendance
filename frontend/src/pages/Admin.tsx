@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { adminApi, leaveApi, overtimeApi, correctionsApi } from "@/lib/api";
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { IS_DEMO } from "@/lib/demo";
 
 type AdminTab = "overview" | "attendance" | "leave" | "overtime" | "employees" | "corrections" | "report" | "settings";
 
@@ -814,7 +815,7 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-xs font-mono">{row.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {row.id !== adminProfile?.id && (
+                    {row.id !== adminProfile?.id && !IS_DEMO && (
                       <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors", row.is_active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
                         {row.is_active ? "Nonaktifkan" : "Aktifkan"}
                       </button>
@@ -839,7 +840,7 @@ export default function AdminPage() {
                       <option value="employee">employee</option>
                       <option value="admin">admin</option>
                     </select>
-                    {row.id !== adminProfile?.id && (
+                    {row.id !== adminProfile?.id && !IS_DEMO && (
                       <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors ml-auto", row.is_active !== false ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
                         {row.is_active !== false ? "Nonaktifkan" : "Aktifkan"}
                       </button>
@@ -1186,14 +1187,20 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
 
-                <Button
-                  className="w-full"
-                  size="lg"
-                  loading={saveCompany.isPending}
-                  onClick={() => saveCompany.mutate()}
-                >
-                  Simpan Pengaturan
-                </Button>
+                {IS_DEMO ? (
+                  <div className="w-full text-center text-sm text-muted-foreground py-3 border border-dashed border-border rounded-xl">
+                    Pengaturan perusahaan tidak dapat diubah di mode demo
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    loading={saveCompany.isPending}
+                    onClick={() => saveCompany.mutate()}
+                  >
+                    Simpan Pengaturan
+                  </Button>
+                )}
               </>
             )}
           </div>

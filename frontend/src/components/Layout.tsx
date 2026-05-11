@@ -4,7 +4,8 @@ import { BottomNav } from "./BottomNav";
 import { AttendanceNotifier } from "./AttendanceNotifier";
 import { InstallPrompt } from "./InstallPrompt";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { WifiOff } from "lucide-react";
+import { IS_DEMO } from "@/lib/demo";
+import { WifiOff, FlaskConical } from "lucide-react";
 
 export function Layout() {
   const isOnline = useOnlineStatus();
@@ -15,6 +16,14 @@ export function Layout() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Demo banner */}
+        {IS_DEMO && (
+          <div className="sticky top-0 z-50 bg-violet-600 text-white text-xs font-medium px-4 py-2 flex items-center gap-2 justify-center">
+            <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+            Mode Demo — data bersifat publik dan dapat diubah siapa saja. Beberapa fitur dibatasi.
+          </div>
+        )}
+
         {/* Offline banner */}
         {!isOnline && (
           <div className="sticky top-0 z-50 bg-amber-500 text-white text-xs font-medium px-4 py-2 flex items-center gap-2 justify-center">

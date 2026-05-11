@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { authApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
+import { IS_DEMO } from "@/lib/demo";
 
 const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string) || "";
 
@@ -58,13 +59,12 @@ export default function LoginPage() {
   }
 
   // ── Demo mode ─────────────────────────────────────────────────────────────
-  const isDemo = window.location.hostname === "demo.donkap.space";
   const DEMO_ADMIN    = { email: "demo.admin@donkap.space",    password: "DemoAdmin123!" };
   const DEMO_KARYAWAN = { email: "demo.karyawan@donkap.space", password: "DemoKaryawan123!" };
 
   // ── Login form ────────────────────────────────────────────────────────────
   const [loginForm, setLoginForm] = useState(
-    isDemo ? { email: DEMO_ADMIN.email, password: DEMO_ADMIN.password } : { email: "", password: "" }
+    IS_DEMO ? { email: DEMO_ADMIN.email, password: DEMO_ADMIN.password } : { email: "", password: "" }
   );
 
   // ── Forgot password (OTP flow) ────────────────────────────────────────────
@@ -104,6 +104,20 @@ export default function LoginPage() {
 
       const profileRes = await authApi.me(access_token);
       const profile = profileRes.data;
+
+      // Enforce demo / non-demo boundary
+      const email = loginForm.email.toLowerCase();
+      const isDemoEmail = email === DEMO_ADMIN.email || email === DEMO_KARYAWAN.email;
+      if (IS_DEMO && !isDemoEmail) {
+        await supabase.auth.signOut();
+        toast.error("Akun ini tidak tersedia di mode demo", "Login dengan akun asli di www.donkap.space");
+        return;
+      }
+      if (!IS_DEMO && isDemoEmail) {
+        await supabase.auth.signOut();
+        toast.error("Akun demo tidak bisa login di sini", "Gunakan demo.donkap.space untuk mencoba fitur demo.");
+        return;
+      }
 
       setAuth(access_token, { ...profile, email: loginForm.email });
       setLoginAttempts(0);
@@ -270,7 +284,7 @@ export default function LoginPage() {
         </div>
 
         {/* Demo banner */}
-        {isDemo && (
+        {IS_DEMO && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 text-sm">
             <p className="font-bold text-green-800 mb-2">Mode Demo</p>
             <div className="space-y-1 text-green-700">

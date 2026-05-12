@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { authApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 import { IS_DEMO } from "@/lib/demo";
 
 const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string) || "";
@@ -121,6 +122,7 @@ export default function LoginPage() {
 
       setAuth(access_token, { ...profile, email: loginForm.email });
       setLoginAttempts(0);
+      if (IS_DEMO) trackEvent("demo_login");
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {
@@ -241,6 +243,7 @@ export default function LoginPage() {
           phone: regForm.phone || undefined,
           position: regForm.position || undefined,
         });
+        trackEvent("register_employee");
       } else {
         const ownerRes = await authApi.verifyRegisterCompany({
           email: regOtpEmail,
@@ -251,6 +254,7 @@ export default function LoginPage() {
           phone: ownerForm.phone || undefined,
         });
         if (ownerRes.data?.pending_approval) {
+          trackEvent("register_company");
           toast.success(
             "Pendaftaran diterima!",
             "Perusahaan kamu sedang diverifikasi. Kami akan kirim email begitu disetujui.",
@@ -262,6 +266,7 @@ export default function LoginPage() {
           setRegOtpEmail("");
           return;
         }
+        trackEvent("register_company");
       }
 
       // Registrasi selesai — arahkan ke login, jangan auto-login

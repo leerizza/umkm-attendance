@@ -121,3 +121,53 @@ async def approve_company(company_id: str, approved: bool = True):
 
     status = "approved" if approved else "rejected"
     return {"message": f"Company {status}", "company_id": company_id}
+
+
+@router.get("/analytics", dependencies=[Depends(require_superadmin)])
+async def get_analytics():
+    """Return event counts by type, split by today / 7d / 30d / all-time."""
+    now = datetime.now(timezone.utc)
+    today     = now.date().isoformat()
+    week_ago  = (now - timedelta(days=7)).date().isoformat()
+    month_ago = (now - timedelta(days=30)).date().isoformat()
+
+    res = supabase.table("analytics_events").select("event_type, source, created_at").execute()
+    events = res.data or []
+
+    def count(etype=None, since=None, source=None):
+        return sum(
+            1 for e in events
+            if (etype  is None or e["event_type"] == etype)
+            and (since  is None or e["created_at"][:10] >= since)
+            and (source is None or e["source"] == source)
+        )
+
+    return {
+        "page_views": {
+            "today":    count("page_view", today),
+            "last_7d":  count("page_view", week_ago),
+            "last_30d": count("page_view", month_ago),
+            "total":    count("page_view"),
+            "demo":     count("page_view", source="demo"),
+        },
+        "demo_logins": {
+            "today":    count("demo_login", today),
+            "last_7d":  count("demo_login", week_ago),
+            "last_30d": count("demo_login", month_ago),
+            "total":    count("demo_login"),
+        },
+        "registrations": {
+            "company": {
+                "today":    count("register_company", today),
+                "last_7d":  count("register_company", week_ago),
+                "last_30d": count("register_company", month_ago),
+                "total":    count("register_company"),
+            },
+            "employee": {
+                "today":    count("register_employee", today),
+                "last_7d":  count("register_employee", week_ago),
+                "last_30d": count("register_employee", month_ago),
+                "total":    count("register_employee"),
+            },
+        },
+    }

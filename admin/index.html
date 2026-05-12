@@ -72,9 +72,19 @@
     #gate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 56px); gap: 12px; }
     #gate p { font-size: 14px; color: #64748b; }
 
+    /* ── Analytics table ── */
+    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .analytics-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 18px; }
+    .analytics-card-title { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
+    .analytics-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+    .analytics-row:last-child { border-bottom: none; }
+    .analytics-row-label { font-size: 12px; color: #64748b; }
+    .analytics-row-val { font-size: 14px; font-weight: 700; color: #0f172a; }
+
     @media (max-width: 640px) {
       .topbar-key input { width: 160px; }
       .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .analytics-grid { grid-template-columns: repeat(2, 1fr); }
       th:nth-child(4), td:nth-child(4) { display: none; }
     }
   </style>
@@ -113,6 +123,40 @@
     <div class="stat-card"><div class="stat-label">Karyawan</div><div class="stat-value" id="s-employees">—</div></div>
     <div class="stat-card"><div class="stat-label">Akun Aktif</div><div class="stat-value accent-green" id="s-active">—</div></div>
     <div class="stat-card"><div class="stat-label">Aktif 30 Hari</div><div class="stat-value accent-blue" id="s-recent">—</div></div>
+  </div>
+
+  <!-- Analytics -->
+  <p class="section-title">Analitik Penggunaan</p>
+  <div class="analytics-grid">
+    <div class="analytics-card">
+      <div class="analytics-card-title">Kunjungan Halaman</div>
+      <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-pv-today">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-pv-total">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">Dari demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-card-title">Login Akun Demo</div>
+      <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-dl-today">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-dl-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-dl-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-dl-total">—</span></div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-card-title">Daftar Perusahaan Baru</div>
+      <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-rc-today">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-rc-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-rc-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-rc-total">—</span></div>
+    </div>
+    <div class="analytics-card">
+      <div class="analytics-card-title">Daftar Karyawan Baru</div>
+      <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-re-today">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-re-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-re-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-re-total">—</span></div>
+    </div>
   </div>
 
   <!-- Companies table -->
@@ -172,13 +216,14 @@
 
   // ── Load everything ────────────────────────────────────────────────────────
   async function loadAll() {
-    const [stats, companies] = await Promise.all([fetchStats(), fetchCompanies()]);
+    const [stats, companies, analytics] = await Promise.all([fetchStats(), fetchCompanies(), fetchAnalytics()]);
     if (stats && companies) {
       document.getElementById("gate").style.display = "none";
       document.getElementById("dashboard").style.display = "block";
       renderStats(stats);
       allCompanies = companies;
       renderTable();
+      if (analytics) renderAnalytics(analytics);
     }
   }
 
@@ -188,6 +233,14 @@
       if (!res.ok) return handleAuthError(res);
       return await res.json();
     } catch { showMsg("Gagal terhubung ke server. Cek apakah admin.donkap.space sudah ada di FRONTEND_URL Railway.", "error", true); return null; }
+  }
+
+  async function fetchAnalytics() {
+    try {
+      const res = await fetch(`${API}/superadmin/analytics`, { headers: headers() });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
   }
 
   async function fetchCompanies() {
@@ -203,6 +256,27 @@
     if (res.status === 403) showMsg("Key salah atau tidak valid.", "error", true);
     else showMsg(`Error ${res.status} dari server.`, "error", true);
     return null;
+  }
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  function renderAnalytics(a) {
+    setText("a-pv-today",  a.page_views.today);
+    setText("a-pv-7d",     a.page_views.last_7d);
+    setText("a-pv-30d",    a.page_views.last_30d);
+    setText("a-pv-total",  a.page_views.total);
+    setText("a-pv-demo",   a.page_views.demo);
+    setText("a-dl-today",  a.demo_logins.today);
+    setText("a-dl-7d",     a.demo_logins.last_7d);
+    setText("a-dl-30d",    a.demo_logins.last_30d);
+    setText("a-dl-total",  a.demo_logins.total);
+    setText("a-rc-today",  a.registrations.company.today);
+    setText("a-rc-7d",     a.registrations.company.last_7d);
+    setText("a-rc-30d",    a.registrations.company.last_30d);
+    setText("a-rc-total",  a.registrations.company.total);
+    setText("a-re-today",  a.registrations.employee.today);
+    setText("a-re-7d",     a.registrations.employee.last_7d);
+    setText("a-re-30d",    a.registrations.employee.last_30d);
+    setText("a-re-total",  a.registrations.employee.total);
   }
 
   // ── Stats ──────────────────────────────────────────────────────────────────

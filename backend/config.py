@@ -19,9 +19,18 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> List[str]:
         origins = [o.strip() for o in self.frontend_url.split(",") if o.strip()]
-        # Always allow local dev
-        if "http://localhost:5173" not in origins:
-            origins.append("http://localhost:5173")
+        # Always allow all known Donkap domains + local dev
+        always = [
+            "http://localhost:5173",
+            "https://donkap.space",
+            "https://www.donkap.space",
+            "https://site.donkap.space",
+            "https://demo.donkap.space",
+            "https://admin.donkap.space",
+        ]
+        for o in always:
+            if o not in origins:
+                origins.append(o)
         return origins
 
     class Config:

@@ -171,3 +171,43 @@ async def get_analytics():
             },
         },
     }
+
+
+@router.get("/analytics/trend", dependencies=[Depends(require_superadmin)])
+async def get_analytics_trend():
+    """Daily event counts for the past 7 days (UTC) — used by the trend chart."""
+    now = datetime.now(timezone.utc)
+    days = [(now - timedelta(days=i)).date() for i in range(6, -1, -1)]
+    cutoff = days[0].isoformat() + "T00:00:00+00:00"
+
+    res = (
+        supabase.table("analytics_events")
+        .select("event_type, created_at")
+        .gte("created_at", cutoff)
+        .execute()
+    )
+    events = res.data or []
+
+    result = []
+    for day in days:
+        iso = day.isoformat()
+        result.append({
+            "date": iso,
+            "page_views":    sum(1 for e in events if e["event_type"] == "page_view"    and e["created_at"][:10] == iso),
+            "demo_logins":   sum(1 for e in events if e["event_type"] == "demo_login"   and e["created_at"][:10] == iso),
+            "registrations": sum(1 for e in events if e["event_type"] in ("register_company", "register_employee") and e["created_at"][:10] == iso),
+        })
+    return {"data": result}
+
+
+@router.get("/companies/{company_id}/users", dependencies=[Depends(require_superadmin)])
+async def get_company_users(company_id: str):
+    """List all profiles for a given company."""
+    res = (
+        supabase.table("profiles")
+        .select("id, full_name, role, position, is_active, created_at")
+        .eq("company_id", company_id)
+        .order("role")
+        .execute()
+    )
+    return {"data": res.data or []}

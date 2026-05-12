@@ -3,173 +3,574 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Donkap Admin</title>
+  <title>Donkap · Superadmin</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Topbar ── */
-    .topbar { background: #1e293b; color: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    .topbar-brand { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
-    .topbar-brand span { color: #38bdf8; }
-    .topbar-key { display: flex; gap: 8px; }
-    .topbar-key input { background: #334155; border: 1px solid #475569; color: #fff; border-radius: 8px; padding: 6px 12px; font-size: 13px; width: 240px; outline: none; }
-    .topbar-key input::placeholder { color: #94a3b8; }
-    .topbar-key input:focus { border-color: #38bdf8; }
-    .btn { padding: 6px 14px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: opacity .15s; }
-    .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-primary { background: #38bdf8; color: #0c1a2e; }
-    .btn-success { background: #22c55e; color: #fff; }
-    .btn-danger  { background: #ef4444; color: #fff; }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
+  :root {
+    --primary:       #6366f1;
+    --primary-dim:   rgba(99,102,241,.12);
+    --success:       #10b981;
+    --success-dim:   rgba(16,185,129,.12);
+    --warning:       #f59e0b;
+    --warning-dim:   rgba(245,158,11,.12);
+    --danger:        #ef4444;
+    --danger-dim:    rgba(239,68,68,.12);
+    --sky:           #0ea5e9;
+    --sky-dim:       rgba(14,165,233,.12);
+    --purple:        #8b5cf6;
+    --purple-dim:    rgba(139,92,246,.12);
+    --slate:         #64748b;
+    --slate-dim:     rgba(100,116,139,.12);
+    --emerald:       #22c55e;
+    --emerald-dim:   rgba(34,197,94,.12);
+    --blue:          #3b82f6;
+    --blue-dim:      rgba(59,130,246,.12);
 
-    /* ── Main ── */
-    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    --bg:            #f1f5f9;
+    --card:          #ffffff;
+    --topbar:        #1e293b;
+    --text:          #0f172a;
+    --text-muted:    #64748b;
+    --border:        #e2e8f0;
+    --border-light:  #f1f5f9;
 
-    /* ── Section header ── */
-    .section-title { font-size: 15px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    --radius-sm:  8px;
+    --radius:     12px;
+    --radius-lg:  16px;
 
-    /* ── Stat cards ── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
-    .stat-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 18px; }
-    .stat-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
-    .stat-value { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; }
-    .stat-value.accent-blue   { color: #2563eb; }
-    .stat-value.accent-green  { color: #16a34a; }
-    .stat-value.accent-orange { color: #ea580c; }
-    .stat-value.accent-violet { color: #7c3aed; }
-    .stat-value.accent-sky    { color: #0284c7; }
-    .stat-value.accent-rose   { color: #dc2626; }
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    --shadow:    0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+    --shadow-lg: 0 16px 32px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+  }
 
-    /* ── Message box ── */
-    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
-    .msg.show { display: block; }
-    .msg.info  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-    /* ── Company table ── */
-    .card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 28px; }
-    .card-header { padding: 14px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
-    .card-header h2 { font-size: 15px; font-weight: 700; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .4px; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-    td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f8fafc; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-    .badge-green  { background: #dcfce7; color: #15803d; }
-    .badge-orange { background: #fff7ed; color: #c2410c; }
-    .empty { text-align: center; color: #94a3b8; font-size: 14px; padding: 32px; }
-    .actions { display: flex; gap: 6px; }
+  /* ── Topbar ─────────────────────────────────────────────────────────────── */
+  .topbar {
+    background: var(--topbar);
+    color: #fff;
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .topbar-brand {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .brand-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #818cf8, #a78bfa);
+    display: inline-block;
+    box-shadow: 0 0 6px rgba(129,140,248,.6);
+  }
+  .brand-accent { color: #818cf8; }
 
-    /* ── Filter tabs ── */
-    .filter-tabs { display: flex; gap: 4px; }
-    .filter-tab { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; background: transparent; border: 1px solid #e2e8f0; color: #64748b; transition: all .15s; }
-    .filter-tab.active { background: #1e293b; color: #fff; border-color: #1e293b; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .topbar-right input {
+    background: #334155;
+    border: 1px solid #475569;
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 200px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .topbar-right input::placeholder { color: #94a3b8; }
+  .topbar-right input:focus { border-color: #818cf8; }
 
-    /* ── Key gate ── */
-    #gate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 56px); gap: 12px; }
-    #gate p { font-size: 14px; color: #64748b; }
+  /* ── Buttons ────────────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px; font-weight: 600;
+    border: none; border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap; line-height: 1;
+    text-decoration: none;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn:active:not(:disabled) { transform: translateY(0); filter: none; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger  { background: var(--danger);  color: #fff; }
+  .btn-ghost   { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover:not(:disabled) { background: #f8fafc; color: var(--text); }
+  .btn-sm  { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
 
-    /* ── Analytics table ── */
-    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 28px; }
-    .analytics-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px 18px; }
-    .analytics-card-title { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
-    .analytics-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
-    .analytics-row:last-child { border-bottom: none; }
-    .analytics-row-label { font-size: 12px; color: #64748b; }
-    .analytics-row-val { font-size: 14px; font-weight: 700; color: #0f172a; }
+  /* ── Gate ───────────────────────────────────────────────────────────────── */
+  #gate {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: calc(100vh - 56px);
+    gap: 10px; padding: 24px; text-align: center;
+  }
+  .gate-icon { font-size: 52px; margin-bottom: 6px; }
+  #gate h2 { font-size: 20px; font-weight: 800; }
+  #gate p  { color: var(--text-muted); font-size: 14px; max-width: 280px; }
 
-    @media (max-width: 640px) {
-      .topbar-key input { width: 160px; }
-      .stat-grid { grid-template-columns: repeat(2, 1fr); }
-      .analytics-grid { grid-template-columns: repeat(2, 1fr); }
-      th:nth-child(4), td:nth-child(4) { display: none; }
+  /* ── Main layout ────────────────────────────────────────────────────────── */
+  main { max-width: 1140px; margin: 0 auto; padding: 24px 16px 56px; }
+
+  /* ── Section header ─────────────────────────────────────────────────────── */
+  .section-hd {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+  }
+  .section-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-actions { display: flex; align-items: center; gap: 8px; }
+  .last-updated { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Stat cards ─────────────────────────────────────────────────────────── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 16px 16px 16px 20px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .2s, transform .2s;
+    display: flex; align-items: center; gap: 14px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--c-accent, var(--primary));
+    border-radius: 4px 0 0 4px;
+  }
+  .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+  .stat-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: var(--c-dim, var(--primary-dim));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; flex-shrink: 0;
+  }
+  .stat-body { flex: 1; min-width: 0; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-value { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; }
+
+  /* ── Analytics cards ────────────────────────────────────────────────────── */
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 16px;
+  }
+  .analytics-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .analytics-card-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 12px;
+  }
+  .analytics-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid var(--border-light);
+  }
+  .analytics-row:last-child { border-bottom: none; }
+  .analytics-row-label { font-size: 12px; color: var(--text-muted); }
+  .analytics-row-val   { font-size: 14px; font-weight: 700; }
+
+  /* ── Chart ──────────────────────────────────────────────────────────────── */
+  .chart-card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 20px 20px 16px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 28px;
+  }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title    { font-size: 14px; font-weight: 700; }
+  .chart-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .chart-container { position: relative; height: 210px; }
+
+  /* ── Company card ───────────────────────────────────────────────────────── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden; margin-bottom: 28px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    background: #fafbfc;
+  }
+  .card-header-left  { display: flex; align-items: center; gap: 10px; }
+  .card-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-title { font-size: 14px; font-weight: 700; }
+
+  /* ── Search ─────────────────────────────────────────────────────────────── */
+  .search-wrap { position: relative; display: flex; align-items: center; }
+  .search-wrap input {
+    padding: 6px 12px 6px 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px; outline: none;
+    width: 180px; background: #fff;
+    color: var(--text);
+    transition: border-color .2s, width .3s;
+  }
+  .search-wrap input:focus { border-color: var(--primary); width: 220px; }
+  .search-icon { position: absolute; left: 9px; font-size: 13px; pointer-events: none; }
+
+  /* ── Table ──────────────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: .5px; padding: 10px 16px;
+    background: #f8fafc; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 16px; font-size: 14px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .tr-click { cursor: pointer; transition: background .15s; }
+  .tr-click:hover td { background: #f5f3ff; }
+  .empty {
+    text-align: center; color: var(--text-muted);
+    font-size: 14px; padding: 44px 16px;
+  }
+  .empty-icon { font-size: 34px; display: block; margin-bottom: 8px; }
+  .actions { display: flex; gap: 6px; }
+
+  /* ── Badges ─────────────────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-green  { background: #dcfce7; color: #15803d; }
+  .badge-orange { background: #fff7ed; color: #c2410c; }
+  .badge-red    { background: #fee2e2; color: #dc2626; }
+  .badge-blue   { background: #eff6ff; color: #1d4ed8; }
+
+  .pending-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 6px;
+    border-radius: 999px;
+    background: var(--danger); color: #fff;
+    font-size: 11px; font-weight: 700; line-height: 1;
+    animation: pulse-badge 2s ease-in-out infinite;
+  }
+  @keyframes pulse-badge {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+    50%       { opacity: .85; box-shadow: 0 0 0 4px rgba(239,68,68,.0); }
+  }
+
+  /* ── Filter tabs ────────────────────────────────────────────────────────── */
+  .filter-tabs { display: flex; gap: 4px; }
+  .filter-tab {
+    padding: 4px 10px; font-size: 12px; font-weight: 600;
+    border-radius: 6px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); transition: all .15s;
+  }
+  .filter-tab.active { background: var(--topbar); color: #fff; border-color: var(--topbar); }
+
+  /* ── Message ────────────────────────────────────────────────────────────── */
+  .msg {
+    padding: 10px 16px; border-radius: 10px;
+    font-size: 13px; margin-bottom: 16px;
+    display: none; align-items: center; gap: 8px;
+  }
+  .msg.show { display: flex; }
+  .msg.info  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+  /* ── Spin ───────────────────────────────────────────────────────────────── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinning { display: inline-block; animation: spin .8s linear infinite; }
+
+  /* ── Modal ──────────────────────────────────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.45);
+    z-index: 400;
+    display: flex; align-items: flex-start; justify-content: flex-end;
+    opacity: 0; visibility: hidden;
+    transition: opacity .25s, visibility .25s;
+    backdrop-filter: blur(3px);
+  }
+  .modal-backdrop.open { opacity: 1; visibility: visible; }
+  .modal-panel {
+    background: var(--card);
+    width: 380px; max-width: 100%;
+    height: 100vh; overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .modal-backdrop.open .modal-panel { transform: translateX(0); }
+  .modal-header {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    position: sticky; top: 0; background: var(--card); z-index: 1;
+  }
+  .modal-title    { font-size: 15px; font-weight: 700; }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: var(--text-muted);
+    flex-shrink: 0; transition: background .15s;
+  }
+  .modal-close:hover { background: var(--border-light); color: var(--text); }
+  .modal-body { padding: 16px 18px; }
+  .modal-section-label {
+    font-size: 10px; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: .7px; margin: 14px 0 8px;
+  }
+  .modal-section-label:first-child { margin-top: 0; }
+
+  .user-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border-light);
+  }
+  .user-item:last-child { border-bottom: none; }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  .user-avatar.admin    { background: var(--primary-dim); color: var(--primary); }
+  .user-avatar.employee { background: var(--success-dim); color: var(--success); }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-meta { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .stat-grid      { grid-template-columns: repeat(2, 1fr); }
+    .analytics-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .topbar-right input { width: 130px; }
+    .stat-grid      { grid-template-columns: repeat(2, 1fr); }
+    .analytics-grid { grid-template-columns: repeat(2, 1fr); }
+    .search-wrap input { width: 140px; }
+    .search-wrap input:focus { width: 140px; }
+    th:nth-child(4), td:nth-child(4) { display: none; }
+    .card-header { flex-direction: column; align-items: flex-start; }
+    .card-header-right { width: 100%; }
+    .modal-backdrop { align-items: flex-end; justify-content: center; }
+    .modal-panel {
+      width: 100%; height: 78vh;
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
     }
+    .modal-backdrop.open .modal-panel { transform: translateY(0); }
+  }
+  @media (max-width: 400px) {
+    .stat-value { font-size: 22px; }
+    .filter-tab { padding: 3px 8px; font-size: 11px; }
+  }
   </style>
 </head>
 <body>
 
+<!-- Topbar -->
 <div class="topbar">
-  <div class="topbar-brand">Donkap <span>Admin</span></div>
-  <div class="topbar-key">
-    <input type="password" id="keyInput" placeholder="Superadmin Key" />
+  <div class="topbar-brand">
+    <span class="brand-dot"></span>
+    <span>Donkap</span><span class="brand-accent">·Admin</span>
+  </div>
+  <div class="topbar-right">
+    <input type="password" id="keyInput" placeholder="Superadmin Key"
+           onkeydown="if(event.key==='Enter')applyKey()" />
     <button class="btn btn-primary" onclick="applyKey()">Masuk</button>
   </div>
 </div>
 
-<!-- Global message (always visible) -->
-<div style="max-width:1100px;margin:0 auto;padding:0 16px">
+<!-- Global message -->
+<div style="max-width:1140px;margin:0 auto;padding:0 16px">
   <div id="msg" class="msg" style="margin-top:16px"></div>
 </div>
 
-<!-- Gate (shown before key is entered) -->
+<!-- Gate -->
 <div id="gate">
-  <p>Masukkan Superadmin Key untuk melanjutkan.</p>
+  <div class="gate-icon">🔐</div>
+  <h2>Donkap Superadmin</h2>
+  <p>Masukkan Superadmin Key untuk mengakses panel monitoring.</p>
 </div>
 
-<!-- Dashboard (hidden until key is valid) -->
+<!-- Dashboard -->
 <main id="dashboard" style="display:none">
 
-  <!-- Stats -->
-  <p class="section-title">Ringkasan</p>
+  <!-- Ringkasan -->
+  <div class="section-hd">
+    <span class="section-title">📊 Ringkasan</span>
+    <div class="section-actions">
+      <span class="last-updated" id="last-updated"></span>
+      <button class="btn btn-ghost btn-sm" id="refresh-btn" onclick="doRefresh()">
+        <span id="refresh-icon">↻</span> Perbarui
+      </button>
+    </div>
+  </div>
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">Total Perusahaan</div><div class="stat-value accent-blue" id="s-total-co">—</div></div>
-    <div class="stat-card"><div class="stat-label">Sudah Aktif</div><div class="stat-value accent-green" id="s-approved">—</div></div>
-    <div class="stat-card"><div class="stat-label">Menunggu Approval</div><div class="stat-value accent-orange" id="s-pending">—</div></div>
-    <div class="stat-card"><div class="stat-label">Total User</div><div class="stat-value accent-violet" id="s-total-u">—</div></div>
-    <div class="stat-card"><div class="stat-label">Owner/Admin</div><div class="stat-value accent-sky" id="s-admins">—</div></div>
-    <div class="stat-card"><div class="stat-label">Karyawan</div><div class="stat-value" id="s-employees">—</div></div>
-    <div class="stat-card"><div class="stat-label">Akun Aktif</div><div class="stat-value accent-green" id="s-active">—</div></div>
-    <div class="stat-card"><div class="stat-label">Aktif 30 Hari</div><div class="stat-value accent-blue" id="s-recent">—</div></div>
+    <div class="stat-card" style="--c-accent:#6366f1;--c-dim:rgba(99,102,241,.1)">
+      <div class="stat-icon">🏢</div>
+      <div class="stat-body"><div class="stat-label">Total Perusahaan</div><div class="stat-value" id="s-total-co">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#10b981;--c-dim:rgba(16,185,129,.1)">
+      <div class="stat-icon">✅</div>
+      <div class="stat-body"><div class="stat-label">Sudah Aktif</div><div class="stat-value" id="s-approved">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#f59e0b;--c-dim:rgba(245,158,11,.1)">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-body"><div class="stat-label">Menunggu Approval</div><div class="stat-value" id="s-pending">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#8b5cf6;--c-dim:rgba(139,92,246,.1)">
+      <div class="stat-icon">👥</div>
+      <div class="stat-body"><div class="stat-label">Total User</div><div class="stat-value" id="s-total-u">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#0ea5e9;--c-dim:rgba(14,165,233,.1)">
+      <div class="stat-icon">🔑</div>
+      <div class="stat-body"><div class="stat-label">Owner / Admin</div><div class="stat-value" id="s-admins">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#64748b;--c-dim:rgba(100,116,139,.1)">
+      <div class="stat-icon">👷</div>
+      <div class="stat-body"><div class="stat-label">Karyawan</div><div class="stat-value" id="s-employees">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#22c55e;--c-dim:rgba(34,197,94,.1)">
+      <div class="stat-icon">💚</div>
+      <div class="stat-body"><div class="stat-label">Akun Aktif</div><div class="stat-value" id="s-active">—</div></div>
+    </div>
+    <div class="stat-card" style="--c-accent:#3b82f6;--c-dim:rgba(59,130,246,.1)">
+      <div class="stat-icon">📈</div>
+      <div class="stat-body"><div class="stat-label">Aktif 30 Hari</div><div class="stat-value" id="s-recent">—</div></div>
+    </div>
   </div>
 
-  <!-- Analytics -->
-  <p class="section-title">Analitik Penggunaan</p>
+  <!-- Analitik -->
+  <div class="section-hd">
+    <span class="section-title">📡 Analitik Penggunaan</span>
+  </div>
   <div class="analytics-grid">
     <div class="analytics-card">
-      <div class="analytics-card-title">Kunjungan Halaman</div>
+      <div class="analytics-card-title">👁️ Kunjungan Halaman</div>
       <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-pv-today">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
       <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-pv-total">—</span></div>
       <div class="analytics-row"><span class="analytics-row-label">Dari demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
     </div>
     <div class="analytics-card">
-      <div class="analytics-card-title">Login Akun Demo</div>
+      <div class="analytics-card-title">🎮 Login Demo</div>
       <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-dl-today">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-dl-7d">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-dl-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-dl-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-dl-30d">—</span></div>
       <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-dl-total">—</span></div>
     </div>
     <div class="analytics-card">
-      <div class="analytics-card-title">Daftar Perusahaan Baru</div>
+      <div class="analytics-card-title">🏪 Daftar Perusahaan</div>
       <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-rc-today">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-rc-7d">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-rc-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-rc-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-rc-30d">—</span></div>
       <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-rc-total">—</span></div>
     </div>
     <div class="analytics-card">
-      <div class="analytics-card-title">Daftar Karyawan Baru</div>
+      <div class="analytics-card-title">👤 Daftar Karyawan</div>
       <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-re-today">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">7 hari terakhir</span><span class="analytics-row-val" id="a-re-7d">—</span></div>
-      <div class="analytics-row"><span class="analytics-row-label">30 hari terakhir</span><span class="analytics-row-val" id="a-re-30d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-re-7d">—</span></div>
+      <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-re-30d">—</span></div>
       <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-re-total">—</span></div>
     </div>
   </div>
 
-  <!-- Companies table -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Daftar Perusahaan</h2>
-      <div class="filter-tabs">
-        <button class="filter-tab active" data-filter="all"   onclick="setFilter('all')">Semua</button>
-        <button class="filter-tab"        data-filter="pending" onclick="setFilter('pending')">Pending</button>
-        <button class="filter-tab"        data-filter="approved" onclick="setFilter('approved')">Aktif</button>
+  <!-- Trend chart -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Tren 7 Hari Terakhir</div>
+        <div class="chart-subtitle">Kunjungan, login demo, dan registrasi per hari (UTC)</div>
       </div>
     </div>
-    <div style="overflow-x:auto">
+    <div class="chart-container">
+      <canvas id="trend-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Companies -->
+  <div class="section-hd">
+    <span class="section-title">
+      🏢 Perusahaan
+      <span id="pending-pill" class="pending-pill" style="display:none">0</span>
+    </span>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="card-title">Daftar Perusahaan</span>
+      </div>
+      <div class="card-header-right">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Cari nama / kode…"
+                 oninput="handleSearch(this.value)" />
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all"      onclick="setFilter('all')">Semua</button>
+          <button class="filter-tab"        data-filter="pending"  onclick="setFilter('pending')">Pending</button>
+          <button class="filter-tab"        data-filter="approved" onclick="setFilter('approved')">Aktif</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Download CSV">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -182,30 +583,51 @@
           </tr>
         </thead>
         <tbody id="company-tbody">
-          <tr><td colspan="6" class="empty">Memuat...</td></tr>
+          <tr><td colspan="6" class="empty"><span class="empty-icon">⏳</span>Memuat data…</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </main>
 
+<!-- User detail modal (slide-in panel) -->
+<div class="modal-backdrop" id="modal" onclick="handleBackdropClick(event)">
+  <div class="modal-panel" id="modal-panel">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title"   id="modal-title">Detail Perusahaan</div>
+        <div class="modal-subtitle" id="modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div style="text-align:center;color:var(--text-muted);padding:40px">⏳ Memuat…</div>
+    </div>
+  </div>
+</div>
+
 <script>
   const API = "https://umkm-attendance-production.up.railway.app";
   const LS  = "sa_key";
 
-  let currentKey  = "";
+  let currentKey   = "";
   let allCompanies = [];
   let activeFilter = "all";
+  let searchQuery  = "";
+  let trendChart   = null;
+  let lastUpdated  = null;
+  let autoTimer    = null;
+  let loading      = false;
 
   // ── Init ───────────────────────────────────────────────────────────────────
   window.addEventListener("DOMContentLoaded", () => {
     const saved = localStorage.getItem(LS) || "";
-    if (saved) {
-      document.getElementById("keyInput").value = saved;
-      applyKey(saved);
-    }
+    if (saved) { document.getElementById("keyInput").value = saved; applyKey(saved); }
   });
 
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  // ── Apply key + load ───────────────────────────────────────────────────────
   async function applyKey(k) {
     const key = k || document.getElementById("keyInput").value.trim();
     if (!key) return;
@@ -214,88 +636,207 @@
     await loadAll();
   }
 
-  // ── Load everything ────────────────────────────────────────────────────────
-  async function loadAll() {
-    const [stats, companies, analytics] = await Promise.all([fetchStats(), fetchCompanies(), fetchAnalytics()]);
-    if (stats && companies) {
-      document.getElementById("gate").style.display = "none";
-      document.getElementById("dashboard").style.display = "block";
-      renderStats(stats);
-      allCompanies = companies;
-      renderTable();
-      if (analytics) renderAnalytics(analytics);
-    }
+  async function doRefresh() {
+    lastUpdated = null;
+    await loadAll();
   }
+
+  async function loadAll() {
+    if (loading) return;
+    loading = true;
+    setSpin(true);
+
+    const [stats, companies, analytics, trend] = await Promise.all([
+      fetchStats(), fetchCompanies(), fetchAnalytics(), fetchTrend(),
+    ]);
+
+    loading = false;
+    setSpin(false);
+
+    if (!stats || !companies) return;
+
+    document.getElementById("gate").style.display      = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+    renderStats(stats);
+    allCompanies = companies;
+    renderTable();
+    updatePendingPill();
+    if (analytics) renderAnalytics(analytics);
+    if (trend)     renderTrend(trend);
+
+    lastUpdated = new Date();
+    updateTimestamp();
+
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => { loadAll(); }, 90_000);
+  }
+
+  // ── Fetch helpers ──────────────────────────────────────────────────────────
+  function h() { return { "x-superadmin-key": currentKey }; }
 
   async function fetchStats() {
     try {
-      const res = await fetch(`${API}/superadmin/stats`, { headers: headers() });
-      if (!res.ok) return handleAuthError(res);
-      return await res.json();
-    } catch { showMsg("Gagal terhubung ke server. Cek apakah admin.donkap.space sudah ada di FRONTEND_URL Railway.", "error", true); return null; }
-  }
-
-  async function fetchAnalytics() {
-    try {
-      const res = await fetch(`${API}/superadmin/analytics`, { headers: headers() });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch { return null; }
+      const r = await fetch(`${API}/superadmin/stats`, { headers: h() });
+      if (!r.ok) return handleErr(r);
+      return r.json();
+    } catch { showMsg("Gagal terhubung ke server.", "error", true); return null; }
   }
 
   async function fetchCompanies() {
     try {
-      const res = await fetch(`${API}/superadmin/companies/all`, { headers: headers() });
-      if (!res.ok) return handleAuthError(res);
-      const j = await res.json();
-      return j.data;
+      const r = await fetch(`${API}/superadmin/companies/all`, { headers: h() });
+      if (!r.ok) return null;
+      return (await r.json()).data;
     } catch { return null; }
   }
 
-  function handleAuthError(res) {
+  async function fetchAnalytics() {
+    try {
+      const r = await fetch(`${API}/superadmin/analytics`, { headers: h() });
+      if (!r.ok) return null;
+      return r.json();
+    } catch { return null; }
+  }
+
+  async function fetchTrend() {
+    try {
+      const r = await fetch(`${API}/superadmin/analytics/trend`, { headers: h() });
+      if (!r.ok) return null;
+      return (await r.json()).data;
+    } catch { return null; }
+  }
+
+  async function fetchCompanyUsers(id) {
+    try {
+      const r = await fetch(`${API}/superadmin/companies/${id}/users`, { headers: h() });
+      if (!r.ok) return null;
+      return (await r.json()).data;
+    } catch { return null; }
+  }
+
+  function handleErr(res) {
     if (res.status === 403) showMsg("Key salah atau tidak valid.", "error", true);
     else showMsg(`Error ${res.status} dari server.`, "error", true);
     return null;
   }
 
-  // ── Analytics ─────────────────────────────────────────────────────────────
-  function renderAnalytics(a) {
-    setText("a-pv-today",  a.page_views.today);
-    setText("a-pv-7d",     a.page_views.last_7d);
-    setText("a-pv-30d",    a.page_views.last_30d);
-    setText("a-pv-total",  a.page_views.total);
-    setText("a-pv-demo",   a.page_views.demo);
-    setText("a-dl-today",  a.demo_logins.today);
-    setText("a-dl-7d",     a.demo_logins.last_7d);
-    setText("a-dl-30d",    a.demo_logins.last_30d);
-    setText("a-dl-total",  a.demo_logins.total);
-    setText("a-rc-today",  a.registrations.company.today);
-    setText("a-rc-7d",     a.registrations.company.last_7d);
-    setText("a-rc-30d",    a.registrations.company.last_30d);
-    setText("a-rc-total",  a.registrations.company.total);
-    setText("a-re-today",  a.registrations.employee.today);
-    setText("a-re-7d",     a.registrations.employee.last_7d);
-    setText("a-re-30d",    a.registrations.employee.last_30d);
-    setText("a-re-total",  a.registrations.employee.total);
+  // ── Render stats ───────────────────────────────────────────────────────────
+  function renderStats(s) {
+    set("s-total-co",  s.companies.total);
+    set("s-approved",  s.companies.approved);
+    set("s-pending",   s.companies.pending);
+    set("s-total-u",   s.users.total);
+    set("s-admins",    s.users.admins);
+    set("s-employees", s.users.employees);
+    set("s-active",    s.users.active_accounts);
+    set("s-recent",    s.users.recently_active_30d);
   }
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
-  function renderStats(s) {
-    setText("s-total-co",  s.companies.total);
-    setText("s-approved",  s.companies.approved);
-    setText("s-pending",   s.companies.pending);
-    setText("s-total-u",   s.users.total);
-    setText("s-admins",    s.users.admins);
-    setText("s-employees", s.users.employees);
-    setText("s-active",    s.users.active_accounts);
-    setText("s-recent",    s.users.recently_active_30d);
+  // ── Render analytics ───────────────────────────────────────────────────────
+  function renderAnalytics(a) {
+    set("a-pv-today",  a.page_views.today);
+    set("a-pv-7d",     a.page_views.last_7d);
+    set("a-pv-30d",    a.page_views.last_30d);
+    set("a-pv-total",  a.page_views.total);
+    set("a-pv-demo",   a.page_views.demo);
+    set("a-dl-today",  a.demo_logins.today);
+    set("a-dl-7d",     a.demo_logins.last_7d);
+    set("a-dl-30d",    a.demo_logins.last_30d);
+    set("a-dl-total",  a.demo_logins.total);
+    set("a-rc-today",  a.registrations.company.today);
+    set("a-rc-7d",     a.registrations.company.last_7d);
+    set("a-rc-30d",    a.registrations.company.last_30d);
+    set("a-rc-total",  a.registrations.company.total);
+    set("a-re-today",  a.registrations.employee.today);
+    set("a-re-7d",     a.registrations.employee.last_7d);
+    set("a-re-30d",    a.registrations.employee.last_30d);
+    set("a-re-total",  a.registrations.employee.total);
+  }
+
+  // ── Trend chart ────────────────────────────────────────────────────────────
+  function renderTrend(data) {
+    const labels  = data.map(d => {
+      const dt = new Date(d.date + "T12:00:00Z");
+      return dt.toLocaleDateString("id-ID", { weekday: "short", day: "numeric" });
+    });
+    const ctx = document.getElementById("trend-chart").getContext("2d");
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Kunjungan",
+            data: data.map(d => d.page_views),
+            borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,.08)",
+            fill: true, tension: 0.4, borderWidth: 2,
+            pointRadius: 4, pointBackgroundColor: "#6366f1",
+          },
+          {
+            label: "Login Demo",
+            data: data.map(d => d.demo_logins),
+            borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)",
+            fill: true, tension: 0.4, borderWidth: 2,
+            pointRadius: 4, pointBackgroundColor: "#10b981",
+          },
+          {
+            label: "Registrasi",
+            data: data.map(d => d.registrations),
+            borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,.08)",
+            fill: true, tension: 0.4, borderWidth: 2,
+            pointRadius: 4, pointBackgroundColor: "#f59e0b",
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: { usePointStyle: true, pointStyle: "circle", font: { size: 12 }, padding: 16 },
+          },
+          tooltip: {
+            backgroundColor: "#1e293b", titleColor: "#e2e8f0",
+            bodyColor: "#cbd5e1", cornerRadius: 8, padding: 10,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { size: 11 }, precision: 0 },
+            grid: { color: "#f1f5f9" },
+          },
+          x: {
+            ticks: { font: { size: 11 } },
+            grid: { display: false },
+          },
+        },
+      },
+    });
   }
 
   // ── Table ──────────────────────────────────────────────────────────────────
   function setFilter(f) {
     activeFilter = f;
-    document.querySelectorAll(".filter-tab").forEach(t => t.classList.toggle("active", t.dataset.filter === f));
+    document.querySelectorAll(".filter-tab").forEach(t =>
+      t.classList.toggle("active", t.dataset.filter === f)
+    );
     renderTable();
+  }
+
+  function handleSearch(q) {
+    searchQuery = q.trim().toLowerCase();
+    renderTable();
+  }
+
+  function updatePendingPill() {
+    const n  = allCompanies.filter(c => !c.is_approved).length;
+    const el = document.getElementById("pending-pill");
+    if (n > 0) { el.textContent = n; el.style.display = ""; }
+    else        { el.style.display = "none"; }
   }
 
   function renderTable() {
@@ -303,22 +844,30 @@
     let data = allCompanies;
     if (activeFilter === "pending")  data = data.filter(c => !c.is_approved);
     if (activeFilter === "approved") data = data.filter(c =>  c.is_approved);
+    if (searchQuery) data = data.filter(c =>
+      c.name.toLowerCase().includes(searchQuery) || c.code.toLowerCase().includes(searchQuery)
+    );
 
-    if (!data.length) { tbody.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data.</td></tr>`; return; }
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</td></tr>`;
+      return;
+    }
 
     tbody.innerHTML = data.map(c => `
-      <tr id="row-${c.id}">
+      <tr class="tr-click" id="row-${c.id}" onclick="openModal('${c.id}')">
         <td style="font-weight:600">${esc(c.name)}</td>
         <td><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">${esc(c.code)}</code></td>
-        <td>${c.user_count}</td>
-        <td style="color:#64748b;font-size:13px">${fmtDate(c.created_at)}</td>
+        <td><span style="font-weight:600">${c.user_count}</span></td>
+        <td style="color:var(--text-muted);font-size:13px">${fmtDate(c.created_at)}</td>
         <td>${c.is_approved
-          ? `<span class="badge badge-green">Aktif</span>`
-          : `<span class="badge badge-orange">Pending</span>`}</td>
-        <td>
+          ? `<span class="badge badge-green">✓ Aktif</span>`
+          : `<span class="badge badge-orange">⏳ Pending</span>`}</td>
+        <td onclick="event.stopPropagation()">
           <div class="actions">
             ${!c.is_approved ? `<button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>` : ""}
-            ${c.is_approved  ? `<button class="btn btn-danger  btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>` : `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
+            ${c.is_approved
+              ? `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>`
+              : `<button class="btn btn-danger  btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
           </div>
         </td>
       </tr>`).join("");
@@ -327,36 +876,135 @@
   // ── Approve / reject ───────────────────────────────────────────────────────
   async function decide(id, approved) {
     const row = document.getElementById(`row-${id}`);
-    row.querySelectorAll("button").forEach(b => b.disabled = true);
+    row?.querySelectorAll("button").forEach(b => b.disabled = true);
     try {
-      const res = await fetch(`${API}/superadmin/companies/${id}/approve?approved=${approved}`, {
-        method: "PATCH", headers: headers(),
+      const r = await fetch(`${API}/superadmin/companies/${id}/approve?approved=${approved}`, {
+        method: "PATCH", headers: h(),
       });
-      if (!res.ok) { showMsg("Gagal memproses.", "error"); return; }
-      const company = allCompanies.find(c => c.id === id);
-      if (company) company.is_approved = approved;
-      showMsg(`"${company?.name || id}" ${approved ? "disetujui ✓" : "ditolak"}. Email dikirim ke owner.`, "info");
+      if (!r.ok) { showMsg("Gagal memproses permintaan.", "error"); return; }
+      const co = allCompanies.find(c => c.id === id);
+      if (co) co.is_approved = approved;
+      showMsg(`"${co?.name || id}" ${approved ? "disetujui ✓" : "ditolak"}. Email dikirim ke owner.`, "info");
+      updatePendingPill();
       renderTable();
-      // Refresh stats
       const stats = await fetchStats();
       if (stats) renderStats(stats);
     } finally {
-      row?.querySelectorAll("button").forEach(b => b.disabled = false);
+      document.getElementById(`row-${id}`)?.querySelectorAll("button").forEach(b => b.disabled = false);
     }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function headers() { return { "x-superadmin-key": currentKey }; }
-  function setText(id, val) { document.getElementById(id).textContent = val ?? "—"; }
-  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleString("id-ID", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  // ── User detail modal ──────────────────────────────────────────────────────
+  async function openModal(companyId) {
+    const co = allCompanies.find(c => c.id === companyId);
+    document.getElementById("modal-title").textContent    = co?.name || "Detail";
+    document.getElementById("modal-subtitle").textContent = `${co?.user_count ?? 0} pengguna terdaftar`;
+    document.getElementById("modal-body").innerHTML =
+      `<div style="text-align:center;color:var(--text-muted);padding:40px">⏳ Memuat pengguna…</div>`;
+    document.getElementById("modal").classList.add("open");
+    document.body.style.overflow = "hidden";
+
+    const users = await fetchCompanyUsers(companyId);
+    if (!users) {
+      document.getElementById("modal-body").innerHTML =
+        `<div style="text-align:center;color:var(--text-muted);padding:40px">Gagal memuat data.</div>`;
+      return;
+    }
+    if (!users.length) {
+      document.getElementById("modal-body").innerHTML =
+        `<div style="text-align:center;color:var(--text-muted);padding:40px">Belum ada pengguna.</div>`;
+      return;
+    }
+
+    const admins = users.filter(u => u.role === "admin");
+    const emps   = users.filter(u => u.role === "employee");
+    let html = "";
+    if (admins.length) {
+      html += `<p class="modal-section-label">Owner / Admin</p>`;
+      html += admins.map(userCard).join("");
+    }
+    if (emps.length) {
+      html += `<p class="modal-section-label">Karyawan (${emps.length})</p>`;
+      html += emps.map(userCard).join("");
+    }
+    document.getElementById("modal-body").innerHTML = html;
   }
+
+  function userCard(u) {
+    const init    = (u.full_name || "?")[0].toUpperCase();
+    const isAdmin = u.role === "admin";
+    const active  = u.is_active !== false;
+    return `
+      <div class="user-item">
+        <div class="user-avatar ${isAdmin ? "admin" : "employee"}">${init}</div>
+        <div class="user-info">
+          <div class="user-name">${esc(u.full_name || "—")}</div>
+          <div class="user-meta">${u.position ? esc(u.position) + " · " : ""}${fmtDate(u.created_at)}</div>
+        </div>
+        <span class="badge ${active ? "badge-green" : "badge-red"}">${active ? "Aktif" : "Nonaktif"}</span>
+      </div>`;
+  }
+
+  function closeModal() {
+    document.getElementById("modal").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+  function handleBackdropClick(e) {
+    if (e.target === document.getElementById("modal")) closeModal();
+  }
+
+  // ── Export CSV ─────────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!allCompanies.length) { showMsg("Tidak ada data untuk diekspor.", "error"); return; }
+    const rows = [
+      ["Nama", "Kode", "Jumlah User", "Tanggal Daftar", "Status"],
+      ...allCompanies.map(c => [
+        c.name, c.code, c.user_count,
+        new Date(c.created_at).toLocaleDateString("id-ID"),
+        c.is_approved ? "Aktif" : "Pending",
+      ]),
+    ];
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement("a"), { href: url, download: `donkap-perusahaan-${new Date().toISOString().slice(0,10)}.csv` });
+    a.click();
+    URL.revokeObjectURL(url);
+    showMsg("File CSV berhasil diunduh.", "info");
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val ?? "—"; }
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function setSpin(on) {
+    const icon = document.getElementById("refresh-icon");
+    const btn  = document.getElementById("refresh-btn");
+    if (icon) icon.className = on ? "spinning" : "";
+    if (btn)  btn.disabled = on;
+  }
+
+  function updateTimestamp() {
+    const el = document.getElementById("last-updated");
+    if (!el || !lastUpdated) { if (el) el.textContent = ""; return; }
+    const mins = Math.round((Date.now() - lastUpdated) / 60_000);
+    el.textContent = mins <= 0 ? "Baru diperbarui" : `${mins} menit lalu`;
+  }
+  setInterval(updateTimestamp, 60_000);
+
   function showMsg(text, type, persist = false) {
     const el = document.getElementById("msg");
     el.textContent = text;
-    el.className = `msg show ${type}`;
-    if (!persist) setTimeout(() => el.classList.remove("show"), 6000);
+    el.className   = `msg show ${type}`;
+    if (!persist) setTimeout(() => el.classList.remove("show"), 6_000);
   }
 </script>
 </body>

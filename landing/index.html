@@ -440,5 +440,17 @@
     </div>
   </footer>
 
+<script>
+  (function() {
+    var key = "__donkap_lpv";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    fetch("https://umkm-attendance-production.up.railway.app/analytics/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_type: "page_view", source: "landing" }),
+    }).catch(function() {});
+  })();
+</script>
 </body>
 </html>

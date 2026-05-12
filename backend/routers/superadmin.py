@@ -172,6 +172,9 @@ async def get_analytics():
             and (source is None or e["source"] == source)
         )
 
+    def count_sources(etype, sources):
+        return sum(1 for e in events if e["event_type"] == etype and e["source"] in sources)
+
     return {
         "page_views": {
             "today":    count("page_view", today),
@@ -179,6 +182,11 @@ async def get_analytics():
             "last_30d": count("page_view", month_ago),
             "total":    count("page_view"),
             "demo":     count("page_view", source="demo"),
+            "by_source": {
+                "landing": count_sources("page_view", {"landing"}),
+                "demo":    count_sources("page_view", {"demo"}),
+                "app":     count_sources("page_view", {"app", "main"}),
+            },
         },
         "demo_logins": {
             "today":    count("demo_login", today),

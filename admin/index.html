@@ -523,7 +523,12 @@
         <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
         <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
         <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-pv-total">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">Dari demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
+        <div style="border-top:1px solid var(--border-light);margin:8px 0 4px;padding-top:6px">
+          <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Per sumber</div>
+          <div class="analytics-row"><span class="analytics-row-label">🌐 Landing page</span><span class="analytics-row-val" id="a-pv-landing">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">🎮 Demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">📱 App utama</span><span class="analytics-row-val" id="a-pv-app">—</span></div>
+        </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-title">🎮 Login Demo</div>
@@ -562,7 +567,7 @@
       <div class="chart-header" style="margin-bottom:16px">
         <div>
           <div class="chart-title">Funnel Konversi</div>
-          <div class="chart-subtitle">Dari kunjungan landing page hingga pendaftaran perusahaan (all-time)</div>
+          <div class="chart-subtitle">Dari kunjungan <strong>site.donkap.space</strong> → demo → pendaftaran (all-time)</div>
         </div>
       </div>
       <div id="funnel-container"></div>
@@ -811,7 +816,10 @@
   function renderAnalytics(a) {
     set("a-pv-today",a.page_views.today);    set("a-pv-7d",  a.page_views.last_7d);
     set("a-pv-30d",  a.page_views.last_30d); set("a-pv-total",a.page_views.total);
-    set("a-pv-demo", a.page_views.demo);
+    const bs = a.page_views.by_source || {};
+    set("a-pv-landing", bs.landing ?? "—");
+    set("a-pv-demo",    bs.demo    ?? a.page_views.demo);
+    set("a-pv-app",     bs.app     ?? "—");
     set("a-dl-today",a.demo_logins.today);   set("a-dl-7d",  a.demo_logins.last_7d);
     set("a-dl-30d",  a.demo_logins.last_30d);set("a-dl-total",a.demo_logins.total);
     set("a-rc-today",a.registrations.company.today);  set("a-rc-7d",  a.registrations.company.last_7d);
@@ -1180,18 +1188,21 @@
 
   // ── Conversion funnel ──────────────────────────────────────────────────────
   function renderFunnel(analytics) {
-    const pv  = analytics.page_views.total || 0;
-    const dl  = analytics.demo_logins.total || 0;
-    const reg = analytics.registrations.company.total || 0;
-    const max = pv || 1;
+    const bs      = analytics.page_views.by_source || {};
+    const landing = bs.landing ?? null;
+    const pv      = landing !== null ? landing : analytics.page_views.total;
+    const dl      = analytics.demo_logins.total || 0;
+    const reg     = analytics.registrations.company.total || 0;
+    const max     = pv || 1;
+    const pvLabel = landing !== null ? "👁️ Landing Page" : "👁️ Kunjungan (semua)";
     const rows = [
-      { name: "👁️ Kunjungan",        val: pv,  color: "#6366f1" },
-      { name: "🎮 Login Demo",        val: dl,  color: "#10b981" },
-      { name: "🏪 Daftar Perusahaan", val: reg, color: "#f59e0b" },
+      { name: pvLabel,               val: pv,  color: "#6366f1" },
+      { name: "🎮 Login Demo",       val: dl,  color: "#10b981" },
+      { name: "🏪 Daftar Perusahaan",val: reg, color: "#f59e0b" },
     ];
     const connectors = [
-      { pct: pv  ? (dl  / pv  * 100).toFixed(1) : "0.0", label: "lanjut ke demo",        bg: "#dcfce7", tc: "#15803d" },
-      { pct: dl  ? (reg / dl  * 100).toFixed(1) : "0.0", label: "daftar setelah demo",    bg: "#fef9c3", tc: "#92400e" },
+      { pct: pv ? (dl  / pv  * 100).toFixed(1) : "0.0", label: "lanjut coba demo",     bg: "#dcfce7", tc: "#15803d" },
+      { pct: dl ? (reg / dl  * 100).toFixed(1) : "0.0", label: "daftar setelah demo",   bg: "#fef9c3", tc: "#92400e" },
     ];
     const el = document.getElementById("funnel-container");
     if (!el) return;

@@ -13,7 +13,7 @@ export type AnalyticsEvent =
  * triggers auth interceptors and never blocks or errors the caller.
  */
 export function trackEvent(event: AnalyticsEvent): void {
-  const source = IS_DEMO ? "demo" : "main";
+  const source = IS_DEMO ? "demo" : "app";
   fetch(`${API}/analytics/event`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

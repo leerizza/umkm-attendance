@@ -211,6 +211,64 @@ async def get_analytics():
     }
 
 
+@router.get("/analytics/range", dependencies=[Depends(require_superadmin)])
+async def get_analytics_range(from_date: str, to_date: str):
+    """Return analytics totals + daily trend for a custom date range."""
+    try:
+        from_d = datetime.fromisoformat(from_date).date()
+        to_d   = datetime.fromisoformat(to_date).date()
+    except ValueError:
+        raise HTTPException(400, "Gunakan format YYYY-MM-DD")
+    if from_d > to_d:
+        raise HTTPException(400, "from_date harus sebelum to_date")
+    if (to_d - from_d).days > 365:
+        raise HTTPException(400, "Range maksimal 365 hari")
+
+    res = (
+        supabase.table("analytics_events")
+        .select("event_type, source, created_at")
+        .gte("created_at", from_date + "T00:00:00+00:00")
+        .lte("created_at", to_date   + "T23:59:59+00:00")
+        .execute()
+    )
+    events = res.data or []
+
+    def c(etype):
+        return sum(1 for e in events if e["event_type"] == etype)
+
+    def c_src(etype, sources):
+        return sum(1 for e in events if e["event_type"] == etype and e["source"] in sources)
+
+    cur, trend = from_d, []
+    while cur <= to_d:
+        iso = cur.isoformat()
+        trend.append({
+            "date": iso,
+            "page_views":    sum(1 for e in events if e["event_type"] == "page_view"    and e["created_at"][:10] == iso),
+            "demo_logins":   sum(1 for e in events if e["event_type"] == "demo_login"   and e["created_at"][:10] == iso),
+            "registrations": sum(1 for e in events if e["event_type"] in ("register_company", "register_employee") and e["created_at"][:10] == iso),
+        })
+        cur += timedelta(days=1)
+
+    return {
+        "from": from_date, "to": to_date,
+        "page_views": {
+            "total": c("page_view"),
+            "by_source": {
+                "landing": c_src("page_view", {"landing"}),
+                "demo":    c_src("page_view", {"demo"}),
+                "app":     c_src("page_view", {"app", "main"}),
+            },
+        },
+        "demo_logins":   {"total": c("demo_login")},
+        "registrations": {
+            "company":  {"total": c("register_company")},
+            "employee": {"total": c("register_employee")},
+        },
+        "trend": trend,
+    }
+
+
 @router.get("/analytics/trend", dependencies=[Depends(require_superadmin)])
 async def get_analytics_trend():
     """Daily event counts for the past 7 days (UTC) — used by the trend chart."""

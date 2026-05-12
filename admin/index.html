@@ -333,6 +333,19 @@
     .filter-tab { padding: 3px 7px; font-size: 11px; }
   }
 
+  /* ── Analytics filter bar ──────────────────────────────────────────────── */
+  .analytics-filter-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--card); border-radius:var(--radius); border:1px solid var(--border); padding:10px 14px; box-shadow:var(--shadow-sm); margin-bottom:16px; }
+  .filter-presets { display:flex; gap:4px; flex-wrap:wrap; }
+  .filter-preset { padding:5px 12px; font-size:12px; font-weight:600; border-radius:6px; cursor:pointer; background:transparent; border:1px solid var(--border); color:var(--text-muted); transition:all .15s; white-space:nowrap; }
+  .filter-preset.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .filter-preset:hover:not(.active) { background:#f8fafc; color:var(--text); }
+  .filter-divider { width:1px; height:18px; background:var(--border); flex-shrink:0; }
+  .filter-custom-wrap { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .filter-date-input { padding:5px 8px; border:1px solid var(--border); border-radius:6px; font-size:12px; outline:none; color:var(--text); background:#fff; transition:border-color .15s; }
+  .filter-date-input:focus { border-color:var(--primary); }
+  .range-label-chip { margin-left:auto; display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); background:#f1f5f9; padding:3px 9px; border-radius:999px; }
+  @media (max-width:640px) { .analytics-filter-bar { flex-direction:column; align-items:flex-start; } .range-label-chip { margin-left:0; } }
+
   /* ── Conversion funnel ──────────────────────────────────────────────────── */
   .funnel-wrap { padding: 4px 0; }
   .funnel-row { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
@@ -516,40 +529,86 @@
     <div class="section-hd">
       <span class="section-title">📡 Analitik Penggunaan</span>
     </div>
+
+    <!-- Filter bar -->
+    <div class="analytics-filter-bar">
+      <div class="filter-presets">
+        <button class="filter-preset" data-preset="today"      onclick="setPreset('today')">Hari ini</button>
+        <button class="filter-preset" data-preset="7d"         onclick="setPreset('7d')">7 hari</button>
+        <button class="filter-preset" data-preset="month"      onclick="setPreset('month')">Bulan ini</button>
+        <button class="filter-preset" data-preset="last-month" onclick="setPreset('last-month')">Bulan lalu</button>
+        <button class="filter-preset" data-preset="custom"     onclick="setPreset('custom')">🗓️ Kustom</button>
+      </div>
+      <div class="filter-divider"></div>
+      <div id="filter-custom-wrap" class="filter-custom-wrap" style="display:none">
+        <input type="date" id="filter-from" class="filter-date-input" />
+        <span style="font-size:12px;color:var(--text-muted);font-weight:600">s/d</span>
+        <input type="date" id="filter-to"   class="filter-date-input" />
+        <button class="btn btn-primary btn-sm" onclick="applyCustomFilter()">Terapkan</button>
+      </div>
+      <span id="analytics-range-chip" class="range-label-chip" style="display:none">📅 <span id="analytics-range-text"></span></span>
+    </div>
+
     <div class="analytics-grid">
       <div class="analytics-card">
         <div class="analytics-card-title">👁️ Kunjungan Halaman</div>
-        <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-pv-today">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-pv-total">—</span></div>
-        <div style="border-top:1px solid var(--border-light);margin:8px 0 4px;padding-top:6px">
-          <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Per sumber</div>
-          <div class="analytics-row"><span class="analytics-row-label">🌐 Landing page</span><span class="analytics-row-val" id="a-pv-landing">—</span></div>
-          <div class="analytics-row"><span class="analytics-row-label">🎮 Demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
-          <div class="analytics-row"><span class="analytics-row-label">📱 App utama</span><span class="analytics-row-val" id="a-pv-app">—</span></div>
+        <div class="a-normal">
+          <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-pv-today">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-pv-7d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-pv-30d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-pv-total">—</span></div>
+          <div style="border-top:1px solid var(--border-light);margin:8px 0 4px;padding-top:6px">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Per sumber</div>
+            <div class="analytics-row"><span class="analytics-row-label">🌐 Landing page</span><span class="analytics-row-val" id="a-pv-landing">—</span></div>
+            <div class="analytics-row"><span class="analytics-row-label">🎮 Demo</span><span class="analytics-row-val" id="a-pv-demo">—</span></div>
+            <div class="analytics-row"><span class="analytics-row-label">📱 App utama</span><span class="analytics-row-val" id="a-pv-app">—</span></div>
+          </div>
+        </div>
+        <div class="a-range" style="display:none">
+          <div class="analytics-row"><span class="analytics-row-label">Total periode</span><span class="analytics-row-val" id="ar-pv-total" style="color:var(--primary)">—</span></div>
+          <div style="border-top:1px solid var(--border-light);margin:8px 0 4px;padding-top:6px">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Per sumber</div>
+            <div class="analytics-row"><span class="analytics-row-label">🌐 Landing page</span><span class="analytics-row-val" id="ar-pv-landing">—</span></div>
+            <div class="analytics-row"><span class="analytics-row-label">🎮 Demo</span><span class="analytics-row-val" id="ar-pv-demo">—</span></div>
+            <div class="analytics-row"><span class="analytics-row-label">📱 App utama</span><span class="analytics-row-val" id="ar-pv-app">—</span></div>
+          </div>
         </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-title">🎮 Login Demo</div>
-        <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-dl-today">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-dl-7d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-dl-30d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-dl-total">—</span></div>
+        <div class="a-normal">
+          <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-dl-today">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-dl-7d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-dl-30d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-dl-total">—</span></div>
+        </div>
+        <div class="a-range" style="display:none">
+          <div class="analytics-row"><span class="analytics-row-label">Total periode</span><span class="analytics-row-val" id="ar-dl-total" style="color:var(--primary)">—</span></div>
+        </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-title">🏪 Daftar Perusahaan</div>
-        <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-rc-today">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-rc-7d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-rc-30d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-rc-total">—</span></div>
+        <div class="a-normal">
+          <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-rc-today">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-rc-7d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-rc-30d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-rc-total">—</span></div>
+        </div>
+        <div class="a-range" style="display:none">
+          <div class="analytics-row"><span class="analytics-row-label">Total periode</span><span class="analytics-row-val" id="ar-rc-total" style="color:var(--primary)">—</span></div>
+        </div>
       </div>
       <div class="analytics-card">
         <div class="analytics-card-title">👤 Daftar Karyawan</div>
-        <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-re-today">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-re-7d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-re-30d">—</span></div>
-        <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-re-total">—</span></div>
+        <div class="a-normal">
+          <div class="analytics-row"><span class="analytics-row-label">Hari ini</span><span class="analytics-row-val" id="a-re-today">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">7 hari</span><span class="analytics-row-val" id="a-re-7d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">30 hari</span><span class="analytics-row-val" id="a-re-30d">—</span></div>
+          <div class="analytics-row"><span class="analytics-row-label">Total</span><span class="analytics-row-val" id="a-re-total">—</span></div>
+        </div>
+        <div class="a-range" style="display:none">
+          <div class="analytics-row"><span class="analytics-row-label">Total periode</span><span class="analytics-row-val" id="ar-re-total" style="color:var(--primary)">—</span></div>
+        </div>
       </div>
     </div>
     <div class="chart-card">
@@ -690,6 +749,9 @@
   let trendChart   = null;
   let sparkChart   = null;
   let monthlyChart = null;
+  let lastTrendData   = null;
+  let activePreset    = null;
+  let rangeData       = null;
   let auditLog     = [];
   let logLoaded    = false;
   let lastUpdated  = null;
@@ -737,6 +799,7 @@
       renderFunnel(analytics);
     }
     if (trend) {
+      lastTrendData = trend;
       renderTrend(trend);
       renderSparkline(trend);
     }
@@ -1184,6 +1247,139 @@
     Object.assign(document.createElement("a"),{href:url,download:`donkap-perusahaan-${new Date().toISOString().slice(0,10)}.csv`}).click();
     URL.revokeObjectURL(url);
     showMsg("File CSV berhasil diunduh.", "info");
+  }
+
+  // ── Analytics date filter ──────────────────────────────────────────────────
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function dateMinus(days) {
+    const d = new Date(); d.setDate(d.getDate() - days);
+    return d.toISOString().slice(0, 10);
+  }
+  function presetDates(preset) {
+    const now   = new Date();
+    const today = now.toISOString().slice(0, 10);
+    if (preset === "today") return { from: today, to: today };
+    if (preset === "7d")    return { from: dateMinus(6), to: today };
+    const y = now.getFullYear(), mo = now.getMonth();
+    if (preset === "month") {
+      const last = new Date(y, mo + 1, 0).getDate();
+      return { from: `${y}-${pad2(mo+1)}-01`, to: `${y}-${pad2(mo+1)}-${pad2(last)}` };
+    }
+    if (preset === "last-month") {
+      const lastDay = new Date(y, mo, 0); // last day of prev month
+      const py = lastDay.getFullYear(), pm = lastDay.getMonth() + 1;
+      return { from: `${py}-${pad2(pm)}-01`, to: `${py}-${pad2(pm)}-${pad2(lastDay.getDate())}` };
+    }
+    return null;
+  }
+  function fmtRangeLabel(from, to) {
+    if (from === to) return fmtDate(from);
+    const f = fmtDate(from), t = fmtDate(to);
+    return `${f} – ${t}`;
+  }
+
+  function setPreset(preset) {
+    if (preset === "custom") {
+      // Toggle custom date inputs
+      document.getElementById("filter-custom-wrap").style.display = "flex";
+      document.querySelectorAll(".filter-preset").forEach(b => b.classList.toggle("active", b.dataset.preset === "custom"));
+      return;
+    }
+    document.getElementById("filter-custom-wrap").style.display = "none";
+    if (activePreset === preset) {
+      // Clicking active preset clears the filter
+      activePreset = null;
+      document.querySelectorAll(".filter-preset").forEach(b => b.classList.remove("active"));
+      clearRangeFilter();
+      return;
+    }
+    activePreset = preset;
+    document.querySelectorAll(".filter-preset").forEach(b => b.classList.toggle("active", b.dataset.preset === preset));
+    const dates = presetDates(preset);
+    if (dates) loadAnalyticsRange(dates.from, dates.to);
+  }
+
+  function applyCustomFilter() {
+    const from = document.getElementById("filter-from").value;
+    const to   = document.getElementById("filter-to").value;
+    if (!from || !to) { showMsg("Pilih tanggal mulai dan selesai.", "error"); return; }
+    if (from > to)    { showMsg("Tanggal mulai harus sebelum tanggal selesai.", "error"); return; }
+    activePreset = "custom";
+    loadAnalyticsRange(from, to);
+  }
+
+  async function loadAnalyticsRange(from, to) {
+    const chip = document.getElementById("analytics-range-chip");
+    const txt  = document.getElementById("analytics-range-text");
+    if (chip) { chip.style.display = "inline-flex"; }
+    if (txt)  { txt.textContent = "Memuat…"; }
+
+    try {
+      const r = await fetch(`${API}/superadmin/analytics/range?from_date=${from}&to_date=${to}`, { headers: h() });
+      if (!r.ok) { showMsg("Gagal memuat data range.", "error"); return; }
+      rangeData = await r.json();
+    } catch { showMsg("Gagal terhubung ke server.", "error"); return; }
+
+    if (txt) txt.textContent = fmtRangeLabel(from, to);
+    renderRangeAnalytics(rangeData);
+    if (rangeData.trend) renderTrendRange(rangeData.trend, from, to);
+    setRangeView(true);
+  }
+
+  function clearRangeFilter() {
+    const chip = document.getElementById("analytics-range-chip");
+    if (chip) chip.style.display = "none";
+    setRangeView(false);
+    if (lastTrendData) renderTrend(lastTrendData);
+  }
+
+  function setRangeView(isRange) {
+    document.querySelectorAll(".a-normal").forEach(el => el.style.display = isRange ? "none" : "");
+    document.querySelectorAll(".a-range").forEach(el  => el.style.display = isRange ? "" : "none");
+  }
+
+  function renderRangeAnalytics(d) {
+    set("ar-pv-total", d.page_views.total);
+    const bs = d.page_views.by_source || {};
+    set("ar-pv-landing", bs.landing ?? "—");
+    set("ar-pv-demo",    bs.demo    ?? "—");
+    set("ar-pv-app",     bs.app     ?? "—");
+    set("ar-dl-total", d.demo_logins.total);
+    set("ar-rc-total", d.registrations.company.total);
+    set("ar-re-total", d.registrations.employee.total);
+  }
+
+  function renderTrendRange(data) {
+    const n     = data.length;
+    const skip  = n > 60 ? 7 : n > 30 ? 3 : 1;
+    const labels = data.map((d, i) =>
+      (i % skip === 0 || i === n - 1)
+        ? new Date(d.date + "T12:00:00Z").toLocaleDateString("id-ID", { day:"numeric", month:"short" })
+        : ""
+    );
+    const ctx = document.getElementById("trend-chart").getContext("2d");
+    if (trendChart) trendChart.destroy();
+    const pr = n > 30 ? 0 : 3;
+    trendChart = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [
+        { label:"Kunjungan",  data:data.map(d=>d.page_views),    borderColor:"#6366f1", backgroundColor:"rgba(99,102,241,.08)", fill:true, tension:.3, borderWidth:2, pointRadius:pr, pointBackgroundColor:"#6366f1" },
+        { label:"Login Demo", data:data.map(d=>d.demo_logins),   borderColor:"#10b981", backgroundColor:"rgba(16,185,129,.08)", fill:true, tension:.3, borderWidth:2, pointRadius:pr, pointBackgroundColor:"#10b981" },
+        { label:"Registrasi", data:data.map(d=>d.registrations), borderColor:"#f59e0b", backgroundColor:"rgba(245,158,11,.08)", fill:true, tension:.3, borderWidth:2, pointRadius:pr, pointBackgroundColor:"#f59e0b" },
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:"index", intersect:false},
+        plugins:{
+          legend:{position:"top", labels:{usePointStyle:true, pointStyle:"circle", font:{size:12}, padding:16}},
+          tooltip:{backgroundColor:"#1e293b", titleColor:"#e2e8f0", bodyColor:"#cbd5e1", cornerRadius:8, padding:10},
+        },
+        scales:{
+          y:{beginAtZero:true, ticks:{stepSize:1, font:{size:11}, precision:0}, grid:{color:"#f1f5f9"}},
+          x:{ticks:{font:{size:11}, maxRotation:0}, grid:{display:false}},
+        },
+      },
+    });
   }
 
   // ── Conversion funnel ──────────────────────────────────────────────────────

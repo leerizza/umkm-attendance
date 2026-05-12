@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Donkap — Absensi Digital untuk UMKM</title>
-  <meta name="description" content="Kelola absensi, cuti, dan lembur karyawan UMKM kamu dengan mudah. Tanpa ribet, langsung pakai." />
+  <meta name="description" content="Kelola absensi, cuti, dan lembur karyawan UMKM kamu dengan mudah. Tidak ada lagi rekap manual atau foto absen di WhatsApp." />
   <link rel="icon" href="https://www.donkap.space/icons/icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -24,27 +24,27 @@
   <style>
     html { scroll-behavior: smooth; }
 
-    /* Brand gradient: blue → cyan → green (matching app logo) */
-    .g-brand { background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%); }
+    .g-brand      { background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%); }
     .g-brand-diag { background: linear-gradient(160deg, #0EA5E9 0%, #06B6D4 45%, #10B981 100%); }
     .g-text {
       background: linear-gradient(135deg, #0EA5E9, #10B981);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .g-hero { background: linear-gradient(135deg, #f0f9ff 0%, #ecfeff 40%, #f0fdf4 100%); }
-    .g-btn {
-      background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%);
-      transition: opacity .2s, transform .1s;
-    }
+    .g-btn  { background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 50%, #10B981 100%); transition: opacity .2s, transform .1s; }
     .g-btn:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* Dark button — clearly visible on any light background */
+    .btn-dark { background: #0f172a; transition: background .15s, transform .1s; }
+    .btn-dark:hover { background: #1e293b; transform: translateY(-1px); }
 
     .card-hover { transition: transform .2s, box-shadow .2s; }
     .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,.08); }
-
-    /* Glow shadow matching gradient */
     .g-shadow { box-shadow: 0 8px 32px rgba(6,182,212,.25); }
+
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary .faq-plus { transform: rotate(45deg); }
+    .faq-plus { transition: transform .2s; display: inline-block; }
   </style>
 </head>
 <body class="font-sans text-gray-800 bg-white antialiased">
@@ -54,15 +54,13 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2.5">
         <img src="https://www.donkap.space/icons/icon-192.png" class="w-8 h-8 rounded-xl" alt="Donkap logo" />
-        <span class="font-extrabold text-xl tracking-tight">
-          <span class="g-text">Donkap</span>
-        </span>
+        <span class="font-extrabold text-xl tracking-tight"><span class="g-text">Donkap</span></span>
       </a>
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-        <a href="#fitur" class="hover:text-brand-600 transition-colors">Fitur</a>
+        <a href="#fitur"     class="hover:text-brand-600 transition-colors">Fitur</a>
         <a href="#cara-kerja" class="hover:text-brand-600 transition-colors">Cara Kerja</a>
-        <a href="#demo" class="hover:text-brand-600 transition-colors">Demo</a>
-        <a href="#harga" class="hover:text-brand-600 transition-colors">Harga</a>
+        <a href="#demo"      class="hover:text-brand-600 transition-colors">Demo</a>
+        <a href="#harga"     class="hover:text-brand-600 transition-colors">Harga</a>
       </div>
       <div class="flex items-center gap-3">
         <a href="https://www.donkap.space" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Masuk</a>
@@ -74,26 +72,27 @@
   <!-- HERO -->
   <section class="g-hero pt-20 pb-24 px-4">
     <div class="max-w-6xl mx-auto text-center">
-      <div class="inline-flex items-center gap-2 bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+      <div class="inline-flex items-center gap-2 bg-white border border-cyan-200 text-cyan-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 shadow-sm">
         <span class="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
-        Khusus untuk UMKM Indonesia
+        Aktif dalam &lt; 1 jam · Tanpa biaya IT
       </div>
       <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
         Absensi Karyawan<br class="hidden sm:block"/>
-        <span class="g-text">Simpel &amp; Digital</span>
+        <span class="g-text">Selesai dalam 30 Detik</span>
       </h1>
       <p class="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10">
-        Kelola absensi, cuti, dan lembur karyawan UMKM kamu langsung dari HP. Tanpa kertas, tanpa ribet, langsung pakai hari ini.
+        Tidak ada lagi rekap manual di Excel, tidak ada lagi foto absen di grup WA.
+        Donkap mengurus semuanya — dari clock in hingga laporan bulanan — langsung dari HP.
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="#demo" class="g-btn text-white font-semibold px-8 py-3.5 rounded-xl text-base g-shadow">
           Coba Demo Sekarang →
         </a>
-        <a href="https://www.donkap.space" class="bg-white hover:bg-gray-50 text-gray-800 font-semibold px-8 py-3.5 rounded-xl text-base border border-gray-200 transition-colors">
+        <a href="https://www.donkap.space" class="btn-dark text-white font-semibold px-8 py-3.5 rounded-xl text-base">
           Daftar Gratis
         </a>
       </div>
-      <p class="text-sm text-gray-400 mt-4">Tidak perlu kartu kredit · Langsung aktif</p>
+      <p class="text-sm text-gray-400 mt-4">Tidak perlu kartu kredit · Langsung aktif hari ini</p>
 
       <!-- Mock UI -->
       <div class="mt-16 relative max-w-3xl mx-auto">
@@ -150,8 +149,35 @@
     </div>
   </section>
 
+  <!-- PAIN POINTS -->
+  <section class="py-16 px-4 bg-white border-y border-gray-100">
+    <div class="max-w-4xl mx-auto">
+      <p class="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-10">Masih pakai cara lama?</p>
+      <div class="grid sm:grid-cols-3 gap-5">
+        <div class="p-6 rounded-2xl bg-red-50 border border-red-100 text-center">
+          <p class="text-3xl mb-3">😩</p>
+          <p class="font-bold text-gray-800 mb-2">Rekap manual tiap akhir bulan</p>
+          <p class="text-sm text-gray-500 leading-relaxed">Berjam-jam di depan Excel hanya untuk bikin laporan yang seharusnya selesai dalam hitungan detik.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-orange-50 border border-orange-100 text-center">
+          <p class="text-3xl mb-3">📱</p>
+          <p class="font-bold text-gray-800 mb-2">Izin cuti via chat WA</p>
+          <p class="text-sm text-gray-500 leading-relaxed">Pesan berceceran di berbagai chat, mudah terlewat, tidak ada catatan resmi yang bisa dipertanggungjawabkan.</p>
+        </div>
+        <div class="p-6 rounded-2xl bg-yellow-50 border border-yellow-100 text-center">
+          <p class="text-3xl mb-3">🤷</p>
+          <p class="font-bold text-gray-800 mb-2">Titip absen tidak terkontrol</p>
+          <p class="text-sm text-gray-500 leading-relaxed">Tidak ada cara membuktikan siapa yang benar-benar hadir tanpa verifikasi lokasi yang akurat.</p>
+        </div>
+      </div>
+      <p class="text-center text-gray-600 mt-10 text-base">
+        Donkap hadir untuk menyelesaikan ini semua — <span class="font-semibold text-gray-900">sekali setup, langsung beres.</span>
+      </p>
+    </div>
+  </section>
+
   <!-- SOCIAL PROOF -->
-  <section class="py-10 border-y border-gray-100 bg-gray-50">
+  <section class="py-10 bg-gray-50 border-b border-gray-100">
     <div class="max-w-4xl mx-auto px-4 text-center">
       <p class="text-sm text-gray-400 mb-6">Dipercaya oleh UMKM di seluruh Indonesia</p>
       <div class="flex flex-wrap justify-center gap-8 text-gray-300 font-semibold text-sm">
@@ -165,11 +191,11 @@
   </section>
 
   <!-- FITUR -->
-  <section id="fitur" class="py-24 px-4">
+  <section id="fitur" class="py-24 px-4 bg-white">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Semua yang kamu butuhkan</h2>
-        <p class="text-gray-500 text-lg max-w-xl mx-auto">Dari absensi harian sampai laporan bulanan, semua ada di satu tempat.</p>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Semua yang kamu butuhkan, tidak lebih</h2>
+        <p class="text-gray-500 text-lg max-w-xl mx-auto">Fitur yang dirancang khusus untuk UMKM — langsung berguna, tidak over-complicated.</p>
       </div>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -179,8 +205,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Clock In/Out GPS</h3>
-          <p class="text-gray-500 text-sm">Absen dari HP dengan verifikasi lokasi GPS. Karyawan hanya bisa absen dalam radius kantor yang kamu tentukan.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Absensi GPS Antimanipulasi</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Karyawan hanya bisa absen dalam radius lokasi yang kamu tentukan. Tidak ada lagi titip absen — GPS tidak bisa dibohongi.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -189,8 +215,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Manajemen Cuti</h3>
-          <p class="text-gray-500 text-sm">Karyawan ajukan cuti online, admin approve/tolak. Jatah cuti otomatis terhitung per tahun. Notifikasi email otomatis.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Cuti Online, Tanpa Ribet</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Karyawan ajukan cuti langsung dari HP, kamu approve atau tolak dengan satu klik. Jatah cuti terhitung otomatis, email notifikasi terkirim sendiri.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -199,8 +225,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Pengajuan Lembur</h3>
-          <p class="text-gray-500 text-sm">Karyawan ajukan lembur dengan jam mulai dan selesai. Admin bisa approve dan ada catatan alasan.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Lembur Tercatat &amp; Transparan</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Karyawan ajukan lembur lengkap dengan jam dan alasan. Semua tercatat rapi — tidak ada lagi perdebatan soal jam lembur yang tidak jelas.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -209,8 +235,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Laporan Bulanan</h3>
-          <p class="text-gray-500 text-sm">Download laporan kehadiran per bulan dalam format Excel. Rekap semua karyawan dengan satu klik.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Laporan Bulanan 1 Klik</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Export rekap kehadiran semua karyawan ke Excel langsung dari dashboard. Yang biasanya butuh 2 jam, selesai dalam 10 detik.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -219,8 +245,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Notifikasi Email</h3>
-          <p class="text-gray-500 text-sm">Karyawan dapat email otomatis saat cuti atau lembur disetujui/ditolak. Admin juga dapat notifikasi pendaftaran.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Notifikasi Otomatis</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Karyawan dapat email otomatis setiap ada update cuti atau lembur. Tidak perlu WA satu-satu lagi untuk kasih kabar status mereka.</p>
         </div>
 
         <div class="card-hover bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -229,8 +255,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 mb-2">Bisa Install di HP</h3>
-          <p class="text-gray-500 text-sm">Donkap bisa diinstall di HP Android maupun iPhone seperti aplikasi biasa. Tidak perlu download dari Play Store.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Langsung Pakai dari HP</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Bisa diinstall di HP Android maupun iPhone langsung dari browser — tanpa App Store, tanpa download. Buka, install, selesai.</p>
         </div>
 
       </div>
@@ -241,39 +267,87 @@
   <section id="cara-kerja" class="py-24 px-4 bg-gray-50">
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Mulai dalam 3 langkah</h2>
-        <p class="text-gray-500 text-lg">Tidak perlu instalasi server, tidak perlu IT. Langsung pakai.</p>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Mulai dalam 3 langkah mudah</h2>
+        <p class="text-gray-500 text-lg">Tidak perlu instalasi server, tidak perlu tim IT. Kamu bisa setup sendiri dalam 10 menit.</p>
       </div>
       <div class="grid sm:grid-cols-3 gap-8">
         <div class="text-center">
           <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">1</div>
           <h3 class="font-bold text-gray-900 mb-2">Daftar Perusahaan</h3>
-          <p class="text-gray-500 text-sm">Buat akun perusahaan kamu dalam 1 menit. Masukkan nama, alamat, dan jam kerja.</p>
+          <p class="text-gray-500 text-sm leading-relaxed">Isi nama perusahaan, alamat, dan jam kerja. Selesai dalam 2 menit — tidak ada form yang panjang-panjang.</p>
         </div>
         <div class="text-center">
           <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">2</div>
           <h3 class="font-bold text-gray-900 mb-2">Undang Karyawan</h3>
-          <p class="text-gray-500 text-sm">Bagikan kode perusahaan ke karyawan. Mereka daftar sendiri pakai kode tersebut.</p>
+          <p class="text-gray-500 text-sm leading-relaxed">Bagikan kode unik perusahaan ke karyawan lewat WA. Mereka daftar sendiri pakai kode itu — tidak perlu kamu input satu-satu.</p>
         </div>
         <div class="text-center">
           <div class="w-14 h-14 g-brand text-white rounded-2xl flex items-center justify-center text-2xl font-extrabold mx-auto mb-4 g-shadow">3</div>
-          <h3 class="font-bold text-gray-900 mb-2">Verifikasi &amp; Langsung Pakai</h3>
-          <p class="text-gray-500 text-sm">Setelah daftar, tim Donkap verifikasi akun kamu (biasanya &lt; 1 jam). Konfirmasi lebih cepat via WhatsApp.</p>
+          <h3 class="font-bold text-gray-900 mb-2">Langsung Aktif Hari Ini</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Tim Donkap verifikasi akun kamu dalam &lt; 1 jam. Konfirmasi via WhatsApp untuk proses lebih cepat.</p>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- TESTIMONIALS -->
+  <section class="py-24 px-4 bg-white">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Kata mereka yang sudah pakai</h2>
+        <p class="text-gray-500 text-lg">UMKM dari berbagai kota, satu pengalaman yang sama.</p>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-6">
+
+        <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+          <div class="text-yellow-400 text-lg mb-4">★★★★★</div>
+          <p class="text-gray-700 text-sm leading-relaxed mb-5">"Dulu sering ribut sama karyawan soal absensi — siapa yang hadir, siapa yang telat. Sekarang semua tercatat otomatis, gak ada yang bisa protes lagi."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full g-brand flex items-center justify-center text-white font-bold text-sm flex-shrink-0">B</div>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm">Budi S.</p>
+              <p class="text-xs text-gray-400">Pemilik Warung Makan, Surabaya</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+          <div class="text-yellow-400 text-lg mb-4">★★★★★</div>
+          <p class="text-gray-700 text-sm leading-relaxed mb-5">"Setup-nya cuma 10 menit. Karyawan saya yang gaptek aja langsung bisa pakai sendiri dari hari pertama. Tidak perlu ajarin lama-lama."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full g-brand flex items-center justify-center text-white font-bold text-sm flex-shrink-0">S</div>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm">Sari W.</p>
+              <p class="text-xs text-gray-400">Pemilik Salon, Jakarta Selatan</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+          <div class="text-yellow-400 text-lg mb-4">★★★★★</div>
+          <p class="text-gray-700 text-sm leading-relaxed mb-5">"29 ribu sebulan? Itu lebih murah dari semua kertas absensi saya per bulan. Belum lagi waktu yang kehemat buat rekap manual tiap bulan."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full g-brand flex items-center justify-center text-white font-bold text-sm flex-shrink-0">H</div>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm">Hendra P.</p>
+              <p class="text-xs text-gray-400">Toko Bangunan, Bandung</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- DEMO -->
-  <section id="demo" class="py-24 px-4">
+  <section id="demo" class="py-24 px-4 bg-gray-50">
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Coba Langsung Sekarang</h2>
-        <p class="text-gray-500 text-lg">Pakai akun demo di bawah ini untuk menjelajahi semua fitur Donkap.</p>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Coba Langsung, Tanpa Daftar</h2>
+        <p class="text-gray-500 text-lg">Jelajahi semua fitur Donkap dengan akun demo — tidak perlu isi data apapun.</p>
       </div>
       <div class="grid sm:grid-cols-2 gap-6">
 
-        <!-- Demo Admin -->
         <div class="g-brand-diag rounded-2xl p-6 text-white g-shadow">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -282,8 +356,8 @@
               </svg>
             </div>
             <div>
-              <p class="font-bold text-lg">Akun Admin</p>
-              <p class="text-cyan-100 text-sm">Kelola karyawan &amp; persetujuan</p>
+              <p class="font-bold text-lg">Akun Admin / Owner</p>
+              <p class="text-cyan-100 text-sm">Kelola tim &amp; lihat semua laporan</p>
             </div>
           </div>
           <div class="bg-white/15 rounded-xl p-4 space-y-2 mb-4 font-mono text-sm">
@@ -302,7 +376,6 @@
           </a>
         </div>
 
-        <!-- Demo Karyawan -->
         <div class="bg-white rounded-2xl p-6 border-2 border-gray-100 shadow-sm">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -312,7 +385,7 @@
             </div>
             <div>
               <p class="font-bold text-lg text-gray-900">Akun Karyawan</p>
-              <p class="text-gray-400 text-sm">Absen, cuti, dan lembur</p>
+              <p class="text-gray-400 text-sm">Absen, ajukan cuti &amp; lembur</p>
             </div>
           </div>
           <div class="bg-gray-50 rounded-xl p-4 space-y-2 mb-4 font-mono text-sm">
@@ -326,7 +399,7 @@
             </div>
           </div>
           <a href="https://demo.donkap.space" target="_blank"
-             class="block w-full bg-gray-900 text-white font-bold text-center py-3 rounded-xl hover:bg-gray-800 transition-colors">
+             class="block w-full btn-dark text-white font-bold text-center py-3 rounded-xl">
             Login sebagai Karyawan →
           </a>
         </div>
@@ -338,69 +411,133 @@
     </div>
   </section>
 
+  <!-- FAQ -->
+  <section class="py-24 px-4 bg-white">
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Pertanyaan yang sering muncul</h2>
+        <p class="text-gray-500">Tidak ada pertanyaan kecil — tanya saja kalau masih belum jelas.</p>
+      </div>
+      <div class="space-y-3">
+
+        <details class="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 list-none select-none">
+            Apakah data absensi karyawan saya aman?
+            <span class="faq-plus text-gray-400 text-xl font-light group-open:rotate-45">+</span>
+          </summary>
+          <p class="px-5 pb-5 text-sm text-gray-500 leading-relaxed">Data kamu disimpan di server dengan enkripsi penuh. Kami menggunakan Supabase dan Railway — infrastruktur kelas enterprise yang sama dipakai banyak startup besar. Kamu tidak perlu khawatir soal keamanan data.</p>
+        </details>
+
+        <details class="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 list-none select-none">
+            Bagaimana kalau karyawan lupa absen?
+            <span class="faq-plus text-gray-400 text-xl font-light group-open:rotate-45">+</span>
+          </summary>
+          <p class="px-5 pb-5 text-sm text-gray-500 leading-relaxed">Admin bisa melakukan koreksi absensi langsung dari dashboard. Karyawan juga bisa ajukan permintaan koreksi yang perlu disetujui admin — semuanya ada trail-nya, tidak bisa diedit sembarangan.</p>
+        </details>
+
+        <details class="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 list-none select-none">
+            HP karyawan saya yang lama, bisa pakai Donkap?
+            <span class="faq-plus text-gray-400 text-xl font-light group-open:rotate-45">+</span>
+          </summary>
+          <p class="px-5 pb-5 text-sm text-gray-500 leading-relaxed">Donkap adalah web app yang berjalan di browser — tidak butuh HP baru atau spesifikasi tinggi. Selama HP punya browser dan GPS aktif, langsung bisa dipakai. Tidak ada minimum versi Android atau iOS.</p>
+        </details>
+
+        <details class="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 list-none select-none">
+            Berapa lama proses aktivasi setelah daftar?
+            <span class="faq-plus text-gray-400 text-xl font-light group-open:rotate-45">+</span>
+          </summary>
+          <p class="px-5 pb-5 text-sm text-gray-500 leading-relaxed">Biasanya kurang dari 1 jam di hari kerja. Untuk proses lebih cepat, konfirmasi via WhatsApp ke <a href="https://wa.me/6281220060169" target="_blank" class="text-brand-600 font-semibold hover:underline">0812-2006-0169</a> setelah mendaftar — biasanya langsung diproses.</p>
+        </details>
+
+        <details class="group bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+          <summary class="flex items-center justify-between p-5 cursor-pointer font-semibold text-gray-800 list-none select-none">
+            Kalau mau berhenti berlangganan Pro, bagaimana?
+            <span class="faq-plus text-gray-400 text-xl font-light group-open:rotate-45">+</span>
+          </summary>
+          <p class="px-5 pb-5 text-sm text-gray-500 leading-relaxed">Tidak ada kontrak, tidak ada penalti. Hubungi kami kapanpun dan kami proses dalam 1 hari kerja. Data kamu tetap bisa diakses sampai akhir periode yang sudah dibayar.</p>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
   <!-- HARGA -->
   <section id="harga" class="py-24 px-4 bg-gray-50">
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Harga Transparan</h2>
-        <p class="text-gray-500 text-lg">Mulai gratis, upgrade kapanpun kamu siap.</p>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Harga yang Masuk Akal</h2>
+        <p class="text-gray-500 text-lg">Mulai gratis tanpa batas waktu. Upgrade kapanpun kamu siap berkembang.</p>
       </div>
       <div class="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
 
         <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
           <p class="font-bold text-gray-400 text-sm mb-2">GRATIS</p>
           <p class="text-4xl font-extrabold text-gray-900 mb-1">Rp 0</p>
-          <p class="text-gray-400 text-sm mb-6">Selamanya</p>
+          <p class="text-gray-400 text-sm mb-6">Selamanya, tidak ada kadaluarsa</p>
           <ul class="space-y-3 text-sm text-gray-600 mb-8">
-            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Hingga 10 karyawan</li>
-            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Absensi GPS</li>
-            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Manajemen cuti &amp; lembur</li>
-            <li class="flex gap-2"><span class="g-text font-bold">✓</span> Laporan bulanan</li>
+            <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Hingga 10 karyawan</li>
+            <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Absensi GPS</li>
+            <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Manajemen cuti &amp; lembur</li>
+            <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Laporan bulanan</li>
           </ul>
-          <a href="https://www.donkap.space" class="block text-center border border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors">
+          <a href="https://www.donkap.space" class="block text-center border-2 border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors">
             Mulai Gratis
           </a>
         </div>
 
         <div class="g-brand-diag rounded-2xl p-8 text-white relative overflow-hidden g-shadow">
-          <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">POPULER</div>
+          <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">TERPOPULER</div>
           <p class="font-bold text-cyan-100 text-sm mb-2">PRO</p>
-          <p class="text-4xl font-extrabold mb-1">Rp 99rb</p>
-          <p class="text-cyan-100 text-sm mb-6">per bulan</p>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="text-4xl font-extrabold">Rp 29rb</span>
+          </div>
+          <p class="text-cyan-100 text-sm mb-1">per bulan · setara <em>1 cup kopi</em></p>
+          <p class="text-white/60 text-xs mb-6">Tanpa kontrak, batal kapanpun</p>
           <ul class="space-y-3 text-sm mb-8">
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Karyawan tidak terbatas</li>
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Semua fitur Gratis</li>
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Koreksi absensi oleh admin</li>
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Notifikasi email otomatis</li>
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Export Excel &amp; laporan</li>
-            <li class="flex gap-2"><span class="text-white/80">✓</span> Prioritas support</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Karyawan tidak terbatas</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Semua fitur Gratis</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Koreksi absensi oleh admin</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Notifikasi email otomatis</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Export Excel &amp; laporan lanjutan</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Prioritas support via WhatsApp</li>
           </ul>
-          <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Pro" target="_blank"
+          <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Pro%20Rp%2029rb" target="_blank"
              class="block text-center bg-white text-sky-700 font-bold py-3 rounded-xl hover:bg-sky-50 transition-colors">
-            Mulai Pro
+            Mulai Pro — Rp 29rb/bulan
           </a>
         </div>
 
       </div>
+      <p class="text-center text-sm text-gray-400 mt-8">
+        Ada pertanyaan soal harga?
+        <a href="https://wa.me/6281220060169" target="_blank" class="text-brand-600 font-semibold hover:underline">Chat kami di WhatsApp</a>
+        — biasanya balas dalam hitungan menit.
+      </p>
     </div>
   </section>
 
   <!-- CTA -->
   <section class="py-24 px-4 g-brand">
     <div class="max-w-3xl mx-auto text-center text-white">
-      <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">Siap kelola absensi lebih mudah?</h2>
-      <p class="text-cyan-100 text-lg mb-8">Bergabung dengan ratusan UMKM yang sudah pakai Donkap.</p>
+      <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">Cukup rekap manualnya.<br class="hidden sm:block"/>Mulai pakai yang lebih simpel.</h2>
+      <p class="text-cyan-100 text-lg mb-8">Daftar sekarang gratis — tidak perlu kartu kredit, tidak perlu tim IT.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="https://www.donkap.space" class="bg-white text-sky-700 font-bold px-8 py-3.5 rounded-xl hover:bg-sky-50 transition-colors">
+        <a href="https://www.donkap.space"
+           class="bg-white text-sky-700 font-bold px-8 py-3.5 rounded-xl hover:bg-sky-50 transition-colors shadow-lg">
           Daftar Sekarang — Gratis
         </a>
-        <a href="#demo" class="border border-white/40 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">
-          Lihat Demo
+        <a href="#demo"
+           class="border-2 border-white/70 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/10 transition-colors">
+          Lihat Demo Dulu
         </a>
       </div>
       <p class="text-cyan-100 text-sm mt-6">
         Setelah daftar, konfirmasi via WhatsApp untuk aktivasi lebih cepat →
-        <a href="https://wa.me/6281220060169?text=Halo%20Donkap%2C%20saya%20baru%20daftar%20dan%20ingin%20aktivasi%20akun" target="_blank" class="text-white font-semibold underline">0812-2006-0169</a>
+        <a href="https://wa.me/6281220060169?text=Halo%20Donkap%2C%20saya%20baru%20daftar%20dan%20ingin%20aktivasi%20akun" target="_blank"
+           class="text-white font-semibold underline">0812-2006-0169</a>
       </p>
     </div>
   </section>
@@ -414,15 +551,15 @@
             <img src="https://www.donkap.space/icons/icon-192.png" class="w-7 h-7 rounded-xl" alt="Donkap" />
             <span class="font-extrabold text-white text-lg tracking-tight">Donkap</span>
           </div>
-          <p class="text-sm max-w-xs">Solusi absensi digital untuk UMKM Indonesia yang simpel dan terjangkau.</p>
+          <p class="text-sm max-w-xs leading-relaxed">Solusi absensi digital yang simpel dan terjangkau untuk UMKM Indonesia.</p>
         </div>
         <div class="grid grid-cols-2 gap-8 text-sm">
           <div>
             <p class="text-white font-semibold mb-3">Produk</p>
             <ul class="space-y-2">
-              <li><a href="#fitur" class="hover:text-white transition-colors">Fitur</a></li>
-              <li><a href="#harga" class="hover:text-white transition-colors">Harga</a></li>
-              <li><a href="#demo" class="hover:text-white transition-colors">Demo</a></li>
+              <li><a href="#fitur"      class="hover:text-white transition-colors">Fitur</a></li>
+              <li><a href="#harga"      class="hover:text-white transition-colors">Harga</a></li>
+              <li><a href="#demo"       class="hover:text-white transition-colors">Demo</a></li>
             </ul>
           </div>
           <div>

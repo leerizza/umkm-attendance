@@ -76,14 +76,11 @@
     padding: 0 18px; height: 44px;
     font-size: 13px; font-weight: 600;
     border: none; background: transparent; cursor: pointer;
-    color: var(--text-muted);
-    border-bottom: 2px solid transparent;
+    color: var(--text-muted); border-bottom: 2px solid transparent;
     transition: color .2s, border-color .2s;
-    white-space: nowrap;
-    display: flex; align-items: center; gap: 7px;
-    flex-shrink: 0;
+    white-space: nowrap; display: flex; align-items: center; gap: 7px; flex-shrink: 0;
   }
-  .tab-btn:hover  { color: var(--text); }
+  .tab-btn:hover { color: var(--text); }
   .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
   .tab-pill {
     display: inline-flex; align-items: center; justify-content: center;
@@ -92,10 +89,7 @@
     font-size: 10px; font-weight: 700; line-height: 1;
     animation: pulse-badge 2s ease-in-out infinite;
   }
-  @keyframes pulse-badge {
-    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
-    50%      { box-shadow: 0 0 0 4px rgba(239,68,68,.0); }
-  }
+  @keyframes pulse-badge { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); } 50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); } }
 
   /* ── Buttons ────────────────────────────────────────────────────────────── */
   .btn {
@@ -166,20 +160,16 @@
   .chart-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .chart-container { position: relative; height: 210px; }
 
-  /* ── Company card ───────────────────────────────────────────────────────── */
+  /* ── Company card + table ───────────────────────────────────────────────── */
   .card { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
   .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: #fafbfc; }
   .card-header-left  { display: flex; align-items: center; gap: 10px; }
   .card-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .card-title { font-size: 14px; font-weight: 700; }
-
-  /* ── Search ─────────────────────────────────────────────────────────────── */
   .search-wrap { position: relative; display: flex; align-items: center; }
   .search-wrap input { padding: 6px 12px 6px 30px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; outline: none; width: 170px; background: #fff; color: var(--text); transition: border-color .2s, width .3s; }
   .search-wrap input:focus { border-color: var(--primary); width: 210px; }
   .search-icon { position: absolute; left: 9px; font-size: 13px; pointer-events: none; }
-
-  /* ── Desktop table ──────────────────────────────────────────────────────── */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -191,14 +181,16 @@
   .empty-icon { font-size: 34px; display: block; margin-bottom: 8px; }
   .actions { display: flex; gap: 6px; }
 
+  /* ── Health dot ─────────────────────────────────────────────────────────── */
+  .health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .h-green  { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,.5); }
+  .h-yellow { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,.5); }
+  .h-red    { background: #ef4444; box-shadow: 0 0 5px rgba(239,68,68,.5); }
+  .h-gray   { background: #cbd5e1; }
+
   /* ── Mobile company cards ───────────────────────────────────────────────── */
   .co-cards { display: none; padding: 12px; }
-  .co-card {
-    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-    padding: 14px 16px; margin-bottom: 10px;
-    cursor: pointer; transition: box-shadow .2s, transform .15s;
-    box-shadow: var(--shadow-sm);
-  }
+  .co-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow .2s, transform .15s; box-shadow: var(--shadow-sm); }
   .co-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
   .co-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .co-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
@@ -208,20 +200,13 @@
 
   /* ── Pagination ─────────────────────────────────────────────────────────── */
   .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
-  .page-info  { font-size: 12px; color: var(--text-muted); }
-  .page-btns  { display: flex; gap: 4px; align-items: center; }
-  .page-btn {
-    min-width: 32px; height: 32px; padding: 0 6px;
-    border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; cursor: pointer;
-    font-size: 13px; font-weight: 600; color: var(--text);
-    transition: all .15s; line-height: 1;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
+  .page-info { font-size: 12px; color: var(--text-muted); }
+  .page-btns { display: flex; gap: 4px; align-items: center; }
+  .page-btn { min-width: 32px; height: 32px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text); transition: all .15s; display: inline-flex; align-items: center; justify-content: center; }
   .page-btn:hover:not(:disabled) { background: #f1f5f9; }
   .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
   .page-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .page-ellipsis { padding: 0 4px; color: var(--text-muted); font-size: 13px; line-height: 32px; }
+  .page-ellipsis { padding: 0 4px; color: var(--text-muted); font-size: 13px; }
 
   /* ── Badges ─────────────────────────────────────────────────────────────── */
   .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
@@ -244,7 +229,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinning { display: inline-block; animation: spin .8s linear infinite; }
 
-  /* ── Modal ──────────────────────────────────────────────────────────────── */
+  /* ── User detail modal ──────────────────────────────────────────────────── */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 400; display: flex; align-items: flex-start; justify-content: flex-end; opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; backdrop-filter: blur(3px); }
   .modal-backdrop.open { opacity: 1; visibility: visible; }
   .modal-panel { background: var(--card); width: 380px; max-width: 100%; height: 100vh; overflow-y: auto; box-shadow: var(--shadow-lg); transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); }
@@ -263,8 +248,31 @@
   .user-avatar.admin    { background: var(--primary-dim); color: var(--primary); }
   .user-avatar.employee { background: var(--success-dim); color: var(--success); }
   .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-meta { font-size: 11px; color: var(--text-muted); }
+  .user-name  { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-email { font-size: 11px; color: var(--primary); margin: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-meta  { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Confirm dialog ─────────────────────────────────────────────────────── */
+  .confirm-bg {
+    position: fixed; inset: 0; background: rgba(15,23,42,.5);
+    z-index: 500; display: flex; align-items: center; justify-content: center;
+    padding: 16px; opacity: 0; visibility: hidden;
+    transition: opacity .2s, visibility .2s; backdrop-filter: blur(4px);
+  }
+  .confirm-bg.open { opacity: 1; visibility: visible; }
+  .confirm-box {
+    background: var(--card); border-radius: var(--radius-lg);
+    padding: 28px 24px 24px; max-width: 360px; width: 100%;
+    box-shadow: var(--shadow-lg);
+    transform: scale(.95); transition: transform .2s;
+    text-align: center;
+  }
+  .confirm-bg.open .confirm-box { transform: scale(1); }
+  .confirm-ico   { font-size: 38px; margin-bottom: 12px; }
+  .confirm-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+  .confirm-msg   { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 22px; }
+  .confirm-btns  { display: flex; gap: 8px; justify-content: center; }
+  .confirm-btns .btn { min-width: 110px; justify-content: center; }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */
   @media (max-width: 960px) {
@@ -279,8 +287,8 @@
     .co-cards   { display: block; }
     .card-header { flex-direction: column; align-items: flex-start; }
     .card-header-right { width: 100%; }
-    .search-wrap input { width: 100%; flex: 1; }
     .search-wrap { flex: 1; }
+    .search-wrap input { width: 100%; }
     .modal-backdrop { align-items: flex-end; justify-content: center; }
     .modal-panel { width: 100%; height: 80vh; border-radius: 20px 20px 0 0; transform: translateY(100%); }
     .modal-backdrop.open .modal-panel { transform: translateY(0); }
@@ -307,11 +315,11 @@
   </div>
 </div>
 
-<!-- Tab bar (hidden until auth) -->
+<!-- Tab bar -->
 <div class="tab-bar" id="tab-bar" style="display:none">
-  <button class="tab-btn active" data-tab="overview"   onclick="switchTab('overview')">📊 Ringkasan</button>
-  <button class="tab-btn"        data-tab="analytics"  onclick="switchTab('analytics')">📡 Analitik</button>
-  <button class="tab-btn"        data-tab="companies"  onclick="switchTab('companies')">
+  <button class="tab-btn active" data-tab="overview"  onclick="switchTab('overview')">📊 Ringkasan</button>
+  <button class="tab-btn"        data-tab="analytics" onclick="switchTab('analytics')">📡 Analitik</button>
+  <button class="tab-btn"        data-tab="companies" onclick="switchTab('companies')">
     🏢 Perusahaan
     <span id="tab-pending-pill" class="tab-pill" style="display:none">0</span>
   </button>
@@ -332,7 +340,7 @@
 <!-- Dashboard -->
 <main id="dashboard" style="display:none">
 
-  <!-- ── Tab: Overview ── -->
+  <!-- Tab: Ringkasan -->
   <div class="tab-content active" id="tab-overview">
     <div class="section-hd">
       <span class="section-title">📊 Ringkasan</span>
@@ -379,9 +387,9 @@
     </div>
   </div>
 
-  <!-- ── Tab: Analytics ── -->
+  <!-- Tab: Analitik -->
   <div class="tab-content" id="tab-analytics">
-    <div class="section-hd" style="margin-top:0">
+    <div class="section-hd">
       <span class="section-title">📡 Analitik Penggunaan</span>
     </div>
     <div class="analytics-grid">
@@ -426,7 +434,7 @@
     </div>
   </div>
 
-  <!-- ── Tab: Companies ── -->
+  <!-- Tab: Perusahaan -->
   <div class="tab-content" id="tab-companies">
     <div class="card">
       <div class="card-header">
@@ -471,11 +479,19 @@
       <!-- Pagination -->
       <div class="pagination" id="pagination"></div>
     </div>
+
+    <!-- Health legend -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 2px 12px;font-size:12px;color:var(--text-muted)">
+      <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-green"></span> Absensi ≤ 7 hari lalu</span>
+      <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-yellow"></span> 8–30 hari tidak ada absensi</span>
+      <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-red"></span> Tidak aktif &gt; 30 hari / belum absensi</span>
+      <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-gray"></span> Pending approval</span>
+    </div>
   </div>
 
 </main>
 
-<!-- User detail modal -->
+<!-- User detail modal (side drawer) -->
 <div class="modal-backdrop" id="modal" onclick="handleBackdropClick(event)">
   <div class="modal-panel">
     <div class="modal-header">
@@ -491,9 +507,22 @@
   </div>
 </div>
 
+<!-- Confirmation dialog -->
+<div class="confirm-bg" id="confirm-bg" onclick="handleConfirmBackdrop(event)">
+  <div class="confirm-box" id="confirm-box">
+    <div class="confirm-ico"   id="confirm-ico">⚠️</div>
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-msg"   id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Batal</button>
+      <button class="btn" id="confirm-ok" onclick="runConfirm()"></button>
+    </div>
+  </div>
+</div>
+
 <script>
-  const API      = "https://umkm-attendance-production.up.railway.app";
-  const LS       = "sa_key";
+  const API       = "https://umkm-attendance-production.up.railway.app";
+  const LS        = "sa_key";
   const PAGE_SIZE = 10;
 
   let currentKey   = "";
@@ -505,13 +534,16 @@
   let lastUpdated  = null;
   let autoTimer    = null;
   let busy         = false;
+  let pendingAction = null;
 
   // ── Init ───────────────────────────────────────────────────────────────────
   window.addEventListener("DOMContentLoaded", () => {
     const saved = localStorage.getItem(LS) || "";
     if (saved) { document.getElementById("keyInput").value = saved; applyKey(saved); }
   });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { closeModal(); closeConfirm(); }
+  });
 
   // ── Auth + load ────────────────────────────────────────────────────────────
   async function applyKey(k) {
@@ -615,23 +647,15 @@
 
   // ── Render analytics ───────────────────────────────────────────────────────
   function renderAnalytics(a) {
-    set("a-pv-today",  a.page_views.today);
-    set("a-pv-7d",     a.page_views.last_7d);
-    set("a-pv-30d",    a.page_views.last_30d);
-    set("a-pv-total",  a.page_views.total);
+    set("a-pv-today",  a.page_views.today);    set("a-pv-7d",     a.page_views.last_7d);
+    set("a-pv-30d",    a.page_views.last_30d); set("a-pv-total",  a.page_views.total);
     set("a-pv-demo",   a.page_views.demo);
-    set("a-dl-today",  a.demo_logins.today);
-    set("a-dl-7d",     a.demo_logins.last_7d);
-    set("a-dl-30d",    a.demo_logins.last_30d);
-    set("a-dl-total",  a.demo_logins.total);
-    set("a-rc-today",  a.registrations.company.today);
-    set("a-rc-7d",     a.registrations.company.last_7d);
-    set("a-rc-30d",    a.registrations.company.last_30d);
-    set("a-rc-total",  a.registrations.company.total);
-    set("a-re-today",  a.registrations.employee.today);
-    set("a-re-7d",     a.registrations.employee.last_7d);
-    set("a-re-30d",    a.registrations.employee.last_30d);
-    set("a-re-total",  a.registrations.employee.total);
+    set("a-dl-today",  a.demo_logins.today);   set("a-dl-7d",     a.demo_logins.last_7d);
+    set("a-dl-30d",    a.demo_logins.last_30d);set("a-dl-total",  a.demo_logins.total);
+    set("a-rc-today",  a.registrations.company.today);  set("a-rc-7d",  a.registrations.company.last_7d);
+    set("a-rc-30d",    a.registrations.company.last_30d);set("a-rc-total",a.registrations.company.total);
+    set("a-re-today",  a.registrations.employee.today); set("a-re-7d",  a.registrations.employee.last_7d);
+    set("a-re-30d",    a.registrations.employee.last_30d);set("a-re-total",a.registrations.employee.total);
   }
 
   // ── Trend chart ────────────────────────────────────────────────────────────
@@ -647,15 +671,9 @@
       data: {
         labels,
         datasets: [
-          { label: "Kunjungan", data: data.map(d => d.page_views),
-            borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,.08)",
-            fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#6366f1" },
-          { label: "Login Demo", data: data.map(d => d.demo_logins),
-            borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)",
-            fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#10b981" },
-          { label: "Registrasi", data: data.map(d => d.registrations),
-            borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,.08)",
-            fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#f59e0b" },
+          { label: "Kunjungan", data: data.map(d => d.page_views),    borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#6366f1" },
+          { label: "Login Demo",data: data.map(d => d.demo_logins),   borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#10b981" },
+          { label: "Registrasi",data: data.map(d => d.registrations), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#f59e0b" },
         ],
       },
       options: {
@@ -671,6 +689,16 @@
         },
       },
     });
+  }
+
+  // ── Health indicator ───────────────────────────────────────────────────────
+  function healthInfo(c) {
+    if (!c.is_approved) return { cls: "h-gray", title: "Belum disetujui" };
+    if (!c.last_activity) return { cls: "h-red", title: "Belum ada absensi sama sekali" };
+    const days = Math.floor((Date.now() - new Date(c.last_activity + "T12:00:00Z")) / 86_400_000);
+    if (days <= 7)  return { cls: "h-green",  title: days === 0 ? "Absensi hari ini" : `Absensi ${days} hari lalu` };
+    if (days <= 30) return { cls: "h-yellow", title: `Terakhir absensi ${days} hari lalu` };
+    return               { cls: "h-red",    title: `Tidak aktif ${days} hari` };
   }
 
   // ── Table + cards + pagination ─────────────────────────────────────────────
@@ -705,35 +733,36 @@
     const start    = (currentPage - 1) * PAGE_SIZE;
     const pageData = filtered.slice(start, start + PAGE_SIZE);
 
-    // Desktop table
     const tbody = document.getElementById("company-tbody");
-    if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</td></tr>`;
-    } else {
-      tbody.innerHTML = pageData.map(tableRow).join("");
-    }
+    tbody.innerHTML = pageData.length
+      ? pageData.map(tableRow).join("")
+      : `<tr><td colspan="6" class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</td></tr>`;
 
-    // Mobile cards
     const cardsEl = document.getElementById("co-cards");
-    if (!pageData.length) {
-      cardsEl.innerHTML = `<div class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</div>`;
-    } else {
-      cardsEl.innerHTML = pageData.map(mobileCard).join("");
-    }
+    cardsEl.innerHTML = pageData.length
+      ? pageData.map(mobileCard).join("")
+      : `<div class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</div>`;
 
     renderPagination(filtered.length, totalPages);
   }
 
   function tableRow(c) {
+    const hlt  = healthInfo(c);
+    const badge = c.is_approved
+      ? `<span class="badge badge-green">✓ Aktif</span>`
+      : `<span class="badge badge-orange">⏳ Pending</span>`;
     return `
       <tr class="tr-click" id="row-${c.id}" onclick="openModal('${c.id}')">
         <td style="font-weight:600">${esc(c.name)}</td>
         <td><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">${esc(c.code)}</code></td>
         <td><span style="font-weight:600">${c.user_count}</span></td>
         <td style="color:var(--text-muted);font-size:13px">${fmtDate(c.created_at)}</td>
-        <td>${c.is_approved
-          ? `<span class="badge badge-green">✓ Aktif</span>`
-          : `<span class="badge badge-orange">⏳ Pending</span>`}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>
+            ${badge}
+          </div>
+        </td>
         <td onclick="event.stopPropagation()">
           <div class="actions">
             ${!c.is_approved ? `<button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>` : ""}
@@ -746,6 +775,10 @@
   }
 
   function mobileCard(c) {
+    const hlt  = healthInfo(c);
+    const badge = c.is_approved
+      ? `<span class="badge badge-green">✓ Aktif</span>`
+      : `<span class="badge badge-orange">⏳ Pending</span>`;
     return `
       <div class="co-card" onclick="openModal('${c.id}')">
         <div class="co-card-top">
@@ -753,13 +786,15 @@
             <div class="co-name">${esc(c.name)}</div>
             <span class="co-code">${esc(c.code)}</span>
           </div>
-          ${c.is_approved
-            ? `<span class="badge badge-green">✓ Aktif</span>`
-            : `<span class="badge badge-orange">⏳ Pending</span>`}
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>
+            ${badge}
+          </div>
         </div>
         <div class="co-meta">
           <span>👥 ${c.user_count} user</span>
           <span>📅 ${fmtDate(c.created_at)}</span>
+          <span title="${hlt.title}" style="color:${hlt.cls==='h-green'?'#15803d':hlt.cls==='h-yellow'?'#92400e':'#dc2626'}">${hlt.title}</span>
         </div>
         <div class="co-actions" onclick="event.stopPropagation()">
           ${!c.is_approved ? `<button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>` : ""}
@@ -773,20 +808,17 @@
   function renderPagination(total, totalPages) {
     const pag = document.getElementById("pagination");
     if (total === 0 || totalPages <= 1) { pag.innerHTML = ""; return; }
-
     const start = (currentPage - 1) * PAGE_SIZE + 1;
     const end   = Math.min(currentPage * PAGE_SIZE, total);
-
-    let pages = ""; let last = 0;
+    let pages = "", last = 0;
     for (let i = 1; i <= totalPages; i++) {
       const show = i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1;
       if (show) {
         if (last > 0 && i - last > 1) pages += `<span class="page-ellipsis">…</span>`;
-        pages += `<button class="page-btn${i === currentPage ? " active" : ""}" onclick="goToPage(${i})">${i}</button>`;
+        pages += `<button class="page-btn${i===currentPage?" active":""}" onclick="goToPage(${i})">${i}</button>`;
         last = i;
       }
     }
-
     pag.innerHTML = `
       <span class="page-info">Menampilkan ${start}–${end} dari ${total}</span>
       <div class="page-btns">
@@ -795,16 +827,40 @@
         <button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?"disabled":""}>›</button>
       </div>`;
   }
-
   function goToPage(n) {
     const total = Math.max(1, Math.ceil(getFiltered().length / PAGE_SIZE));
     if (n < 1 || n > total) return;
-    currentPage = n;
-    renderTable();
+    currentPage = n; renderTable();
   }
 
-  // ── Approve / reject ───────────────────────────────────────────────────────
-  async function decide(id, approved) {
+  // ── Confirmation dialog ────────────────────────────────────────────────────
+  function decide(id, approved) {
+    const co   = allCompanies.find(c => c.id === id);
+    const name = co?.name || id;
+    const ico  = approved ? "✅" : "⚠️";
+    const title = approved ? `Setujui "${name}"?` : `Tolak / Nonaktifkan "${name}"?`;
+    const msg   = approved
+      ? "Email konfirmasi akan otomatis dikirim ke owner perusahaan."
+      : "Perusahaan tidak bisa login sampai disetujui kembali.";
+    const label = approved ? "Ya, Setujui" : "Ya, Tolak";
+    const cls   = approved ? "btn-success" : "btn-danger";
+
+    document.getElementById("confirm-ico").textContent   = ico;
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-msg").textContent   = msg;
+    const okBtn = document.getElementById("confirm-ok");
+    okBtn.textContent = label;
+    okBtn.className   = `btn ${cls}`;
+
+    pendingAction = () => _doDecide(id, approved);
+    document.getElementById("confirm-bg").classList.add("open");
+  }
+
+  function runConfirm()  { closeConfirm(); if (pendingAction) { pendingAction(); pendingAction = null; } }
+  function closeConfirm(){ document.getElementById("confirm-bg").classList.remove("open"); pendingAction = null; }
+  function handleConfirmBackdrop(e) { if (e.target === document.getElementById("confirm-bg")) closeConfirm(); }
+
+  async function _doDecide(id, approved) {
     const row = document.getElementById(`row-${id}`);
     row?.querySelectorAll("button").forEach(b => b.disabled = true);
     try {
@@ -845,50 +901,47 @@
         `<div style="text-align:center;color:var(--text-muted);padding:40px">Belum ada pengguna.</div>`;
       return;
     }
-
     const admins = users.filter(u => u.role === "admin");
     const emps   = users.filter(u => u.role === "employee");
     let html = "";
-    if (admins.length) {
-      html += `<p class="modal-section-label">Owner / Admin</p>` + admins.map(userCard).join("");
-    }
-    if (emps.length) {
-      html += `<p class="modal-section-label">Karyawan (${emps.length})</p>` + emps.map(userCard).join("");
-    }
+    if (admins.length) html += `<p class="modal-section-label">Owner / Admin</p>` + admins.map(userCard).join("");
+    if (emps.length)   html += `<p class="modal-section-label">Karyawan (${emps.length})</p>` + emps.map(userCard).join("");
     document.getElementById("modal-body").innerHTML = html;
   }
 
   function userCard(u) {
     const init   = (u.full_name || "?")[0].toUpperCase();
     const active = u.is_active !== false;
+    const pos    = u.position ? `<span>${esc(u.position)} · </span>` : "";
+    const email  = u.email
+      ? `<div class="user-email"><a href="mailto:${esc(u.email)}" onclick="event.stopPropagation()"
+             style="color:inherit;text-decoration:none">${esc(u.email)}</a></div>`
+      : "";
     return `
       <div class="user-item">
         <div class="user-avatar ${u.role === "admin" ? "admin" : "employee"}">${init}</div>
         <div class="user-info">
           <div class="user-name">${esc(u.full_name || "—")}</div>
-          <div class="user-meta">${u.position ? esc(u.position) + " · " : ""}${fmtDate(u.created_at)}</div>
+          ${email}
+          <div class="user-meta">${pos}${fmtDate(u.created_at)}</div>
         </div>
         <span class="badge ${active ? "badge-green" : "badge-red"}">${active ? "Aktif" : "Nonaktif"}</span>
       </div>`;
   }
 
-  function closeModal() {
-    document.getElementById("modal").classList.remove("open");
-    document.body.style.overflow = "";
-  }
-  function handleBackdropClick(e) {
-    if (e.target === document.getElementById("modal")) closeModal();
-  }
+  function closeModal() { document.getElementById("modal").classList.remove("open"); document.body.style.overflow = ""; }
+  function handleBackdropClick(e) { if (e.target === document.getElementById("modal")) closeModal(); }
 
   // ── Export CSV ─────────────────────────────────────────────────────────────
   function exportCSV() {
     if (!allCompanies.length) { showMsg("Tidak ada data.", "error"); return; }
     const rows = [
-      ["Nama", "Kode", "Jumlah User", "Tanggal Daftar", "Status"],
+      ["Nama", "Kode", "Jumlah User", "Tanggal Daftar", "Status", "Terakhir Absensi"],
       ...allCompanies.map(c => [
         c.name, c.code, c.user_count,
         new Date(c.created_at).toLocaleDateString("id-ID"),
         c.is_approved ? "Aktif" : "Pending",
+        c.last_activity || "—",
       ]),
     ];
     const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");

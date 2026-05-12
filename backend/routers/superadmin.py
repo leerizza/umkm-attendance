@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Header
@@ -63,14 +64,33 @@ async def list_all_companies():
         .execute()
     )
     data = res.data or []
+
+    # Bulk user counts — single query instead of N queries
+    profiles_res = supabase.table("profiles").select("company_id").execute()
+    user_counts: dict = {}
+    for p in (profiles_res.data or []):
+        cid = p.get("company_id")
+        if cid:
+            user_counts[cid] = user_counts.get(cid, 0) + 1
+
+    # Last attendance date per company (last 90 days)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).date().isoformat()
+    att_res = (
+        supabase.table("attendance")
+        .select("company_id, date")
+        .gte("date", cutoff)
+        .execute()
+    )
+    last_activity: dict = {}
+    for row in (att_res.data or []):
+        cid, d = row.get("company_id"), row.get("date")
+        if cid and d and (cid not in last_activity or d > last_activity[cid]):
+            last_activity[cid] = d
+
     for company in data:
-        p = (
-            supabase.table("profiles")
-            .select("id, full_name, is_active")
-            .eq("company_id", company["id"])
-            .execute()
-        )
-        company["user_count"] = len(p.data or [])
+        company["user_count"]    = user_counts.get(company["id"], 0)
+        company["last_activity"] = last_activity.get(company["id"])
+
     return {"data": data, "total": len(data)}
 
 
@@ -202,7 +222,7 @@ async def get_analytics_trend():
 
 @router.get("/companies/{company_id}/users", dependencies=[Depends(require_superadmin)])
 async def get_company_users(company_id: str):
-    """List all profiles for a given company."""
+    """List all profiles for a given company, including auth email."""
     res = (
         supabase.table("profiles")
         .select("id, full_name, role, position, is_active, created_at")
@@ -210,4 +230,15 @@ async def get_company_users(company_id: str):
         .order("role")
         .execute()
     )
-    return {"data": res.data or []}
+    users = res.data or []
+
+    if users:
+        from utils.auth import _get_auth_email
+        emails = await asyncio.gather(
+            *[_get_auth_email(u["id"]) for u in users],
+            return_exceptions=True,
+        )
+        for u, email in zip(users, emails):
+            u["email"] = email if isinstance(email, str) else None
+
+    return {"data": users}

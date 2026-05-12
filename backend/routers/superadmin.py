@@ -139,6 +139,16 @@ async def approve_company(company_id: str, approved: bool = True):
     except Exception as e:
         _log.error("Failed to send approval email: %s", e)
 
+    try:
+        supabase.table("audit_log").insert({
+            "action": "approve" if approved else "reject",
+            "entity_type": "company",
+            "entity_id": company_id,
+            "entity_name": company.data["name"],
+        }).execute()
+    except Exception as e:
+        _log.error("Failed to write audit log: %s", e)
+
     status = "approved" if approved else "rejected"
     return {"message": f"Company {status}", "company_id": company_id}
 
@@ -218,6 +228,18 @@ async def get_analytics_trend():
             "registrations": sum(1 for e in events if e["event_type"] in ("register_company", "register_employee") and e["created_at"][:10] == iso),
         })
     return {"data": result}
+
+
+@router.get("/audit-log", dependencies=[Depends(require_superadmin)])
+async def get_audit_log():
+    res = (
+        supabase.table("audit_log")
+        .select("id, action, entity_type, entity_name, created_at")
+        .order("created_at", desc=True)
+        .limit(100)
+        .execute()
+    )
+    return {"data": res.data or []}
 
 
 @router.get("/companies/{company_id}/users", dependencies=[Depends(require_superadmin)])

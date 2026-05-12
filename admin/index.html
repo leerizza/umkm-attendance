@@ -332,6 +332,35 @@
     .stat-value { font-size: 22px; }
     .filter-tab { padding: 3px 7px; font-size: 11px; }
   }
+
+  /* ── Conversion funnel ──────────────────────────────────────────────────── */
+  .funnel-wrap { padding: 4px 0; }
+  .funnel-row { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
+  .funnel-meta { width: 160px; flex-shrink: 0; }
+  .funnel-name { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .funnel-num  { font-size: 24px; font-weight: 800; line-height: 1.1; }
+  .funnel-track { flex: 1; height: 32px; background: #f1f5f9; border-radius: 8px; overflow: hidden; }
+  .funnel-fill  { height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 10px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+  .funnel-fill-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); white-space: nowrap; }
+  .funnel-connector { display: flex; align-items: center; gap: 16px; padding: 3px 0; }
+  .funnel-connector-left { width: 160px; flex-shrink: 0; display: flex; justify-content: center; }
+  .funnel-connector-body { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .funnel-conv-badge { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  @media (max-width: 640px) { .funnel-meta { width: 110px; } .funnel-connector-left { width: 110px; } }
+
+  /* ── Monthly chart ──────────────────────────────────────────────────────── */
+  .monthly-card { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 20px 20px 16px; box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+
+  /* ── Log timeline ───────────────────────────────────────────────────────── */
+  .log-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-light); }
+  .log-item:last-child { border-bottom: none; }
+  .log-ico { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .log-ico-approve { background: var(--success-dim); }
+  .log-ico-reject  { background: var(--danger-dim); }
+  .log-body   { flex: 1; min-width: 0; }
+  .log-action { font-size: 13px; font-weight: 600; }
+  .log-time   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .log-empty  { text-align: center; color: var(--text-muted); padding: 40px 16px; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -355,6 +384,7 @@
     🏢 Perusahaan
     <span id="tab-pending-pill" class="tab-pill" style="display:none">0</span>
   </button>
+  <button class="tab-btn"        data-tab="log"       onclick="switchTab('log')">📋 Log Aktivitas</button>
 </div>
 
 <div style="max-width:1140px;margin:0 auto;padding:0 16px">
@@ -526,6 +556,29 @@
       </div>
       <div class="chart-container"><canvas id="trend-chart"></canvas></div>
     </div>
+
+    <!-- Conversion funnel -->
+    <div class="chart-card">
+      <div class="chart-header" style="margin-bottom:16px">
+        <div>
+          <div class="chart-title">Funnel Konversi</div>
+          <div class="chart-subtitle">Dari kunjungan landing page hingga pendaftaran perusahaan (all-time)</div>
+        </div>
+      </div>
+      <div id="funnel-container"></div>
+    </div>
+
+    <!-- Monthly growth chart -->
+    <div class="monthly-card">
+      <div class="chart-header" style="margin-bottom:16px">
+        <div>
+          <div class="chart-title">Pertumbuhan Perusahaan Bulanan</div>
+          <div class="chart-subtitle">Jumlah perusahaan baru per bulan (12 bulan terakhir)</div>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="monthly-chart"></canvas></div>
+    </div>
+
   </div>
 
   <!-- ── Tab: Perusahaan ── -->
@@ -572,6 +625,22 @@
     </div>
   </div>
 
+  <!-- ── Tab: Log Aktivitas ── -->
+  <div class="tab-content" id="tab-log">
+    <div class="section-hd">
+      <span class="section-title">📋 Log Aktivitas</span>
+      <div class="section-actions">
+        <span class="last-updated" id="log-updated"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadLogTab()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="log-list">
+        <div class="log-empty">⏳ Memuat log…</div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- User detail modal -->
@@ -615,6 +684,9 @@
   let currentPage  = 1;
   let trendChart   = null;
   let sparkChart   = null;
+  let monthlyChart = null;
+  let auditLog     = [];
+  let logLoaded    = false;
   let lastUpdated  = null;
   let autoTimer    = null;
   let busy         = false;
@@ -657,11 +729,13 @@
     if (analytics) {
       renderAnalytics(analytics);
       renderTodayStrip(analytics);
+      renderFunnel(analytics);
     }
     if (trend) {
       renderTrend(trend);
       renderSparkline(trend);
     }
+    renderMonthlyChart();
     refreshOverview();
 
     lastUpdated = new Date();
@@ -676,6 +750,7 @@
     document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
     document.getElementById(`tab-${name}`).classList.add("active");
     document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add("active");
+    if (name === "log" && !logLoaded) loadLogTab();
   }
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -1103,10 +1178,141 @@
     showMsg("File CSV berhasil diunduh.", "info");
   }
 
+  // ── Conversion funnel ──────────────────────────────────────────────────────
+  function renderFunnel(analytics) {
+    const pv  = analytics.page_views.total || 0;
+    const dl  = analytics.demo_logins.total || 0;
+    const reg = analytics.registrations.company.total || 0;
+    const max = pv || 1;
+    const rows = [
+      { name: "👁️ Kunjungan",        val: pv,  color: "#6366f1" },
+      { name: "🎮 Login Demo",        val: dl,  color: "#10b981" },
+      { name: "🏪 Daftar Perusahaan", val: reg, color: "#f59e0b" },
+    ];
+    const connectors = [
+      { pct: pv  ? (dl  / pv  * 100).toFixed(1) : "0.0", label: "lanjut ke demo",        bg: "#dcfce7", tc: "#15803d" },
+      { pct: dl  ? (reg / dl  * 100).toFixed(1) : "0.0", label: "daftar setelah demo",    bg: "#fef9c3", tc: "#92400e" },
+    ];
+    const el = document.getElementById("funnel-container");
+    if (!el) return;
+    let html = `<div class="funnel-wrap">`;
+    rows.forEach((r, i) => {
+      const w = Math.max(3, Math.round((r.val / max) * 100));
+      html += `
+        <div class="funnel-row">
+          <div class="funnel-meta">
+            <div class="funnel-name">${r.name}</div>
+            <div class="funnel-num">${r.val.toLocaleString("id-ID")}</div>
+          </div>
+          <div class="funnel-track">
+            <div class="funnel-fill" style="width:${w}%;background:${r.color}">
+              <span class="funnel-fill-label">${w > 18 ? r.val.toLocaleString("id-ID") : ""}</span>
+            </div>
+          </div>
+        </div>`;
+      if (i < connectors.length) {
+        const c = connectors[i];
+        html += `
+        <div class="funnel-connector">
+          <div class="funnel-connector-left"><span style="color:var(--text-muted);font-size:18px">↓</span></div>
+          <div class="funnel-connector-body">
+            <span class="funnel-conv-badge" style="background:${c.bg};color:${c.tc}">${c.pct}%</span>
+            ${c.label}
+          </div>
+        </div>`;
+      }
+    });
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+
+  // ── Monthly growth chart ───────────────────────────────────────────────────
+  function renderMonthlyChart() {
+    const now    = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key:   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`,
+        label: d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" }),
+        isCurrent: i === 0,
+      });
+    }
+    const counts = months.map(m => allCompanies.filter(c => c.created_at?.slice(0,7) === m.key).length);
+    const ctx = document.getElementById("monthly-chart")?.getContext("2d");
+    if (!ctx) return;
+    if (monthlyChart) monthlyChart.destroy();
+    monthlyChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: months.map(m => m.label),
+        datasets: [{
+          label: "Perusahaan Baru",
+          data: counts,
+          backgroundColor: months.map(m => m.isCurrent ? "#6366f1" : "rgba(99,102,241,.55)"),
+          borderColor:     months.map(m => m.isCurrent ? "#4f46e5" : "#6366f1"),
+          borderWidth: 1, borderRadius: 5,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor:"#1e293b", titleColor:"#e2e8f0", bodyColor:"#cbd5e1", cornerRadius:8, padding:10 },
+        },
+        scales: {
+          y: { beginAtZero:true, ticks:{stepSize:1,precision:0,font:{size:11}}, grid:{color:"#f1f5f9"} },
+          x: { ticks:{font:{size:11}}, grid:{display:false} },
+        },
+      },
+    });
+  }
+
+  // ── Audit log ──────────────────────────────────────────────────────────────
+  async function fetchAuditLog() {
+    try {
+      const r = await fetch(`${API}/superadmin/audit-log`, { headers: h() });
+      if (!r.ok) return [];
+      return (await r.json()).data || [];
+    } catch { return []; }
+  }
+
+  async function loadLogTab() {
+    const el = document.getElementById("log-list");
+    if (!el) return;
+    el.innerHTML = `<div class="log-empty">⏳ Memuat…</div>`;
+    auditLog  = await fetchAuditLog();
+    logLoaded = true;
+    renderLogList();
+    const upd = document.getElementById("log-updated");
+    if (upd) upd.textContent = "Baru diperbarui";
+  }
+
+  function renderLogList() {
+    const el = document.getElementById("log-list");
+    if (!el) return;
+    if (!auditLog.length) {
+      el.innerHTML = `<div class="log-empty">📭 Belum ada aktivitas tercatat.<br><span style="font-size:12px;margin-top:6px;display:block">Log akan muncul setelah ada approve / reject perusahaan.</span></div>`;
+      return;
+    }
+    el.innerHTML = auditLog.map(entry => {
+      const isApprove = entry.action === "approve";
+      return `
+        <div class="log-item">
+          <div class="log-ico ${isApprove ? "log-ico-approve" : "log-ico-reject"}">${isApprove ? "✅" : "❌"}</div>
+          <div class="log-body">
+            <div class="log-action">${isApprove ? "Disetujui" : "Ditolak"}: <strong>${esc(entry.entity_name || entry.entity_id || "—")}</strong></div>
+            <div class="log-time">${fmtDatetime(entry.created_at)}</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   function set(id,val) { const el=document.getElementById(id); if(el) el.textContent=val??"—"; }
   function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function fmtDate(iso) { if(!iso) return "—"; return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}); }
+  function fmtDatetime(iso) { if(!iso) return "—"; return new Date(iso).toLocaleString("id-ID",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
   function setSpin(on) {
     const icon=document.getElementById("refresh-icon"), btn=document.getElementById("refresh-btn");
     if(icon) icon.className=on?"spinning":""; if(btn) btn.disabled=on;

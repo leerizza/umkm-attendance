@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { authApi } from "@/lib/api";
+import { authApi, demoApi } from "@/lib/api";
 import { getInitials, getErrMsg } from "@/lib/utils";
 import { IS_DEMO } from "@/lib/demo";
 import {
@@ -319,7 +319,7 @@ export default function ProfilePage() {
         )}
 
         {/* Logout */}
-        <Button variant="destructive" size="lg" className="w-full" onClick={logout}>
+        <Button variant="destructive" size="lg" className="w-full" onClick={() => { if (IS_DEMO) demoApi.reset().catch(() => {}); logout(); }}>
           <LogOut className="h-4 w-4" />
           Keluar
         </Button>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "@/components/ui/toast";
-import { authApi } from "@/lib/api";
+import { authApi, demoApi } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
@@ -122,7 +122,10 @@ export default function LoginPage() {
 
       setAuth(access_token, { ...profile, email: loginForm.email });
       setLoginAttempts(0);
-      if (IS_DEMO) trackEvent("demo_login");
+      if (IS_DEMO) {
+        trackEvent("demo_login");
+        demoApi.reset().catch(() => {}); // fire-and-forget, wipe today's activity
+      }
       toast.success("Selamat datang!", `Halo, ${profile.full_name}`);
       navigate("/");
     } catch (err: any) {

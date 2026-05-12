@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { IS_DEMO } from "@/lib/demo";
+import { demoApi } from "@/lib/api";
 
 const EMPLOYEE_NAV = [
   { to: "/",           label: "Dashboard",  Icon: Home },
@@ -17,6 +19,11 @@ const EMPLOYEE_NAV = [
 export function Sidebar() {
   const { profile, logout } = useAuthStore();
   const isAdmin = profile?.role === "admin";
+
+  function handleLogout() {
+    if (IS_DEMO) demoApi.reset().catch(() => {});
+    logout();
+  }
 
   const navItems = [
     ...EMPLOYEE_NAV,
@@ -69,7 +76,7 @@ export function Sidebar() {
             <p className="text-[10px] text-muted-foreground capitalize">{profile?.role}</p>
           </div>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="text-muted-foreground hover:text-destructive transition-colors p-1"
             title="Logout"
           >

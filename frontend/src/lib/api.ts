@@ -179,6 +179,10 @@ export const adminApi = {
     }),
 };
 
+export const demoApi = {
+  reset: () => api.post("/demo/reset"),
+};
+
 export const correctionsApi = {
   create:  (data: { attendance_id: string; requested_clock_in?: string; requested_clock_out?: string; reason: string }) =>
     api.post("/corrections", data),

@@ -65,16 +65,14 @@
   /* ── Tab bar ────────────────────────────────────────────────────────────── */
   .tab-bar {
     background: #fff; border-bottom: 1px solid var(--border);
-    padding: 0 20px;
-    display: flex; gap: 0;
+    padding: 0 20px; display: flex; gap: 0;
     position: sticky; top: 56px; z-index: 150;
     overflow-x: auto; -webkit-overflow-scrolling: touch;
     box-shadow: 0 1px 4px rgba(0,0,0,.05);
   }
   .tab-bar::-webkit-scrollbar { display: none; }
   .tab-btn {
-    padding: 0 18px; height: 44px;
-    font-size: 13px; font-weight: 600;
+    padding: 0 18px; height: 44px; font-size: 13px; font-weight: 600;
     border: none; background: transparent; cursor: pointer;
     color: var(--text-muted); border-bottom: 2px solid transparent;
     transition: color .2s, border-color .2s;
@@ -114,10 +112,8 @@
   #gate h2 { font-size: 20px; font-weight: 800; }
   #gate p  { color: var(--text-muted); font-size: 14px; max-width: 280px; }
 
-  /* ── Main ───────────────────────────────────────────────────────────────── */
   main { max-width: 1140px; margin: 0 auto; padding: 24px 16px 56px; }
 
-  /* ── Tab content ────────────────────────────────────────────────────────── */
   .tab-content { display: none; }
   .tab-content.active { display: block; animation: fadeUp .2s ease; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -129,7 +125,7 @@
   .last-updated { font-size: 11px; color: var(--text-muted); }
 
   /* ── Stat cards ─────────────────────────────────────────────────────────── */
-  .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 28px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
   .stat-card {
     background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
     padding: 16px 16px 16px 20px; box-shadow: var(--shadow-sm);
@@ -144,6 +140,50 @@
   .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat-value { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; }
 
+  /* ── Today strip ────────────────────────────────────────────────────────── */
+  .today-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+  .today-card {
+    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 14px 12px; box-shadow: var(--shadow-sm); text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .today-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--c-accent, var(--primary)); }
+  .today-val   { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; color: var(--c-accent, var(--primary)); }
+  .today-label { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Two-column layout ──────────────────────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  /* ── List card (Perlu Tindakan / Berisiko) ──────────────────────────────── */
+  .list-card { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .list-card-hd { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: #fafbfc; }
+  .list-card-hd-left { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+  .list-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .list-count-warn { background: var(--warning-dim); color: #92400e; }
+  .list-count-danger { background: var(--danger-dim); color: #dc2626; }
+  .list-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border-light); gap: 10px; }
+  .list-item:last-child { border-bottom: none; }
+  .list-item-click { cursor: pointer; transition: background .15s; }
+  .list-item-click:hover { background: #f8fafc; }
+  .list-item-main { flex: 1; min-width: 0; }
+  .list-item-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-item-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .list-empty { padding: 28px 16px; text-align: center; }
+  .list-empty-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+  .list-empty-text { font-size: 13px; font-weight: 600; color: #15803d; }
+  .list-empty-sub  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .list-more { padding: 8px 16px; text-align: center; font-size: 12px; color: var(--primary); font-weight: 600; cursor: pointer; border-top: 1px solid var(--border-light); }
+  .list-more:hover { background: var(--border-light); }
+
+  /* ── Sparkline card ─────────────────────────────────────────────────────── */
+  .sparkline-card { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 16px 20px 12px; box-shadow: var(--shadow-sm); margin-bottom: 28px; }
+  .sparkline-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sparkline-title { font-size: 13px; font-weight: 700; }
+  .sparkline-legend { display: flex; gap: 14px; }
+  .spark-leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .spark-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sparkline-wrap { position: relative; height: 90px; }
+
   /* ── Analytics cards ────────────────────────────────────────────────────── */
   .analytics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
   .analytics-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 18px; box-shadow: var(--shadow-sm); }
@@ -153,7 +193,7 @@
   .analytics-row-label { font-size: 12px; color: var(--text-muted); }
   .analytics-row-val   { font-size: 14px; font-weight: 700; }
 
-  /* ── Chart ──────────────────────────────────────────────────────────────── */
+  /* ── Full trend chart ───────────────────────────────────────────────────── */
   .chart-card { background: var(--card); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 20px 20px 16px; box-shadow: var(--shadow-sm); margin-bottom: 28px; }
   .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
   .chart-title    { font-size: 14px; font-weight: 700; }
@@ -195,7 +235,7 @@
   .co-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .co-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
   .co-code { background: #f1f5f9; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-family: monospace; color: var(--text-muted); }
-  .co-meta { display: flex; gap: 14px; font-size: 12px; color: var(--text-muted); margin: 8px 0; }
+  .co-meta { display: flex; gap: 14px; font-size: 12px; color: var(--text-muted); margin: 8px 0; flex-wrap: wrap; }
   .co-actions { display: flex; gap: 6px; padding-top: 6px; border-top: 1px solid var(--border-light); }
 
   /* ── Pagination ─────────────────────────────────────────────────────────── */
@@ -253,20 +293,9 @@
   .user-meta  { font-size: 11px; color: var(--text-muted); }
 
   /* ── Confirm dialog ─────────────────────────────────────────────────────── */
-  .confirm-bg {
-    position: fixed; inset: 0; background: rgba(15,23,42,.5);
-    z-index: 500; display: flex; align-items: center; justify-content: center;
-    padding: 16px; opacity: 0; visibility: hidden;
-    transition: opacity .2s, visibility .2s; backdrop-filter: blur(4px);
-  }
+  .confirm-bg { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; backdrop-filter: blur(4px); }
   .confirm-bg.open { opacity: 1; visibility: visible; }
-  .confirm-box {
-    background: var(--card); border-radius: var(--radius-lg);
-    padding: 28px 24px 24px; max-width: 360px; width: 100%;
-    box-shadow: var(--shadow-lg);
-    transform: scale(.95); transition: transform .2s;
-    text-align: center;
-  }
+  .confirm-box { background: var(--card); border-radius: var(--radius-lg); padding: 28px 24px 24px; max-width: 360px; width: 100%; box-shadow: var(--shadow-lg); transform: scale(.95); transition: transform .2s; text-align: center; }
   .confirm-bg.open .confirm-box { transform: scale(1); }
   .confirm-ico   { font-size: 38px; margin-bottom: 12px; }
   .confirm-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
@@ -278,11 +307,16 @@
   @media (max-width: 960px) {
     .stat-grid      { grid-template-columns: repeat(2,1fr); }
     .analytics-grid { grid-template-columns: repeat(2,1fr); }
+    .today-grid     { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
   }
   @media (max-width: 640px) {
     .topbar-right input { width: 120px; }
     .stat-grid      { grid-template-columns: repeat(2,1fr); }
     .analytics-grid { grid-template-columns: repeat(2,1fr); }
+    .today-grid     { grid-template-columns: repeat(2,1fr); }
     .table-wrap { display: none; }
     .co-cards   { display: block; }
     .card-header { flex-direction: column; align-items: flex-start; }
@@ -302,7 +336,6 @@
 </head>
 <body>
 
-<!-- Topbar -->
 <div class="topbar">
   <div class="topbar-brand">
     <span class="brand-dot"></span>
@@ -315,7 +348,6 @@
   </div>
 </div>
 
-<!-- Tab bar -->
 <div class="tab-bar" id="tab-bar" style="display:none">
   <button class="tab-btn active" data-tab="overview"  onclick="switchTab('overview')">📊 Ringkasan</button>
   <button class="tab-btn"        data-tab="analytics" onclick="switchTab('analytics')">📡 Analitik</button>
@@ -325,23 +357,22 @@
   </button>
 </div>
 
-<!-- Global message -->
 <div style="max-width:1140px;margin:0 auto;padding:0 16px">
   <div id="msg" class="msg" style="margin-top:16px"></div>
 </div>
 
-<!-- Gate -->
 <div id="gate">
   <div class="gate-icon">🔐</div>
   <h2>Donkap Superadmin</h2>
   <p>Masukkan Superadmin Key untuk mengakses panel monitoring.</p>
 </div>
 
-<!-- Dashboard -->
 <main id="dashboard" style="display:none">
 
-  <!-- Tab: Ringkasan -->
+  <!-- ── Tab: Ringkasan ── -->
   <div class="tab-content active" id="tab-overview">
+
+    <!-- Header + refresh -->
     <div class="section-hd">
       <span class="section-title">📊 Ringkasan</span>
       <div class="section-actions">
@@ -351,6 +382,8 @@
         </button>
       </div>
     </div>
+
+    <!-- 8 stat cards -->
     <div class="stat-grid">
       <div class="stat-card" style="--c-accent:#6366f1;--c-dim:rgba(99,102,241,.1)">
         <div class="stat-icon">🏢</div>
@@ -385,9 +418,70 @@
         <div class="stat-body"><div class="stat-label">Aktif 30 Hari</div><div class="stat-value" id="s-recent">—</div></div>
       </div>
     </div>
+
+    <!-- Aktivitas Hari Ini -->
+    <div class="section-hd" style="margin-top:4px">
+      <span class="section-title">⚡ Aktivitas Hari Ini</span>
+    </div>
+    <div class="today-grid">
+      <div class="today-card" style="--c-accent:#6366f1">
+        <div class="today-val" id="today-pv">—</div>
+        <div class="today-label">👁️ Kunjungan</div>
+      </div>
+      <div class="today-card" style="--c-accent:#10b981">
+        <div class="today-val" id="today-dl">—</div>
+        <div class="today-label">🎮 Login Demo</div>
+      </div>
+      <div class="today-card" style="--c-accent:#f59e0b">
+        <div class="today-val" id="today-rc">—</div>
+        <div class="today-label">🏪 Perusahaan Baru</div>
+      </div>
+      <div class="today-card" style="--c-accent:#8b5cf6">
+        <div class="today-val" id="today-re">—</div>
+        <div class="today-label">👤 Karyawan Baru</div>
+      </div>
+    </div>
+
+    <!-- Mini sparkline -->
+    <div class="sparkline-card">
+      <div class="sparkline-hd">
+        <span class="sparkline-title">Tren 7 Hari Terakhir</span>
+        <div class="sparkline-legend">
+          <span class="spark-leg"><span class="spark-dot" style="background:#6366f1"></span>Kunjungan</span>
+          <span class="spark-leg"><span class="spark-dot" style="background:#10b981"></span>Login Demo</span>
+        </div>
+      </div>
+      <div class="sparkline-wrap"><canvas id="sparkline"></canvas></div>
+    </div>
+
+    <!-- Perlu Tindakan + Perusahaan Berisiko -->
+    <div class="two-col">
+      <!-- Perlu Tindakan -->
+      <div class="list-card">
+        <div class="list-card-hd">
+          <div class="list-card-hd-left">
+            ⚠️ Perlu Tindakan
+            <span id="pending-count-badge" class="list-count list-count-warn" style="display:none">0</span>
+          </div>
+        </div>
+        <div id="pending-actions"></div>
+      </div>
+
+      <!-- Perusahaan Berisiko -->
+      <div class="list-card">
+        <div class="list-card-hd">
+          <div class="list-card-hd-left">
+            🔴 Tidak Aktif &gt; 30 Hari
+            <span id="risk-count-badge" class="list-count list-count-danger" style="display:none">0</span>
+          </div>
+        </div>
+        <div id="at-risk-list"></div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Tab: Analitik -->
+  <!-- ── Tab: Analitik ── -->
   <div class="tab-content" id="tab-analytics">
     <div class="section-hd">
       <span class="section-title">📡 Analitik Penggunaan</span>
@@ -434,7 +528,7 @@
     </div>
   </div>
 
-  <!-- Tab: Perusahaan -->
+  <!-- ── Tab: Perusahaan ── -->
   <div class="tab-content" id="tab-companies">
     <div class="card">
       <div class="card-header">
@@ -455,32 +549,21 @@
           <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
         </div>
       </div>
-
-      <!-- Desktop table -->
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Nama</th><th>Kode</th><th>User</th>
-              <th>Daftar</th><th>Status</th><th></th>
-            </tr>
+            <tr><th>Nama</th><th>Kode</th><th>User</th><th>Daftar</th><th>Status</th><th></th></tr>
           </thead>
           <tbody id="company-tbody">
             <tr><td colspan="6" class="empty"><span class="empty-icon">⏳</span>Memuat data…</td></tr>
           </tbody>
         </table>
       </div>
-
-      <!-- Mobile cards -->
       <div class="co-cards" id="co-cards">
         <div class="empty"><span class="empty-icon">⏳</span>Memuat data…</div>
       </div>
-
-      <!-- Pagination -->
       <div class="pagination" id="pagination"></div>
     </div>
-
-    <!-- Health legend -->
     <div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 2px 12px;font-size:12px;color:var(--text-muted)">
       <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-green"></span> Absensi ≤ 7 hari lalu</span>
       <span style="display:flex;align-items:center;gap:5px"><span class="health-dot h-yellow"></span> 8–30 hari tidak ada absensi</span>
@@ -491,7 +574,7 @@
 
 </main>
 
-<!-- User detail modal (side drawer) -->
+<!-- User detail modal -->
 <div class="modal-backdrop" id="modal" onclick="handleBackdropClick(event)">
   <div class="modal-panel">
     <div class="modal-header">
@@ -507,9 +590,9 @@
   </div>
 </div>
 
-<!-- Confirmation dialog -->
+<!-- Confirm dialog -->
 <div class="confirm-bg" id="confirm-bg" onclick="handleConfirmBackdrop(event)">
-  <div class="confirm-box" id="confirm-box">
+  <div class="confirm-box">
     <div class="confirm-ico"   id="confirm-ico">⚠️</div>
     <div class="confirm-title" id="confirm-title"></div>
     <div class="confirm-msg"   id="confirm-msg"></div>
@@ -531,6 +614,7 @@
   let searchQuery  = "";
   let currentPage  = 1;
   let trendChart   = null;
+  let sparkChart   = null;
   let lastUpdated  = null;
   let autoTimer    = null;
   let busy         = false;
@@ -541,29 +625,23 @@
     const saved = localStorage.getItem(LS) || "";
     if (saved) { document.getElementById("keyInput").value = saved; applyKey(saved); }
   });
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeModal(); closeConfirm(); }
-  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { closeModal(); closeConfirm(); } });
 
   // ── Auth + load ────────────────────────────────────────────────────────────
   async function applyKey(k) {
     const key = k || document.getElementById("keyInput").value.trim();
     if (!key) return;
-    currentKey = key;
-    localStorage.setItem(LS, key);
+    currentKey = key; localStorage.setItem(LS, key);
     await loadAll();
   }
-
   async function doRefresh() { lastUpdated = null; await loadAll(); }
 
   async function loadAll() {
     if (busy) return;
     busy = true; setSpin(true);
-
     const [stats, companies, analytics, trend] = await Promise.all([
       fetchStats(), fetchCompanies(), fetchAnalytics(), fetchTrend(),
     ]);
-
     busy = false; setSpin(false);
     if (!stats || !companies) return;
 
@@ -575,8 +653,16 @@
     allCompanies = companies;
     renderTable();
     updatePendingPill();
-    if (analytics) renderAnalytics(analytics);
-    if (trend)     renderTrend(trend);
+
+    if (analytics) {
+      renderAnalytics(analytics);
+      renderTodayStrip(analytics);
+    }
+    if (trend) {
+      renderTrend(trend);
+      renderSparkline(trend);
+    }
+    refreshOverview();
 
     lastUpdated = new Date();
     updateTimestamp();
@@ -584,7 +670,7 @@
     autoTimer = setInterval(loadAll, 90_000);
   }
 
-  // ── Tab switching ──────────────────────────────────────────────────────────
+  // ── Tab ────────────────────────────────────────────────────────────────────
   function switchTab(name) {
     document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
@@ -594,19 +680,16 @@
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   function h() { return { "x-superadmin-key": currentKey }; }
-
   async function fetchStats() {
     try {
       const r = await fetch(`${API}/superadmin/stats`, { headers: h() });
-      if (!r.ok) return handleErr(r);
-      return r.json();
+      if (!r.ok) return handleErr(r); return r.json();
     } catch { showMsg("Gagal terhubung ke server.", "error", true); return null; }
   }
   async function fetchCompanies() {
     try {
       const r = await fetch(`${API}/superadmin/companies/all`, { headers: h() });
-      if (!r.ok) return null;
-      return (await r.json()).data;
+      if (!r.ok) return null; return (await r.json()).data;
     } catch { return null; }
   }
   async function fetchAnalytics() {
@@ -635,67 +718,187 @@
 
   // ── Render stats ───────────────────────────────────────────────────────────
   function renderStats(s) {
-    set("s-total-co",  s.companies.total);
-    set("s-approved",  s.companies.approved);
-    set("s-pending",   s.companies.pending);
-    set("s-total-u",   s.users.total);
-    set("s-admins",    s.users.admins);
-    set("s-employees", s.users.employees);
-    set("s-active",    s.users.active_accounts);
-    set("s-recent",    s.users.recently_active_30d);
+    set("s-total-co", s.companies.total);  set("s-approved",  s.companies.approved);
+    set("s-pending",  s.companies.pending);set("s-total-u",   s.users.total);
+    set("s-admins",   s.users.admins);     set("s-employees", s.users.employees);
+    set("s-active",   s.users.active_accounts); set("s-recent", s.users.recently_active_30d);
   }
 
-  // ── Render analytics ───────────────────────────────────────────────────────
+  // ── Today strip ────────────────────────────────────────────────────────────
+  function renderTodayStrip(a) {
+    set("today-pv", a.page_views.today);
+    set("today-dl", a.demo_logins.today);
+    set("today-rc", a.registrations.company.today);
+    set("today-re", a.registrations.employee.today);
+  }
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
   function renderAnalytics(a) {
-    set("a-pv-today",  a.page_views.today);    set("a-pv-7d",     a.page_views.last_7d);
-    set("a-pv-30d",    a.page_views.last_30d); set("a-pv-total",  a.page_views.total);
-    set("a-pv-demo",   a.page_views.demo);
-    set("a-dl-today",  a.demo_logins.today);   set("a-dl-7d",     a.demo_logins.last_7d);
-    set("a-dl-30d",    a.demo_logins.last_30d);set("a-dl-total",  a.demo_logins.total);
-    set("a-rc-today",  a.registrations.company.today);  set("a-rc-7d",  a.registrations.company.last_7d);
-    set("a-rc-30d",    a.registrations.company.last_30d);set("a-rc-total",a.registrations.company.total);
-    set("a-re-today",  a.registrations.employee.today); set("a-re-7d",  a.registrations.employee.last_7d);
-    set("a-re-30d",    a.registrations.employee.last_30d);set("a-re-total",a.registrations.employee.total);
+    set("a-pv-today",a.page_views.today);    set("a-pv-7d",  a.page_views.last_7d);
+    set("a-pv-30d",  a.page_views.last_30d); set("a-pv-total",a.page_views.total);
+    set("a-pv-demo", a.page_views.demo);
+    set("a-dl-today",a.demo_logins.today);   set("a-dl-7d",  a.demo_logins.last_7d);
+    set("a-dl-30d",  a.demo_logins.last_30d);set("a-dl-total",a.demo_logins.total);
+    set("a-rc-today",a.registrations.company.today);  set("a-rc-7d",  a.registrations.company.last_7d);
+    set("a-rc-30d",  a.registrations.company.last_30d);set("a-rc-total",a.registrations.company.total);
+    set("a-re-today",a.registrations.employee.today); set("a-re-7d",  a.registrations.employee.last_7d);
+    set("a-re-30d",  a.registrations.employee.last_30d);set("a-re-total",a.registrations.employee.total);
   }
 
-  // ── Trend chart ────────────────────────────────────────────────────────────
+  // ── Full trend chart ───────────────────────────────────────────────────────
   function renderTrend(data) {
-    const labels = data.map(d => {
-      const dt = new Date(d.date + "T12:00:00Z");
-      return dt.toLocaleDateString("id-ID", { weekday: "short", day: "numeric" });
-    });
+    const labels = data.map(d => new Date(d.date+"T12:00:00Z").toLocaleDateString("id-ID",{weekday:"short",day:"numeric"}));
     const ctx = document.getElementById("trend-chart").getContext("2d");
     if (trendChart) trendChart.destroy();
     trendChart = new Chart(ctx, {
       type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label: "Kunjungan", data: data.map(d => d.page_views),    borderColor: "#6366f1", backgroundColor: "rgba(99,102,241,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#6366f1" },
-          { label: "Login Demo",data: data.map(d => d.demo_logins),   borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#10b981" },
-          { label: "Registrasi",data: data.map(d => d.registrations), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,.08)",  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#f59e0b" },
-        ],
-      },
+      data: { labels, datasets: [
+        { label:"Kunjungan", data:data.map(d=>d.page_views),    borderColor:"#6366f1", backgroundColor:"rgba(99,102,241,.08)",  fill:true, tension:.4, borderWidth:2, pointRadius:4, pointBackgroundColor:"#6366f1" },
+        { label:"Login Demo",data:data.map(d=>d.demo_logins),   borderColor:"#10b981", backgroundColor:"rgba(16,185,129,.08)",  fill:true, tension:.4, borderWidth:2, pointRadius:4, pointBackgroundColor:"#10b981" },
+        { label:"Registrasi",data:data.map(d=>d.registrations), borderColor:"#f59e0b", backgroundColor:"rgba(245,158,11,.08)", fill:true, tension:.4, borderWidth:2, pointRadius:4, pointBackgroundColor:"#f59e0b" },
+      ]},
       options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: { position: "top", labels: { usePointStyle: true, pointStyle: "circle", font: { size: 12 }, padding: 16 } },
-          tooltip: { backgroundColor: "#1e293b", titleColor: "#e2e8f0", bodyColor: "#cbd5e1", cornerRadius: 8, padding: 10 },
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:"index",intersect:false},
+        plugins:{
+          legend:{position:"top",labels:{usePointStyle:true,pointStyle:"circle",font:{size:12},padding:16}},
+          tooltip:{backgroundColor:"#1e293b",titleColor:"#e2e8f0",bodyColor:"#cbd5e1",cornerRadius:8,padding:10},
         },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 }, precision: 0 }, grid: { color: "#f1f5f9" } },
-          x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+        scales:{
+          y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11},precision:0},grid:{color:"#f1f5f9"}},
+          x:{ticks:{font:{size:11}},grid:{display:false}},
         },
       },
     });
+  }
+
+  // ── Sparkline (mini) ───────────────────────────────────────────────────────
+  function renderSparkline(data) {
+    const labels = data.map(d => new Date(d.date+"T12:00:00Z").toLocaleDateString("id-ID",{day:"numeric",month:"short"}));
+    const ctx = document.getElementById("sparkline").getContext("2d");
+    if (sparkChart) sparkChart.destroy();
+    sparkChart = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [
+        { label:"Kunjungan", data:data.map(d=>d.page_views),  borderColor:"#6366f1", backgroundColor:"rgba(99,102,241,.1)",  fill:true, tension:.4, borderWidth:2, pointRadius:3, pointBackgroundColor:"#6366f1" },
+        { label:"Login Demo",data:data.map(d=>d.demo_logins), borderColor:"#10b981", backgroundColor:"rgba(16,185,129,.06)", fill:true, tension:.4, borderWidth:2, pointRadius:3, pointBackgroundColor:"#10b981" },
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:"index",intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{backgroundColor:"#1e293b",titleColor:"#e2e8f0",bodyColor:"#cbd5e1",cornerRadius:8,padding:8},
+        },
+        scales:{
+          y:{display:false, beginAtZero:true},
+          x:{ticks:{font:{size:10}}, grid:{display:false}},
+        },
+      },
+    });
+  }
+
+  // ── Pending actions list ───────────────────────────────────────────────────
+  function renderPendingActions() {
+    const pending = allCompanies.filter(c => !c.is_approved);
+    const el = document.getElementById("pending-actions");
+    const badge = document.getElementById("pending-count-badge");
+    if (!el) return;
+
+    if (pending.length) {
+      badge.textContent = pending.length; badge.style.display = "";
+    } else {
+      badge.style.display = "none";
+    }
+
+    if (!pending.length) {
+      el.innerHTML = `
+        <div class="list-empty">
+          <span class="list-empty-icon">✅</span>
+          <div class="list-empty-text">Semua sudah diproses</div>
+          <div class="list-empty-sub">Tidak ada pendaftaran yang menunggu persetujuan.</div>
+        </div>`;
+      return;
+    }
+
+    const shown = pending.slice(0, 5);
+    el.innerHTML = shown.map(c => `
+      <div class="list-item">
+        <div class="list-item-main">
+          <div class="list-item-name">${esc(c.name)}</div>
+          <div class="list-item-sub">${esc(c.code)} · ${fmtDate(c.created_at)}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>
+          <button class="btn btn-danger  btn-sm" onclick="decide('${c.id}',false)">Tolak</button>
+        </div>
+      </div>`).join("")
+      + (pending.length > 5 ? `<div class="list-more" onclick="switchTab('companies');setFilter('pending')">Lihat ${pending.length - 5} lainnya di tab Perusahaan →</div>` : "");
+  }
+
+  // ── At-risk list ───────────────────────────────────────────────────────────
+  function renderAtRisk() {
+    const atRisk = allCompanies
+      .filter(c => {
+        if (!c.is_approved) return false;
+        if (!c.last_activity) return true;
+        return Math.floor((Date.now() - new Date(c.last_activity+"T12:00:00Z")) / 86_400_000) > 30;
+      })
+      .sort((a, b) => {
+        if (!a.last_activity && !b.last_activity) return 0;
+        if (!a.last_activity) return -1;
+        if (!b.last_activity) return 1;
+        return a.last_activity.localeCompare(b.last_activity);
+      });
+
+    const el    = document.getElementById("at-risk-list");
+    const badge = document.getElementById("risk-count-badge");
+    if (!el) return;
+
+    if (atRisk.length) {
+      badge.textContent = atRisk.length; badge.style.display = "";
+    } else {
+      badge.style.display = "none";
+    }
+
+    if (!atRisk.length) {
+      el.innerHTML = `
+        <div class="list-empty">
+          <span class="list-empty-icon">🟢</span>
+          <div class="list-empty-text">Semua perusahaan aktif</div>
+          <div class="list-empty-sub">Tidak ada yang absensinya terlambat &gt; 30 hari.</div>
+        </div>`;
+      return;
+    }
+
+    const shown = atRisk.slice(0, 5);
+    el.innerHTML = shown.map(c => {
+      const hlt = healthInfo(c);
+      return `
+        <div class="list-item list-item-click" onclick="openModal('${c.id}')">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+            <span class="health-dot ${hlt.cls}" style="flex-shrink:0"></span>
+            <div class="list-item-main">
+              <div class="list-item-name">${esc(c.name)}</div>
+              <div class="list-item-sub">${hlt.title}</div>
+            </div>
+          </div>
+          <span style="font-size:16px;color:var(--text-muted);flex-shrink:0">›</span>
+        </div>`;
+    }).join("")
+    + (atRisk.length > 5 ? `<div class="list-more" onclick="switchTab('companies')">Lihat ${atRisk.length - 5} lainnya →</div>` : "");
+  }
+
+  function refreshOverview() {
+    renderPendingActions();
+    renderAtRisk();
   }
 
   // ── Health indicator ───────────────────────────────────────────────────────
   function healthInfo(c) {
     if (!c.is_approved) return { cls: "h-gray", title: "Belum disetujui" };
     if (!c.last_activity) return { cls: "h-red", title: "Belum ada absensi sama sekali" };
-    const days = Math.floor((Date.now() - new Date(c.last_activity + "T12:00:00Z")) / 86_400_000);
+    const days = Math.floor((Date.now() - new Date(c.last_activity+"T12:00:00Z")) / 86_400_000);
     if (days <= 7)  return { cls: "h-green",  title: days === 0 ? "Absensi hari ini" : `Absensi ${days} hari lalu` };
     if (days <= 30) return { cls: "h-yellow", title: `Terakhir absensi ${days} hari lalu` };
     return               { cls: "h-red",    title: `Tidak aktif ${days} hari` };
@@ -703,15 +906,12 @@
 
   // ── Table + cards + pagination ─────────────────────────────────────────────
   function getFiltered() {
-    let data = allCompanies;
-    if (activeFilter === "pending")  data = data.filter(c => !c.is_approved);
-    if (activeFilter === "approved") data = data.filter(c =>  c.is_approved);
-    if (searchQuery) data = data.filter(c =>
-      c.name.toLowerCase().includes(searchQuery) || c.code.toLowerCase().includes(searchQuery)
-    );
-    return data;
+    let d = allCompanies;
+    if (activeFilter === "pending")  d = d.filter(c => !c.is_approved);
+    if (activeFilter === "approved") d = d.filter(c =>  c.is_approved);
+    if (searchQuery) d = d.filter(c => c.name.toLowerCase().includes(searchQuery) || c.code.toLowerCase().includes(searchQuery));
+    return d;
   }
-
   function setFilter(f) {
     activeFilter = f; currentPage = 1;
     document.querySelectorAll(".filter-tab").forEach(t => t.classList.toggle("active", t.dataset.filter === f));
@@ -722,85 +922,62 @@
   function updatePendingPill() {
     const n  = allCompanies.filter(c => !c.is_approved).length;
     const el = document.getElementById("tab-pending-pill");
-    if (n > 0) { el.textContent = n; el.style.display = ""; }
-    else        { el.style.display = "none"; }
+    if (n > 0) { el.textContent = n; el.style.display = ""; } else { el.style.display = "none"; }
   }
 
   function renderTable() {
     const filtered   = getFiltered();
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (currentPage > totalPages) currentPage = totalPages;
-    const start    = (currentPage - 1) * PAGE_SIZE;
-    const pageData = filtered.slice(start, start + PAGE_SIZE);
+    const pageData = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
 
     const tbody = document.getElementById("company-tbody");
-    tbody.innerHTML = pageData.length
-      ? pageData.map(tableRow).join("")
-      : `<tr><td colspan="6" class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</td></tr>`;
+    tbody.innerHTML = pageData.length ? pageData.map(tableRow).join("") :
+      `<tr><td colspan="6" class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</td></tr>`;
 
     const cardsEl = document.getElementById("co-cards");
-    cardsEl.innerHTML = pageData.length
-      ? pageData.map(mobileCard).join("")
-      : `<div class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</div>`;
+    cardsEl.innerHTML = pageData.length ? pageData.map(mobileCard).join("") :
+      `<div class="empty"><span class="empty-icon">🔍</span>Tidak ada data yang cocok.</div>`;
 
     renderPagination(filtered.length, totalPages);
   }
 
   function tableRow(c) {
-    const hlt  = healthInfo(c);
-    const badge = c.is_approved
-      ? `<span class="badge badge-green">✓ Aktif</span>`
-      : `<span class="badge badge-orange">⏳ Pending</span>`;
+    const hlt = healthInfo(c);
+    const badge = c.is_approved ? `<span class="badge badge-green">✓ Aktif</span>` : `<span class="badge badge-orange">⏳ Pending</span>`;
     return `
       <tr class="tr-click" id="row-${c.id}" onclick="openModal('${c.id}')">
         <td style="font-weight:600">${esc(c.name)}</td>
         <td><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">${esc(c.code)}</code></td>
         <td><span style="font-weight:600">${c.user_count}</span></td>
         <td style="color:var(--text-muted);font-size:13px">${fmtDate(c.created_at)}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:7px">
-            <span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>
-            ${badge}
-          </div>
-        </td>
+        <td><div style="display:flex;align-items:center;gap:7px"><span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>${badge}</div></td>
         <td onclick="event.stopPropagation()">
           <div class="actions">
             ${!c.is_approved ? `<button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>` : ""}
-            ${c.is_approved
-              ? `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>`
-              : `<button class="btn btn-danger  btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
+            ${c.is_approved ? `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>` : `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
           </div>
         </td>
       </tr>`;
   }
 
   function mobileCard(c) {
-    const hlt  = healthInfo(c);
-    const badge = c.is_approved
-      ? `<span class="badge badge-green">✓ Aktif</span>`
-      : `<span class="badge badge-orange">⏳ Pending</span>`;
+    const hlt = healthInfo(c);
+    const badge = c.is_approved ? `<span class="badge badge-green">✓ Aktif</span>` : `<span class="badge badge-orange">⏳ Pending</span>`;
     return `
       <div class="co-card" onclick="openModal('${c.id}')">
         <div class="co-card-top">
-          <div>
-            <div class="co-name">${esc(c.name)}</div>
-            <span class="co-code">${esc(c.code)}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>
-            ${badge}
-          </div>
+          <div><div class="co-name">${esc(c.name)}</div><span class="co-code">${esc(c.code)}</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><span class="health-dot ${hlt.cls}" title="${hlt.title}"></span>${badge}</div>
         </div>
         <div class="co-meta">
           <span>👥 ${c.user_count} user</span>
           <span>📅 ${fmtDate(c.created_at)}</span>
-          <span title="${hlt.title}" style="color:${hlt.cls==='h-green'?'#15803d':hlt.cls==='h-yellow'?'#92400e':'#dc2626'}">${hlt.title}</span>
+          <span style="color:${hlt.cls==='h-green'?'#15803d':hlt.cls==='h-yellow'?'#92400e':'#dc2626'}">${hlt.title}</span>
         </div>
         <div class="co-actions" onclick="event.stopPropagation()">
           ${!c.is_approved ? `<button class="btn btn-success btn-sm" onclick="decide('${c.id}',true)">Setujui</button>` : ""}
-          ${c.is_approved
-            ? `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>`
-            : `<button class="btn btn-danger  btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
+          ${c.is_approved ? `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Nonaktifkan</button>` : `<button class="btn btn-danger btn-sm" onclick="decide('${c.id}',false)">Tolak</button>`}
         </div>
       </div>`;
   }
@@ -808,13 +985,12 @@
   function renderPagination(total, totalPages) {
     const pag = document.getElementById("pagination");
     if (total === 0 || totalPages <= 1) { pag.innerHTML = ""; return; }
-    const start = (currentPage - 1) * PAGE_SIZE + 1;
-    const end   = Math.min(currentPage * PAGE_SIZE, total);
+    const start = (currentPage-1)*PAGE_SIZE+1, end = Math.min(currentPage*PAGE_SIZE, total);
     let pages = "", last = 0;
     for (let i = 1; i <= totalPages; i++) {
-      const show = i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1;
+      const show = i === 1 || i === totalPages || Math.abs(i-currentPage) <= 1;
       if (show) {
-        if (last > 0 && i - last > 1) pages += `<span class="page-ellipsis">…</span>`;
+        if (last > 0 && i-last > 1) pages += `<span class="page-ellipsis">…</span>`;
         pages += `<button class="page-btn${i===currentPage?" active":""}" onclick="goToPage(${i})">${i}</button>`;
         last = i;
       }
@@ -828,34 +1004,25 @@
       </div>`;
   }
   function goToPage(n) {
-    const total = Math.max(1, Math.ceil(getFiltered().length / PAGE_SIZE));
+    const total = Math.max(1, Math.ceil(getFiltered().length/PAGE_SIZE));
     if (n < 1 || n > total) return;
     currentPage = n; renderTable();
   }
 
-  // ── Confirmation dialog ────────────────────────────────────────────────────
+  // ── Confirm dialog ─────────────────────────────────────────────────────────
   function decide(id, approved) {
-    const co   = allCompanies.find(c => c.id === id);
-    const name = co?.name || id;
-    const ico  = approved ? "✅" : "⚠️";
-    const title = approved ? `Setujui "${name}"?` : `Tolak / Nonaktifkan "${name}"?`;
-    const msg   = approved
-      ? "Email konfirmasi akan otomatis dikirim ke owner perusahaan."
+    const co = allCompanies.find(c => c.id === id);
+    document.getElementById("confirm-ico").textContent   = approved ? "✅" : "⚠️";
+    document.getElementById("confirm-title").textContent = approved ? `Setujui "${co?.name||id}"?` : `Tolak "${co?.name||id}"?`;
+    document.getElementById("confirm-msg").textContent   = approved
+      ? "Email konfirmasi akan dikirim ke owner perusahaan."
       : "Perusahaan tidak bisa login sampai disetujui kembali.";
-    const label = approved ? "Ya, Setujui" : "Ya, Tolak";
-    const cls   = approved ? "btn-success" : "btn-danger";
-
-    document.getElementById("confirm-ico").textContent   = ico;
-    document.getElementById("confirm-title").textContent = title;
-    document.getElementById("confirm-msg").textContent   = msg;
-    const okBtn = document.getElementById("confirm-ok");
-    okBtn.textContent = label;
-    okBtn.className   = `btn ${cls}`;
-
-    pendingAction = () => _doDecide(id, approved);
+    const ok = document.getElementById("confirm-ok");
+    ok.textContent = approved ? "Ya, Setujui" : "Ya, Tolak";
+    ok.className   = `btn ${approved?"btn-success":"btn-danger"}`;
+    pendingAction  = () => _doDecide(id, approved);
     document.getElementById("confirm-bg").classList.add("open");
   }
-
   function runConfirm()  { closeConfirm(); if (pendingAction) { pendingAction(); pendingAction = null; } }
   function closeConfirm(){ document.getElementById("confirm-bg").classList.remove("open"); pendingAction = null; }
   function handleConfirmBackdrop(e) { if (e.target === document.getElementById("confirm-bg")) closeConfirm(); }
@@ -864,15 +1031,14 @@
     const row = document.getElementById(`row-${id}`);
     row?.querySelectorAll("button").forEach(b => b.disabled = true);
     try {
-      const r = await fetch(`${API}/superadmin/companies/${id}/approve?approved=${approved}`, {
-        method: "PATCH", headers: h(),
-      });
+      const r = await fetch(`${API}/superadmin/companies/${id}/approve?approved=${approved}`, { method:"PATCH", headers:h() });
       if (!r.ok) { showMsg("Gagal memproses.", "error"); return; }
       const co = allCompanies.find(c => c.id === id);
       if (co) co.is_approved = approved;
-      showMsg(`"${co?.name || id}" ${approved ? "disetujui ✓" : "ditolak"}. Email dikirim ke owner.`, "info");
+      showMsg(`"${co?.name||id}" ${approved?"disetujui ✓":"ditolak"}. Email dikirim ke owner.`, "info");
       updatePendingPill();
       renderTable();
+      refreshOverview();
       const stats = await fetchStats();
       if (stats) renderStats(stats);
     } finally {
@@ -884,23 +1050,16 @@
   async function openModal(id) {
     const co = allCompanies.find(c => c.id === id);
     document.getElementById("modal-title").textContent    = co?.name || "Detail";
-    document.getElementById("modal-subtitle").textContent = `${co?.user_count ?? 0} pengguna terdaftar`;
+    document.getElementById("modal-subtitle").textContent = `${co?.user_count??0} pengguna terdaftar`;
     document.getElementById("modal-body").innerHTML =
       `<div style="text-align:center;color:var(--text-muted);padding:40px">⏳ Memuat…</div>`;
     document.getElementById("modal").classList.add("open");
     document.body.style.overflow = "hidden";
 
     const users = await fetchCompanyUsers(id);
-    if (!users) {
-      document.getElementById("modal-body").innerHTML =
-        `<div style="text-align:center;color:var(--text-muted);padding:40px">Gagal memuat data.</div>`;
-      return;
-    }
-    if (!users.length) {
-      document.getElementById("modal-body").innerHTML =
-        `<div style="text-align:center;color:var(--text-muted);padding:40px">Belum ada pengguna.</div>`;
-      return;
-    }
+    if (!users) { document.getElementById("modal-body").innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px">Gagal memuat data.</div>`; return; }
+    if (!users.length) { document.getElementById("modal-body").innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:40px">Belum ada pengguna.</div>`; return; }
+
     const admins = users.filter(u => u.role === "admin");
     const emps   = users.filter(u => u.role === "employee");
     let html = "";
@@ -910,22 +1069,19 @@
   }
 
   function userCard(u) {
-    const init   = (u.full_name || "?")[0].toUpperCase();
+    const init   = (u.full_name||"?")[0].toUpperCase();
     const active = u.is_active !== false;
-    const pos    = u.position ? `<span>${esc(u.position)} · </span>` : "";
-    const email  = u.email
-      ? `<div class="user-email"><a href="mailto:${esc(u.email)}" onclick="event.stopPropagation()"
-             style="color:inherit;text-decoration:none">${esc(u.email)}</a></div>`
-      : "";
+    const email  = u.email ? `<div class="user-email"><a href="mailto:${esc(u.email)}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none">${esc(u.email)}</a></div>` : "";
+    const pos    = u.position ? `${esc(u.position)} · ` : "";
     return `
       <div class="user-item">
-        <div class="user-avatar ${u.role === "admin" ? "admin" : "employee"}">${init}</div>
+        <div class="user-avatar ${u.role==="admin"?"admin":"employee"}">${init}</div>
         <div class="user-info">
-          <div class="user-name">${esc(u.full_name || "—")}</div>
+          <div class="user-name">${esc(u.full_name||"—")}</div>
           ${email}
           <div class="user-meta">${pos}${fmtDate(u.created_at)}</div>
         </div>
-        <span class="badge ${active ? "badge-green" : "badge-red"}">${active ? "Aktif" : "Nonaktif"}</span>
+        <span class="badge ${active?"badge-green":"badge-red"}">${active?"Aktif":"Nonaktif"}</span>
       </div>`;
   }
 
@@ -936,51 +1092,36 @@
   function exportCSV() {
     if (!allCompanies.length) { showMsg("Tidak ada data.", "error"); return; }
     const rows = [
-      ["Nama", "Kode", "Jumlah User", "Tanggal Daftar", "Status", "Terakhir Absensi"],
-      ...allCompanies.map(c => [
-        c.name, c.code, c.user_count,
-        new Date(c.created_at).toLocaleDateString("id-ID"),
-        c.is_approved ? "Aktif" : "Pending",
-        c.last_activity || "—",
-      ]),
+      ["Nama","Kode","Jumlah User","Tanggal Daftar","Status","Terakhir Absensi"],
+      ...allCompanies.map(c => [c.name,c.code,c.user_count,new Date(c.created_at).toLocaleDateString("id-ID"),c.is_approved?"Aktif":"Pending",c.last_activity||"—"]),
     ];
     const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"});
     const url  = URL.createObjectURL(blob);
-    Object.assign(document.createElement("a"), {
-      href: url,
-      download: `donkap-perusahaan-${new Date().toISOString().slice(0,10)}.csv`,
-    }).click();
+    Object.assign(document.createElement("a"),{href:url,download:`donkap-perusahaan-${new Date().toISOString().slice(0,10)}.csv`}).click();
     URL.revokeObjectURL(url);
     showMsg("File CSV berhasil diunduh.", "info");
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val ?? "—"; }
-  function esc(s) {
-    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function fmtDate(iso) {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-  }
+  function set(id,val) { const el=document.getElementById(id); if(el) el.textContent=val??"—"; }
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  function fmtDate(iso) { if(!iso) return "—"; return new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"}); }
   function setSpin(on) {
-    const icon = document.getElementById("refresh-icon");
-    const btn  = document.getElementById("refresh-btn");
-    if (icon) icon.className = on ? "spinning" : "";
-    if (btn)  btn.disabled  = on;
+    const icon=document.getElementById("refresh-icon"), btn=document.getElementById("refresh-btn");
+    if(icon) icon.className=on?"spinning":""; if(btn) btn.disabled=on;
   }
   function updateTimestamp() {
-    const el = document.getElementById("last-updated");
-    if (!el || !lastUpdated) { if (el) el.textContent = ""; return; }
-    const mins = Math.round((Date.now() - lastUpdated) / 60_000);
-    el.textContent = mins <= 0 ? "Baru diperbarui" : `${mins} menit lalu`;
+    const el=document.getElementById("last-updated");
+    if(!el||!lastUpdated){if(el)el.textContent="";return;}
+    const mins=Math.round((Date.now()-lastUpdated)/60_000);
+    el.textContent=mins<=0?"Baru diperbarui":`${mins} menit lalu`;
   }
   setInterval(updateTimestamp, 60_000);
-  function showMsg(text, type, persist = false) {
-    const el = document.getElementById("msg");
-    el.textContent = text; el.className = `msg show ${type}`;
-    if (!persist) setTimeout(() => el.classList.remove("show"), 6_000);
+  function showMsg(text,type,persist=false) {
+    const el=document.getElementById("msg");
+    el.textContent=text; el.className=`msg show ${type}`;
+    if(!persist) setTimeout(()=>el.classList.remove("show"),6_000);
   }
 </script>
 </body>

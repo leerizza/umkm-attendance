@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuthStore } from "@/stores/auth";
 import { Skeleton } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
 
 // Lazy import with automatic page reload on ChunkLoadError.
 // Old service worker versions can cache stale chunk hashes; a reload
@@ -81,12 +82,39 @@ function AppTracker() {
   return null;
 }
 
+// On startup, proactively refresh the Supabase session if the stored JWT is
+// expired or within 5 minutes of expiry. This prevents cascade 401s that
+// would trigger ErrorBoundary when employees open the app in the morning.
+function TokenRefresher() {
+  const { isAuthenticated, token, setAuth, profile, logout } = useAuthStore();
+
+  useEffect(() => {
+    if (!isAuthenticated || !token || !profile) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const expiresInMs = payload.exp * 1000 - Date.now();
+      if (expiresInMs > 5 * 60 * 1000) return; // still fresh
+
+      supabase.auth.refreshSession().then(({ data, error }) => {
+        if (error || !data.session) { logout(); return; }
+        setAuth(data.session.access_token, profile);
+      });
+    } catch {
+      // malformed token — let the 401 interceptor handle it
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <BrowserRouter>
           <AppTracker />
+          <TokenRefresher />
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>

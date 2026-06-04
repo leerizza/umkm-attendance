@@ -121,6 +121,10 @@ export const attendanceApi = {
     api.post("/attendance/clock-in", { lat, lng, notes }),
   clockOut:     (lat: number, lng: number, notes?: string) =>
     api.post("/attendance/clock-out", { lat, lng, notes }),
+  breakStart:   (lat: number, lng: number) =>
+    api.post("/attendance/break-start", { lat, lng }),
+  breakEnd:     (lat: number, lng: number) =>
+    api.post("/attendance/break-end", { lat, lng }),
   history:      (page = 1, per_page = 10, date_from?: string, date_to?: string) =>
     api.get("/attendance/history", { params: { page, per_page, date_from, date_to } }),
   monthlyStats: () => api.get("/attendance/monthly-stats"),
@@ -214,6 +218,8 @@ export interface CompanyUpdatePayload {
   work_end?: string;
   work_saturday?: boolean;
   work_sunday?: boolean;
+  flexible_attendance?: boolean;
+  min_work_minutes?: number;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────

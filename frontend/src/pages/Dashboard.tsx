@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clock, MapPin, CheckCircle2,
   Calendar, Timer, AlertCircle,
-  LogIn, LogOut, Hourglass,
+  LogIn, LogOut, Hourglass, Coffee, Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export default function Dashboard() {
   const isOnline = useOnlineStatus();
   const qc = useQueryClient();
   const { error: geoError, getPosition } = useGeolocation();
-  const [clockLoading, setClockLoading] = useState<"in" | "out" | null>(null);
+  const [clockLoading, setClockLoading] = useState<"in" | "out" | "break_start" | "break_end" | null>(null);
   const [now, setNow] = useState(new Date());
   const [livePos, setLivePos] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -79,30 +79,51 @@ export default function Dashboard() {
   const record = todayData?.record;
   const clockedIn  = !!record?.clock_in;
   const clockedOut = !!record?.clock_out;
+  const onBreak    = !!record?.break_start && !record?.break_end;
+  const flexible   = !!company?.flexible_attendance;
+  const minWorkMinutes = company?.min_work_minutes ?? 480;
 
-  // Live work duration for today
+  // Live effective work duration for today: (clock_in → break_start) + (break_end → now/clock_out)
   const todayWorkMinutes = (() => {
     if (!record?.clock_in) return null;
-    const end = record.clock_out ? new Date(record.clock_out) : now;
-    const start = new Date(record.clock_in);
-    return Math.floor((end.getTime() - start.getTime()) / 60_000);
+    const ci = new Date(record.clock_in).getTime();
+    const end = record.clock_out ? new Date(record.clock_out).getTime() : now.getTime();
+    if (record.break_start && record.break_end) {
+      const bs = new Date(record.break_start).getTime();
+      const be = new Date(record.break_end).getTime();
+      return Math.max(0, Math.floor((bs - ci) / 60_000) + Math.floor((end - be) / 60_000));
+    }
+    if (record.break_start && !record.break_end) {
+      // sedang istirahat — durasi berhenti di break_start
+      const bs = new Date(record.break_start).getTime();
+      return Math.max(0, Math.floor((bs - ci) / 60_000));
+    }
+    return Math.max(0, Math.floor((end - ci) / 60_000));
   })();
 
-  async function handleClock(type: "in" | "out") {
+  async function handleClock(type: "in" | "out" | "break_start" | "break_end") {
     if (!isOnline) return toast.error("Kamu offline", "Pastikan koneksi aktif");
     setClockLoading(type);
     try {
       const pos = await getPosition();
-      if (type === "in") {
-        await attendanceApi.clockIn(pos.lat, pos.lng);
-        toast.success("Clock-in berhasil! 🎉", fmtTime(new Date()));
-      } else {
-        await attendanceApi.clockOut(pos.lat, pos.lng);
-        toast.success("Clock-out berhasil!", fmtTime(new Date()));
-      }
+      const labels = {
+        in:          { ok: "Clock-in berhasil! 🎉",      err: "Clock-in gagal" },
+        out:         { ok: "Clock-out berhasil!",         err: "Clock-out gagal" },
+        break_start: { ok: "Selamat istirahat ☕",        err: "Gagal mulai istirahat" },
+        break_end:   { ok: "Lanjut kerja!",              err: "Gagal selesai istirahat" },
+      };
+      if (type === "in")          await attendanceApi.clockIn(pos.lat, pos.lng);
+      else if (type === "out")    await attendanceApi.clockOut(pos.lat, pos.lng);
+      else if (type === "break_start") await attendanceApi.breakStart(pos.lat, pos.lng);
+      else                        await attendanceApi.breakEnd(pos.lat, pos.lng);
+      toast.success(labels[type].ok, fmtTime(new Date()));
       qc.invalidateQueries({ queryKey: ["attendance-today"] });
     } catch (err) {
-      toast.error(type === "in" ? "Clock-in gagal" : "Clock-out gagal", getErrMsg(err));
+      const errLabels = {
+        in: "Clock-in gagal", out: "Clock-out gagal",
+        break_start: "Gagal mulai istirahat", break_end: "Gagal selesai istirahat",
+      };
+      toast.error(errLabels[type], getErrMsg(err));
     } finally {
       setClockLoading(null);
     }
@@ -158,6 +179,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-3">
               {clockedOut ? (
                 <CheckCircle2 className="h-4 w-4" />
+              ) : onBreak ? (
+                <Coffee className="h-4 w-4" />
               ) : clockedIn ? (
                 <div className="relative">
                   <div className="w-2 h-2 rounded-full bg-white" />
@@ -169,6 +192,8 @@ export default function Dashboard() {
               <span className="text-sm font-semibold">
                 {clockedOut
                   ? "Selesai hari ini"
+                  : onBreak
+                  ? "Sedang istirahat"
                   : clockedIn
                   ? "Sedang bekerja"
                   : "Belum absen masuk"}
@@ -181,32 +206,73 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/15 rounded-xl p-3">
-                <p className="text-xs text-white/70 mb-1">Masuk</p>
-                <p className="text-lg font-bold font-mono">
-                  {record?.clock_in ? fmtTime(record.clock_in) : "—"}
-                </p>
+            {flexible ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/15 rounded-xl p-2.5">
+                  <p className="text-[10px] text-white/70 mb-0.5">Masuk</p>
+                  <p className="text-base font-bold font-mono">
+                    {record?.clock_in ? fmtTime(record.clock_in) : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/15 rounded-xl p-2.5">
+                  <p className="text-[10px] text-white/70 mb-0.5">Mulai Istirahat</p>
+                  <p className="text-base font-bold font-mono">
+                    {record?.break_start ? fmtTime(record.break_start) : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/15 rounded-xl p-2.5">
+                  <p className="text-[10px] text-white/70 mb-0.5">Selesai Istirahat</p>
+                  <p className="text-base font-bold font-mono">
+                    {record?.break_end ? fmtTime(record.break_end) : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/15 rounded-xl p-2.5">
+                  <p className="text-[10px] text-white/70 mb-0.5">Keluar</p>
+                  <p className="text-base font-bold font-mono">
+                    {record?.clock_out ? fmtTime(record.clock_out) : "—"}
+                  </p>
+                </div>
+                <div className="col-span-2 bg-white/20 rounded-xl p-2.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-white/70 mb-0.5">Durasi Kerja Efektif</p>
+                    <p className="text-lg font-bold font-mono">
+                      {todayWorkMinutes != null ? fmtDuration(todayWorkMinutes) : "—"}
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-white/70 text-right">
+                    Minimum<br/>
+                    <span className="font-bold text-white">{fmtDuration(minWorkMinutes)}</span>
+                  </p>
+                </div>
               </div>
-              <div className="bg-white/15 rounded-xl p-3">
-                <p className="text-xs text-white/70 mb-1">Keluar</p>
-                <p className="text-lg font-bold font-mono">
-                  {record?.clock_out ? fmtTime(record.clock_out) : "—"}
-                </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/15 rounded-xl p-3">
+                  <p className="text-xs text-white/70 mb-1">Masuk</p>
+                  <p className="text-lg font-bold font-mono">
+                    {record?.clock_in ? fmtTime(record.clock_in) : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/15 rounded-xl p-3">
+                  <p className="text-xs text-white/70 mb-1">Keluar</p>
+                  <p className="text-lg font-bold font-mono">
+                    {record?.clock_out ? fmtTime(record.clock_out) : "—"}
+                  </p>
+                </div>
+                <div className="bg-white/15 rounded-xl p-3">
+                  <p className="text-xs text-white/70 mb-1">Durasi</p>
+                  <p className="text-lg font-bold font-mono">
+                    {todayWorkMinutes != null ? fmtDuration(todayWorkMinutes) : "—"}
+                  </p>
+                </div>
               </div>
-              <div className="bg-white/15 rounded-xl p-3">
-                <p className="text-xs text-white/70 mb-1">Durasi</p>
-                <p className="text-lg font-bold font-mono">
-                  {todayWorkMinutes != null ? fmtDuration(todayWorkMinutes) : "—"}
-                </p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Clock In / Out buttons */}
-      {!clockedOut && (
+      {!clockedOut && !flexible && (
         <div className="grid grid-cols-2 gap-3">
           <Button
             size="lg"
@@ -238,6 +304,59 @@ export default function Dashboard() {
           </Button>
         </div>
       )}
+
+      {/* Flexible mode: state-machine button (4 states) */}
+      {!clockedOut && flexible && (() => {
+        // Determine current step
+        let next: "in" | "break_start" | "break_end" | "out";
+        let label: string;
+        let variant: "success" | "warning" | "default" = "success";
+        let Icon = LogIn;
+        if (!clockedIn) {
+          next = "in";  label = "Clock In"; variant = "success"; Icon = LogIn;
+        } else if (!record?.break_start) {
+          next = "break_start"; label = "Mulai Istirahat"; variant = "default"; Icon = Coffee;
+        } else if (!record?.break_end) {
+          next = "break_end"; label = "Selesai Istirahat"; variant = "default"; Icon = Play;
+        } else {
+          next = "out"; label = "Clock Out"; variant = "warning"; Icon = LogOut;
+        }
+
+        const disabled = !isOnline || isInRadius === false;
+        const skipBreak = next === "break_start"; // allow skipping straight to clock-out
+
+        return (
+          <div className="space-y-2">
+            <Button
+              size="lg"
+              variant={variant}
+              onClick={() => handleClock(next)}
+              disabled={disabled}
+              loading={clockLoading === next}
+              className={cn(
+                "w-full h-16 flex items-center justify-center gap-2 rounded-2xl text-base font-semibold",
+                disabled && "opacity-50"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </Button>
+            {skipBreak && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleClock("out")}
+                disabled={disabled}
+                loading={clockLoading === "out"}
+                className="w-full"
+              >
+                <LogOut className="h-4 w-4 mr-1.5" />
+                Langsung Clock Out (tanpa istirahat)
+              </Button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Outside radius warning */}
       {isInRadius === false && (

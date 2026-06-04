@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from utils.auth import require_admin
 from db import supabase
+from routers.attendance import effective_work_minutes
 
 _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
 
@@ -21,6 +22,8 @@ class CompanyUpdateRequest(BaseModel):
     work_end: Optional[str] = None    # "HH:MM"
     work_saturday: Optional[bool] = None
     work_sunday: Optional[bool] = None
+    flexible_attendance: Optional[bool] = None
+    min_work_minutes: Optional[int] = Field(default=None, ge=30, le=1440)
 
     @field_validator("work_start", "work_end")
     @classmethod
@@ -33,6 +36,8 @@ class CompanyUpdateRequest(BaseModel):
 class AttendanceCorrectionRequest(BaseModel):
     clock_in: Optional[str] = None   # ISO datetime string, e.g. "2026-05-05T08:00:00"
     clock_out: Optional[str] = None  # ISO datetime string
+    break_start: Optional[str] = None
+    break_end: Optional[str] = None
     notes: Optional[str] = None
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -279,7 +284,7 @@ async def monthly_report(
     employees = emp_res.data or []
 
     # All attendance in range
-    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
     att_rows = att_res.data or []
 
     # Approved leaves in range
@@ -308,16 +313,8 @@ async def monthly_report(
         uid  = emp["id"]
         rows = att_by_user[uid]
 
-        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))  # late/early_leave treated as hadir (legacy data)
-        work_min = 0
-        for r in rows:
-            if r.get("clock_in") and r.get("clock_out"):
-                try:
-                    ci = datetime.fromisoformat(r["clock_in"].replace("Z", "+00:00"))
-                    co = datetime.fromisoformat(r["clock_out"].replace("Z", "+00:00"))
-                    work_min += max(0, int((co - ci).total_seconds() / 60))
-                except Exception:
-                    pass
+        hadir = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        work_min = sum(effective_work_minutes(r) for r in rows)
 
         result.append({
             "user_id":        uid,
@@ -355,7 +352,7 @@ async def export_monthly_report_csv(
     emp_res = supabase.table("profiles").select("id, full_name, position").eq("company_id", company_id).eq("is_active", True).order("full_name").execute()
     employees = emp_res.data or []
 
-    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
     att_rows = att_res.data or []
 
     leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").lte("start_date", last_day).gte("end_date", first_day).execute()
@@ -376,7 +373,6 @@ async def export_monthly_report_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    import calendar as cal_module
     month_name = f"{year}-{month:02d}"
     writer.writerow(["Rekap Absensi Bulanan", month_name])
     writer.writerow([])
@@ -385,16 +381,8 @@ async def export_monthly_report_csv(
     for emp in employees:
         uid  = emp["id"]
         rows = att_by_user[uid]
-        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))  # late/early_leave treated as hadir (legacy data)
-        work_min = 0
-        for r in rows:
-            if r.get("clock_in") and r.get("clock_out"):
-                try:
-                    ci = datetime.fromisoformat(r["clock_in"].replace("Z", "+00:00"))
-                    co = datetime.fromisoformat(r["clock_out"].replace("Z", "+00:00"))
-                    work_min += max(0, int((co - ci).total_seconds() / 60))
-                except Exception:
-                    pass
+        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
+        work_min = sum(effective_work_minutes(r) for r in rows)
         writer.writerow([
             emp["full_name"],
             emp.get("position") or "",
@@ -433,7 +421,7 @@ async def export_attendance_csv(
 
     res = (
         supabase.table("attendance")
-        .select("date, clock_in, clock_out, clock_in_distance_m, status, notes, profiles(full_name, position)")
+        .select("date, clock_in, clock_out, break_start, break_end, clock_in_distance_m, status, notes, profiles(full_name, position)")
         .eq("company_id", admin["company_id"])
         .gte("date", date_from)
         .lte("date", date_to)
@@ -444,31 +432,35 @@ async def export_attendance_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Jam Keluar", "Jarak (m)", "Status", "Catatan"])
+    writer.writerow(["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Jarak (m)", "Status", "Catatan"])
 
     for row in (res.data or []):
         profile = row.get("profiles") or {}
-        clock_in = row.get("clock_in", "")
-        clock_out = row.get("clock_out", "")
 
         # Format timestamps to local time string HH:MM
         def fmt(ts):
             if not ts:
                 return ""
-            from datetime import datetime, timezone
-            from zoneinfo import ZoneInfo
+            from datetime import datetime as _dt
+            from zoneinfo import ZoneInfo as _Zi
             try:
-                dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                return dt.astimezone(ZoneInfo("Asia/Jakarta")).strftime("%H:%M")
+                dt = _dt.fromisoformat(ts.replace("Z", "+00:00"))
+                return dt.astimezone(_Zi("Asia/Jakarta")).strftime("%H:%M")
             except Exception:
                 return ts
+
+        work_min = effective_work_minutes(row)
+        work_hrs = round(work_min / 60, 1) if work_min else ""
 
         writer.writerow([
             profile.get("full_name", ""),
             profile.get("position", ""),
             row.get("date", ""),
-            fmt(clock_in),
-            fmt(clock_out),
+            fmt(row.get("clock_in")),
+            fmt(row.get("break_start")),
+            fmt(row.get("break_end")),
+            fmt(row.get("clock_out")),
+            work_hrs,
             row.get("clock_in_distance_m", ""),
             row.get("status", ""),
             row.get("notes", ""),
@@ -494,7 +486,7 @@ async def correct_attendance(
     from zoneinfo import ZoneInfo
 
     try:
-        rec = supabase.table("attendance").select("company_id, date, clock_in").eq("id", record_id).single().execute()
+        rec = supabase.table("attendance").select("company_id, date, clock_in, clock_out, break_start, break_end").eq("id", record_id).single().execute()
     except Exception:
         raise HTTPException(404, "Attendance record not found")
     if not rec.data or rec.data["company_id"] != admin["company_id"]:
@@ -515,6 +507,10 @@ async def correct_attendance(
         updates["clock_in"] = parse_local(body.clock_in)
     if body.clock_out is not None:
         updates["clock_out"] = parse_local(body.clock_out)
+    if body.break_start is not None:
+        updates["break_start"] = parse_local(body.break_start) if body.break_start else None
+    if body.break_end is not None:
+        updates["break_end"] = parse_local(body.break_end) if body.break_end else None
     if body.notes is not None:
         updates["notes"] = body.notes
 

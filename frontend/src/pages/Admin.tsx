@@ -160,6 +160,7 @@ export default function AdminPage() {
     name: "", address: "", lat: "", lng: "",
     radius_meters: "", work_start: "", work_end: "",
     work_saturday: false, work_sunday: false,
+    flexible_attendance: false, min_work_hours: "8",
   });
 
   // Sync form when company data loads or refreshes after save
@@ -175,6 +176,8 @@ export default function AdminPage() {
       work_end:      companyData.work_end?.slice(0, 5) ?? "",
       work_saturday: companyData.work_saturday ?? false,
       work_sunday:   companyData.work_sunday ?? false,
+      flexible_attendance: companyData.flexible_attendance ?? false,
+      min_work_hours: ((companyData.min_work_minutes ?? 480) / 60).toString(),
     });
   }, [companyData]);
 
@@ -186,6 +189,10 @@ export default function AdminPage() {
       if (lat !== undefined && isNaN(lat)) throw new Error("Latitude tidak valid");
       if (lng !== undefined && isNaN(lng)) throw new Error("Longitude tidak valid");
       if (radius !== undefined && isNaN(radius)) throw new Error("Radius tidak valid");
+      const minHours = parseFloat(companyForm.min_work_hours);
+      if (isNaN(minHours) || minHours < 0.5 || minHours > 24) {
+        throw new Error("Minimum jam kerja harus 0.5 - 24 jam");
+      }
       return adminApi.updateCompany({
         name:          companyForm.name || undefined,
         address:       companyForm.address || undefined,
@@ -196,6 +203,8 @@ export default function AdminPage() {
         work_end:      companyForm.work_end || undefined,
         work_saturday: companyForm.work_saturday,
         work_sunday:   companyForm.work_sunday,
+        flexible_attendance: companyForm.flexible_attendance,
+        min_work_minutes:    Math.round(minHours * 60),
       });
     },
     onSuccess: () => {
@@ -1184,6 +1193,54 @@ export default function AdminPage() {
                         </button>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Flexible attendance */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Mode Absensi Fleksibel</p>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Karyawan bisa clock-in, istirahat, kembali kerja, lalu clock-out (4 kali absen).
+                      Status hadir dihitung dari total durasi kerja efektif.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyForm((f) => ({ ...f, flexible_attendance: !f.flexible_attendance }))}
+                      className="flex items-center gap-3 w-full text-left"
+                    >
+                      <div className={cn(
+                        "w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0",
+                        companyForm.flexible_attendance ? "bg-primary" : "bg-muted"
+                      )}>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full bg-white shadow transition-transform",
+                          companyForm.flexible_attendance ? "translate-x-4" : "translate-x-0"
+                        )} />
+                      </div>
+                      <span className="text-sm text-foreground">Aktifkan mode fleksibel</span>
+                    </button>
+
+                    {companyForm.flexible_attendance && (
+                      <>
+                        <Input
+                          label="Minimum Jam Kerja (jam)"
+                          type="number"
+                          step="0.5"
+                          min="0.5"
+                          max="24"
+                          placeholder="8"
+                          value={companyForm.min_work_hours}
+                          onChange={(e) => setCompanyForm({ ...companyForm, min_work_hours: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Karyawan dianggap <span className="font-semibold text-foreground">hadir</span> jika total durasi kerja
+                          (clock_in → istirahat) + (istirahat selesai → clock_out) mencapai{" "}
+                          <span className="font-semibold text-foreground">{companyForm.min_work_hours || "8"} jam</span>.
+                          Kurang dari itu akan dianggap pulang lebih awal.
+                        </p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 

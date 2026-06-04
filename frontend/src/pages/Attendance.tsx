@@ -9,6 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { attendanceApi, correctionsApi } from "@/lib/api";
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+
+function effectiveMinutes(row: any): number | null {
+  if (!row.clock_in || !row.clock_out) return null;
+  const ci = new Date(row.clock_in).getTime();
+  const co = new Date(row.clock_out).getTime();
+  if (row.break_start && row.break_end) {
+    const bs = new Date(row.break_start).getTime();
+    const be = new Date(row.break_end).getTime();
+    return Math.max(0, Math.round((bs - ci) / 60000) + Math.round((co - be) / 60000));
+  }
+  return Math.max(0, Math.round((co - ci) / 60000));
+}
 
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
@@ -35,6 +48,7 @@ export default function AttendancePage() {
   const [showFilter, setShowFilter] = useState(false);
   const toast = useToast();
   const qc = useQueryClient();
+  const flexible = !!useAuthStore((s) => s.profile?.companies?.flexible_attendance);
 
   const { data, isLoading } = useQuery({
     queryKey: ["attendance-history", page, dateFrom, dateTo],
@@ -170,12 +184,11 @@ export default function AttendancePage() {
               : data?.data.length === 0
               ? <div className="py-12 text-center text-muted-foreground text-sm"><Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada data absensi</div>
               : data?.data.map((row: any) => {
-                  const duration = row.clock_in && row.clock_out
-                    ? Math.round((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60000)
-                    : null;
+                  const duration = effectiveMinutes(row);
                   const corrStatus = corrByAttId[row.id];
                   const corrInfo = corrStatus ? corrStatusMap[corrStatus] : null;
                   const hasPending = corrStatus === "pending";
+                  const hasBreak = row.break_start || row.break_end;
                   return (
                     <div key={row.id} className="px-4 py-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
@@ -191,8 +204,13 @@ export default function AttendancePage() {
                           </button>
                         </div>
                       </div>
-                      <div className="flex gap-3 text-xs font-mono text-muted-foreground">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-mono text-muted-foreground">
                         <span>Masuk: <span className="text-foreground font-semibold">{row.clock_in ? fmtTime(row.clock_in) : "—"}</span></span>
+                        {hasBreak && (
+                          <>
+                            <span>Istirahat: <span className="text-foreground font-semibold">{row.break_start ? fmtTime(row.break_start) : "—"} – {row.break_end ? fmtTime(row.break_end) : "—"}</span></span>
+                          </>
+                        )}
                         <span>Keluar: <span className="text-foreground font-semibold">{row.clock_out ? fmtTime(row.clock_out) : "—"}</span></span>
                         {duration != null && <span className="text-purple-600 font-bold">{fmtDuration(duration)}</span>}
                       </div>
@@ -209,55 +227,60 @@ export default function AttendancePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
-                  {["Tanggal", "Masuk", "Keluar", "Durasi", "Status", ""].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                  {(flexible
+                    ? ["Tanggal", "Masuk", "Istirahat", "Kembali", "Keluar", "Durasi", "Status", ""]
+                    : ["Tanggal", "Masuk", "Keluar", "Durasi", "Status", ""]
+                  ).map((h, i) => (
+                    <th key={`${h}-${i}`} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {isLoading
-                  ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)
-                  : data?.data.length === 0
-                  ? <tr><td colSpan={6} className="text-center py-12 text-muted-foreground text-sm"><Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada data absensi</td></tr>
-                  : data?.data.map((row: any) => {
-                      const duration = row.clock_in && row.clock_out
-                        ? Math.round((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60000)
-                        : null;
-                      const corrStatus = corrByAttId[row.id];
-                      const corrInfo = corrStatus ? corrStatusMap[corrStatus] : null;
-                      const hasPending = corrStatus === "pending";
-                      return (
-                        <Fragment key={row.id}>
-                          <tr className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                            <td className="px-4 py-3 font-medium">{fmtDate(row.date)}</td>
-                            <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : <span className="text-muted-foreground">—</span>}</td>
-                            <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : <span className="text-muted-foreground">—</span>}</td>
-                            <td className="px-4 py-3 text-xs font-mono text-purple-600 font-semibold">{duration != null ? fmtDuration(duration) : "—"}</td>
-                            <td className="px-4 py-3"><Badge status={row.status} /></td>
-                            <td className="px-4 py-3">
-                              <button onClick={() => { if (!hasPending) openCorr(row); }} disabled={hasPending}
-                                className={cn("p-1.5 rounded-lg transition-colors", hasPending ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100")}
-                                title={hasPending ? "Ada koreksi yang sedang menunggu" : "Ajukan koreksi"}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
+                {(() => {
+                  const cols = flexible ? 8 : 6;
+                  if (isLoading) return Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={cols} />);
+                  if (data?.data.length === 0) {
+                    return <tr><td colSpan={cols} className="text-center py-12 text-muted-foreground text-sm"><Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada data absensi</td></tr>;
+                  }
+                  return data?.data.map((row: any) => {
+                    const duration = effectiveMinutes(row);
+                    const corrStatus = corrByAttId[row.id];
+                    const corrInfo = corrStatus ? corrStatusMap[corrStatus] : null;
+                    const hasPending = corrStatus === "pending";
+                    return (
+                      <Fragment key={row.id}>
+                        <tr className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-medium">{fmtDate(row.date)}</td>
+                          <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : <span className="text-muted-foreground">—</span>}</td>
+                          {flexible && <td className="px-4 py-3 font-mono text-xs">{row.break_start ? fmtTime(row.break_start) : <span className="text-muted-foreground">—</span>}</td>}
+                          {flexible && <td className="px-4 py-3 font-mono text-xs">{row.break_end ? fmtTime(row.break_end) : <span className="text-muted-foreground">—</span>}</td>}
+                          <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-4 py-3 text-xs font-mono text-purple-600 font-semibold">{duration != null ? fmtDuration(duration) : "—"}</td>
+                          <td className="px-4 py-3"><Badge status={row.status} /></td>
+                          <td className="px-4 py-3">
+                            <button onClick={() => { if (!hasPending) openCorr(row); }} disabled={hasPending}
+                              className={cn("p-1.5 rounded-lg transition-colors", hasPending ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100")}
+                              title={hasPending ? "Ada koreksi yang sedang menunggu" : "Ajukan koreksi"}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                        {corrInfo && (
+                          <tr className="border-b border-border/50 bg-muted/10">
+                            <td colSpan={cols} className="px-4 py-1.5">
+                              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", corrInfo.className)}>{corrInfo.label}</span>
                             </td>
                           </tr>
-                          {corrInfo && (
-                            <tr className="border-b border-border/50 bg-muted/10">
-                              <td colSpan={6} className="px-4 py-1.5">
-                                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", corrInfo.className)}>{corrInfo.label}</span>
-                              </td>
-                            </tr>
-                          )}
-                          {row.notes && (
-                            <tr className="border-b border-border/50 bg-muted/20">
-                              <td colSpan={6} className="px-4 py-2 text-xs text-muted-foreground"><span className="font-semibold">Catatan:</span> {row.notes}</td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })
-                }
+                        )}
+                        {row.notes && (
+                          <tr className="border-b border-border/50 bg-muted/20">
+                            <td colSpan={cols} className="px-4 py-2 text-xs text-muted-foreground"><span className="font-semibold">Catatan:</span> {row.notes}</td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

@@ -18,6 +18,8 @@ CREATE TABLE companies (
   radius_meters INT DEFAULT 100, -- allowed clock-in radius
   work_start TIME DEFAULT '08:00',
   work_end   TIME DEFAULT '17:00',
+  flexible_attendance BOOLEAN NOT NULL DEFAULT FALSE, -- enables break sessions + duration-based status
+  min_work_minutes INT NOT NULL DEFAULT 480,          -- threshold (in minutes) of effective work time to count as "present"
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -47,6 +49,8 @@ CREATE TABLE attendance (
   date DATE NOT NULL DEFAULT CURRENT_DATE,
   clock_in TIMESTAMPTZ,
   clock_out TIMESTAMPTZ,
+  break_start TIMESTAMPTZ, -- flexible mode: mulai istirahat
+  break_end   TIMESTAMPTZ, -- flexible mode: selesai istirahat
   clock_in_lat DOUBLE PRECISION,
   clock_in_lng DOUBLE PRECISION,
   clock_out_lat DOUBLE PRECISION,

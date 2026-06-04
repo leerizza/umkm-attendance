@@ -91,12 +91,20 @@ class ClockOutRequest(BaseModel):
     notes: Optional[str] = Field(default=None, max_length=500)
 
 
+class BreakRequest(BaseModel):
+    """Used for both mulai-istirahat and selesai-istirahat (flexible mode only)."""
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
+
 class AttendanceResponse(BaseModel):
     id: str
     user_id: str
     date: date
     clock_in: Optional[datetime]
     clock_out: Optional[datetime]
+    break_start: Optional[datetime] = None
+    break_end: Optional[datetime] = None
     status: str
     clock_in_distance_m: Optional[int]
     clock_out_distance_m: Optional[int]

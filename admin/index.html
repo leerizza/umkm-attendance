@@ -1169,7 +1169,12 @@
     pendingAction  = () => _doDecide(id, approved);
     document.getElementById("confirm-bg").classList.add("open");
   }
-  function runConfirm()  { closeConfirm(); if (pendingAction) { pendingAction(); pendingAction = null; } }
+  function runConfirm()  {
+    const action = pendingAction;
+    document.getElementById("confirm-bg").classList.remove("open");
+    pendingAction = null;
+    if (action) action();
+  }
   function closeConfirm(){ document.getElementById("confirm-bg").classList.remove("open"); pendingAction = null; }
   function handleConfirmBackdrop(e) { if (e.target === document.getElementById("confirm-bg")) closeConfirm(); }
 

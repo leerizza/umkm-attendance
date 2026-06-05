@@ -48,7 +48,8 @@ export default function AttendancePage() {
   const [showFilter, setShowFilter] = useState(false);
   const toast = useToast();
   const qc = useQueryClient();
-  const flexible = !!useAuthStore((s) => s.profile?.companies?.flexible_attendance);
+  const flexible      = !!useAuthStore((s) => s.profile?.companies?.flexible_attendance);
+  const multiLocation = !!useAuthStore((s) => s.profile?.companies?.multi_location);
 
   const { data, isLoading } = useQuery({
     queryKey: ["attendance-history", page, dateFrom, dateTo],
@@ -214,6 +215,9 @@ export default function AttendancePage() {
                         <span>Keluar: <span className="text-foreground font-semibold">{row.clock_out ? fmtTime(row.clock_out) : "—"}</span></span>
                         {duration != null && <span className="text-purple-600 font-bold">{fmtDuration(duration)}</span>}
                       </div>
+                      {multiLocation && row.locations?.name && (
+                        <p className="text-xs text-muted-foreground">📍 {row.locations.name}</p>
+                      )}
                       {corrInfo && <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full inline-block", corrInfo.className)}>{corrInfo.label}</span>}
                       {row.notes && <p className="text-xs text-muted-foreground truncate">📝 {row.notes}</p>}
                     </div>
@@ -227,17 +231,23 @@ export default function AttendancePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
-                  {(flexible
-                    ? ["Tanggal", "Masuk", "Istirahat", "Kembali", "Keluar", "Durasi", "Status", ""]
-                    : ["Tanggal", "Masuk", "Keluar", "Durasi", "Status", ""]
-                  ).map((h, i) => (
+                  {([
+                    "Tanggal",
+                    "Masuk",
+                    ...(flexible ? ["Istirahat", "Kembali"] : []),
+                    "Keluar",
+                    "Durasi",
+                    ...(multiLocation ? ["Lokasi"] : []),
+                    "Status",
+                    "",
+                  ]).map((h, i) => (
                     <th key={`${h}-${i}`} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {(() => {
-                  const cols = flexible ? 8 : 6;
+                  const cols = 6 + (flexible ? 2 : 0) + (multiLocation ? 1 : 0);
                   if (isLoading) return Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={cols} />);
                   if (data?.data.length === 0) {
                     return <tr><td colSpan={cols} className="text-center py-12 text-muted-foreground text-sm"><Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada data absensi</td></tr>;
@@ -256,6 +266,7 @@ export default function AttendancePage() {
                           {flexible && <td className="px-4 py-3 font-mono text-xs">{row.break_end ? fmtTime(row.break_end) : <span className="text-muted-foreground">—</span>}</td>}
                           <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : <span className="text-muted-foreground">—</span>}</td>
                           <td className="px-4 py-3 text-xs font-mono text-purple-600 font-semibold">{duration != null ? fmtDuration(duration) : "—"}</td>
+                          {multiLocation && <td className="px-4 py-3 text-xs text-muted-foreground">{row.locations?.name ?? "—"}</td>}
                           <td className="px-4 py-3"><Badge status={row.status} /></td>
                           <td className="px-4 py-3">
                             <button onClick={() => { if (!hasPending) openCorr(row); }} disabled={hasPending}

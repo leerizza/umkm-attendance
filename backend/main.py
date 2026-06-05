@@ -6,7 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
-from routers import auth, attendance, leave, overtime, admin, corrections, superadmin, analytics, demo
+from routers import auth, attendance, leave, overtime, admin, corrections, superadmin, analytics, demo, locations
 
 
 # ─── CORS error fallback middleware ───────────────────────────────────────────
@@ -68,6 +68,7 @@ app.include_router(corrections.router)
 app.include_router(superadmin.router)
 app.include_router(analytics.router)
 app.include_router(demo.router)
+app.include_router(locations.router)
 
 
 @app.get("/health")

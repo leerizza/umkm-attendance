@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X,
+  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X, MapPin,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge, CardSkeleton, TableRowSkeleton } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
-import { adminApi, leaveApi, overtimeApi, correctionsApi } from "@/lib/api";
+import { adminApi, leaveApi, overtimeApi, correctionsApi, locationsApi } from "@/lib/api";
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { IS_DEMO } from "@/lib/demo";
@@ -161,6 +161,7 @@ export default function AdminPage() {
     radius_meters: "", work_start: "", work_end: "",
     work_saturday: false, work_sunday: false,
     flexible_attendance: false, min_work_hours: "8",
+    multi_location: false,
   });
 
   // Sync form when company data loads or refreshes after save
@@ -178,6 +179,7 @@ export default function AdminPage() {
       work_sunday:   companyData.work_sunday ?? false,
       flexible_attendance: companyData.flexible_attendance ?? false,
       min_work_hours: ((companyData.min_work_minutes ?? 480) / 60).toString(),
+      multi_location: companyData.multi_location ?? false,
     });
   }, [companyData]);
 
@@ -205,6 +207,7 @@ export default function AdminPage() {
         work_sunday:   companyForm.work_sunday,
         flexible_attendance: companyForm.flexible_attendance,
         min_work_minutes:    Math.round(minHours * 60),
+        multi_location:      companyForm.multi_location,
       });
     },
     onSuccess: () => {
@@ -212,6 +215,87 @@ export default function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-company"] });
     },
     onError: (err) => toast.error("Gagal menyimpan", getErrMsg(err)),
+  });
+
+  // ── Locations (multi-location mode) ────────────────────────
+  const { data: locationsData, isLoading: locationsLoading } = useQuery({
+    queryKey: ["admin-locations"],
+    queryFn: () => locationsApi.list().then((r) => r.data),
+    enabled: tab === "settings" && companyForm.multi_location,
+  });
+
+  const [locModal, setLocModal] = useState<null | {
+    id?: string;
+    name: string;
+    address: string;
+    lat: string;
+    lng: string;
+    radius_meters: string;
+  }>(null);
+
+  const saveLocation = useMutation({
+    mutationFn: () => {
+      if (!locModal) throw new Error("No data");
+      const lat = parseFloat(locModal.lat);
+      const lng = parseFloat(locModal.lng);
+      const radius = parseInt(locModal.radius_meters || "100");
+      if (isNaN(lat) || isNaN(lng)) throw new Error("Pilih titik lokasi di peta dulu");
+      if (!locModal.name.trim()) throw new Error("Nama lokasi wajib diisi");
+      const payload = {
+        name: locModal.name.trim(),
+        address: locModal.address || undefined,
+        lat, lng,
+        radius_meters: isNaN(radius) ? 100 : radius,
+      };
+      return locModal.id
+        ? locationsApi.update(locModal.id, payload)
+        : locationsApi.create(payload);
+    },
+    onSuccess: () => {
+      toast.success(locModal?.id ? "Lokasi diupdate" : "Lokasi ditambahkan");
+      qc.invalidateQueries({ queryKey: ["admin-locations"] });
+      setLocModal(null);
+    },
+    onError: (err) => toast.error("Gagal", getErrMsg(err)),
+  });
+
+  const deleteLocation = useMutation({
+    mutationFn: (id: string) => locationsApi.remove(id),
+    onSuccess: () => {
+      toast.success("Lokasi dihapus");
+      qc.invalidateQueries({ queryKey: ["admin-locations"] });
+    },
+    onError: (err) => toast.error("Gagal hapus", getErrMsg(err)),
+  });
+
+  // ── Assign employee → locations ────────────────────────────
+  const multiLocationOn = !!adminProfile?.companies?.multi_location;
+  const [assignLocModal, setAssignLocModal] = useState<null | { user_id: string; name: string; selected: Set<string> }>(null);
+
+  // Locations list — also enable when assign modal is open (so the picker has data)
+  const { data: allLocationsData } = useQuery({
+    queryKey: ["admin-locations-all"],
+    queryFn: () => locationsApi.list().then((r) => r.data),
+    enabled: tab === "employees" && multiLocationOn,
+  });
+
+  async function openAssignLocations(user_id: string, name: string) {
+    try {
+      const r = await locationsApi.getForEmployee(user_id);
+      setAssignLocModal({ user_id, name, selected: new Set(r.data.location_ids || []) });
+    } catch (err) {
+      toast.error("Gagal memuat lokasi karyawan", getErrMsg(err));
+    }
+  }
+
+  const saveAssignLocations = useMutation({
+    mutationFn: () =>
+      locationsApi.assignToEmployee(assignLocModal!.user_id, Array.from(assignLocModal!.selected)),
+    onSuccess: () => {
+      toast.success("Lokasi karyawan diupdate");
+      setAssignLocModal(null);
+    },
+    onError: (err) => toast.error("Gagal", getErrMsg(err)),
   });
 
   // ── Export ─────────────────────────────────────────────────
@@ -345,6 +429,125 @@ export default function AdminPage() {
   return (
     <div>
       <PageHeader title="Admin Panel" subtitle="Kelola absensi perusahaan" />
+
+      {/* ── Location create/edit modal ── */}
+      {locModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm">
+          <Card className="w-full md:max-w-md rounded-t-2xl md:rounded-2xl border-0 shadow-xl animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
+              <h3 className="font-bold text-base">{locModal.id ? "Edit Lokasi" : "Tambah Lokasi"}</h3>
+              <button onClick={() => setLocModal(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <CardContent className="p-5 space-y-4">
+              <Input
+                label="Nama Lokasi"
+                placeholder="Contoh: Cabang Jakarta, Toko Bandung"
+                value={locModal.name}
+                onChange={(e) => setLocModal({ ...locModal, name: e.target.value })}
+              />
+              <Input
+                label="Alamat (opsional)"
+                placeholder="Jl. Sudirman No. 1"
+                value={locModal.address}
+                onChange={(e) => setLocModal({ ...locModal, address: e.target.value })}
+              />
+              <div>
+                <p className="text-sm font-medium mb-2">Titik Lokasi</p>
+                <LocationPicker
+                  lat={locModal.lat ? parseFloat(locModal.lat) : null}
+                  lng={locModal.lng ? parseFloat(locModal.lng) : null}
+                  onChange={(lat, lng) => setLocModal({ ...locModal, lat: lat.toString(), lng: lng.toString() })}
+                />
+              </div>
+              <Input
+                label="Radius (meter)"
+                type="number"
+                min="10"
+                max="50000"
+                placeholder="100"
+                value={locModal.radius_meters}
+                onChange={(e) => setLocModal({ ...locModal, radius_meters: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setLocModal(null)}>Batal</Button>
+                <Button className="flex-1" loading={saveLocation.isPending} onClick={() => saveLocation.mutate()}>
+                  {locModal.id ? "Simpan" : "Tambah"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Assign-locations-to-employee modal ── */}
+      {assignLocModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm">
+          <Card className="w-full md:max-w-md rounded-t-2xl md:rounded-2xl border-0 shadow-xl animate-slide-up max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+              <div>
+                <h3 className="font-bold text-base">Atur Lokasi Absensi</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{assignLocModal.name}</p>
+              </div>
+              <button onClick={() => setAssignLocModal(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <CardContent className="p-5 space-y-3 overflow-y-auto flex-1">
+              <p className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Pilih lokasi yang diizinkan untuk karyawan ini absen. Karyawan tanpa lokasi tidak bisa clock-in.
+              </p>
+              {(allLocationsData?.data ?? []).length === 0 ? (
+                <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-lg">
+                  Belum ada lokasi. Tambahkan lokasi di tab Pengaturan dulu.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(allLocationsData?.data ?? []).map((loc: any) => {
+                    const checked = assignLocModal.selected.has(loc.id);
+                    return (
+                      <label
+                        key={loc.id}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                          checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const next = new Set(assignLocModal.selected);
+                            if (checked) next.delete(loc.id); else next.add(loc.id);
+                            setAssignLocModal({ ...assignLocModal, selected: next });
+                          }}
+                          className="w-4 h-4 accent-primary"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{loc.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Radius {loc.radius_meters}m{loc.address ? ` · ${loc.address}` : ""}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                {assignLocModal.selected.size} lokasi dipilih
+              </p>
+            </CardContent>
+            <div className="flex gap-2 p-5 border-t border-border shrink-0">
+              <Button variant="outline" className="flex-1" onClick={() => setAssignLocModal(null)}>Batal</Button>
+              <Button className="flex-1" loading={saveAssignLocations.isPending} onClick={() => saveAssignLocations.mutate()}>
+                Simpan
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* ── Review modal ── */}
       {reviewModal && (
@@ -824,11 +1027,22 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-xs font-mono">{row.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {row.id !== adminProfile?.id && !IS_DEMO && (
-                      <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors", row.is_active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
-                        {row.is_active ? "Nonaktifkan" : "Aktifkan"}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {multiLocationOn && (
+                        <button
+                          onClick={() => openAssignLocations(row.id, row.full_name)}
+                          className="text-xs px-2 py-1 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 inline-flex items-center gap-1"
+                          title="Atur lokasi absen karyawan"
+                        >
+                          <MapPin className="h-3 w-3" /> Lokasi
+                        </button>
+                      )}
+                      {row.id !== adminProfile?.id && !IS_DEMO && (
+                        <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors", row.is_active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
+                          {row.is_active ? "Nonaktifkan" : "Aktifkan"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -849,6 +1063,14 @@ export default function AdminPage() {
                       <option value="employee">employee</option>
                       <option value="admin">admin</option>
                     </select>
+                    {multiLocationOn && (
+                      <button
+                        onClick={() => openAssignLocations(row.id, row.full_name)}
+                        className="text-xs px-2 py-0.5 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 inline-flex items-center gap-1"
+                      >
+                        <MapPin className="h-3 w-3" /> Lokasi
+                      </button>
+                    )}
                     {row.id !== adminProfile?.id && !IS_DEMO && (
                       <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors ml-auto", row.is_active !== false ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
                         {row.is_active !== false ? "Nonaktifkan" : "Aktifkan"}
@@ -1193,6 +1415,108 @@ export default function AdminPage() {
                         </button>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Multi-location */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Mode Multi-Lokasi</p>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Aktifkan untuk perusahaan dengan lebih dari 1 cabang/titik absensi.
+                      Setiap karyawan bisa di-assign ke beberapa titik tertentu saja.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyForm((f) => ({ ...f, multi_location: !f.multi_location }))}
+                      className="flex items-center gap-3 w-full text-left"
+                    >
+                      <div className={cn(
+                        "w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0",
+                        companyForm.multi_location ? "bg-primary" : "bg-muted"
+                      )}>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full bg-white shadow transition-transform",
+                          companyForm.multi_location ? "translate-x-4" : "translate-x-0"
+                        )} />
+                      </div>
+                      <span className="text-sm text-foreground">Aktifkan mode multi-lokasi</span>
+                    </button>
+
+                    {companyForm.multi_location && (
+                      <div className="pt-2 border-t border-border space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-foreground/70">Daftar Lokasi Absensi</p>
+                          <Button
+                            size="sm"
+                            onClick={() => setLocModal({
+                              name: "", address: "",
+                              lat: companyForm.lat || "", lng: companyForm.lng || "",
+                              radius_meters: companyForm.radius_meters || "100",
+                            })}
+                          >
+                            + Tambah Lokasi
+                          </Button>
+                        </div>
+
+                        {locationsLoading ? (
+                          <div className="space-y-2">
+                            {[1,2].map(i => <div key={i} className="h-14 bg-muted rounded-lg animate-pulse" />)}
+                          </div>
+                        ) : (locationsData?.data ?? []).length === 0 ? (
+                          <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-lg">
+                            Belum ada lokasi. Klik "+ Tambah Lokasi" untuk mulai.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {(locationsData?.data ?? []).map((loc: any) => (
+                              <div key={loc.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                                <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                                  <MapPin className="w-4 h-4 text-indigo-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-sm truncate">{loc.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    Radius {loc.radius_meters}m
+                                    {loc.address ? ` · ${loc.address}` : ""}
+                                  </p>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    onClick={() => setLocModal({
+                                      id: loc.id,
+                                      name: loc.name,
+                                      address: loc.address ?? "",
+                                      lat: loc.lat?.toString() ?? "",
+                                      lng: loc.lng?.toString() ?? "",
+                                      radius_meters: loc.radius_meters?.toString() ?? "100",
+                                    })}
+                                    className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`Hapus lokasi "${loc.name}"?`)) deleteLocation.mutate(loc.id);
+                                    }}
+                                    className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+                                    title="Hapus"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <p className="text-xs text-muted-foreground">
+                          💡 Setelah menambah lokasi, jangan lupa atur lokasi yang diizinkan
+                          untuk tiap karyawan di tab <strong>Karyawan</strong>.
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

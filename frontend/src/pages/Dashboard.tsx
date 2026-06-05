@@ -50,12 +50,50 @@ export default function Dashboard() {
   }, []);
 
   const company = profile?.companies;
-  const distanceM = livePos && company?.lat != null && company?.lng != null
-    ? Math.round(haversine(livePos.lat, livePos.lng, company.lat, company.lng))
-    : null;
-  const isInRadius = distanceM !== null && company?.radius_meters
-    ? distanceM <= company.radius_meters
-    : null; // null = belum dapat GPS
+  const multiLocation = !!company?.multi_location;
+
+  // Fetch assigned locations only when company is in multi-location mode
+  const { data: myLocsData } = useQuery({
+    queryKey: ["my-locations"],
+    queryFn: () => attendanceApi.myLocations().then((r) => r.data),
+    enabled: isOnline && multiLocation,
+    staleTime: 60_000,
+  });
+  const myLocations: any[] = myLocsData?.data ?? [];
+
+  // Find nearest matching location (multi-location) or fallback to company single-point
+  const { distanceM, isInRadius, nearestName } = (() => {
+    if (!livePos) return { distanceM: null, isInRadius: null, nearestName: null };
+
+    if (multiLocation) {
+      if (myLocations.length === 0) {
+        // Karyawan tidak ter-assign ke titik manapun
+        return { distanceM: null, isInRadius: false, nearestName: null };
+      }
+      let best: { dist: number; loc: any } | null = null;
+      let inside = false;
+      for (const loc of myLocations) {
+        const d = Math.round(haversine(livePos.lat, livePos.lng, loc.lat, loc.lng));
+        if (d <= loc.radius_meters) inside = true;
+        if (!best || d < best.dist) best = { dist: d, loc };
+      }
+      return {
+        distanceM: best?.dist ?? null,
+        isInRadius: inside,
+        nearestName: best?.loc?.name ?? null,
+      };
+    }
+
+    if (company?.lat == null || company?.lng == null) {
+      return { distanceM: null, isInRadius: null, nearestName: null };
+    }
+    const d = Math.round(haversine(livePos.lat, livePos.lng, company.lat, company.lng));
+    return {
+      distanceM: d,
+      isInRadius: company.radius_meters ? d <= company.radius_meters : null,
+      nearestName: null,
+    };
+  })();
 
   // Live clock
   useEffect(() => {
@@ -363,7 +401,11 @@ export default function Dashboard() {
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
-            Kamu di luar radius kantor ({distanceM}m dari kantor). Absensi hanya bisa dilakukan di dalam area radius.
+            {multiLocation && myLocations.length === 0
+              ? "Kamu belum di-assign ke lokasi manapun. Minta admin untuk mengatur lokasi absensimu dulu."
+              : multiLocation
+              ? `Kamu di luar radius semua lokasi yang ter-assign. Terdekat: ${nearestName ?? "—"} (${distanceM}m).`
+              : `Kamu di luar radius kantor (${distanceM}m dari kantor). Absensi hanya bisa dilakukan di dalam area radius.`}
           </span>
         </div>
       )}
@@ -385,18 +427,38 @@ export default function Dashboard() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-foreground">Area Absensi</p>
-              <p className="text-xs text-muted-foreground truncate">
-                Radius {profile.companies.radius_meters}m dari kantor
-              </p>
-              {distanceM !== null && (
-                <p className={cn(
-                  "text-xs font-semibold mt-0.5",
-                  isInRadius ? "text-emerald-600" : "text-red-600"
-                )}>
-                  {isInRadius ? "✓" : "✗"} {distanceM}m dari kantor
-                </p>
+              {multiLocation ? (
+                <>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {myLocations.length > 0
+                      ? `${myLocations.length} lokasi ter-assign · Terdekat: ${nearestName ?? "—"}`
+                      : "Belum di-assign ke lokasi manapun"}
+                  </p>
+                  {distanceM !== null && nearestName && (
+                    <p className={cn(
+                      "text-xs font-semibold mt-0.5",
+                      isInRadius ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {isInRadius ? "✓" : "✗"} {distanceM}m dari {nearestName}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Radius {profile.companies.radius_meters}m dari kantor
+                  </p>
+                  {distanceM !== null && (
+                    <p className={cn(
+                      "text-xs font-semibold mt-0.5",
+                      isInRadius ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {isInRadius ? "✓" : "✗"} {distanceM}m dari kantor
+                    </p>
+                  )}
+                </>
               )}
-              {distanceM === null && (
+              {distanceM === null && !(multiLocation && myLocations.length === 0) && (
                 <p className="text-xs text-muted-foreground mt-0.5">Mendeteksi lokasi...</p>
               )}
             </div>

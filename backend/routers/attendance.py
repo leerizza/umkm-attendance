@@ -48,9 +48,49 @@ def _get_today_record(user_id: str, today: str):
     return res.data[0] if res.data else None
 
 
-def _validate_radius(body, company) -> int:
+def _resolve_location(body, company, user_id: str) -> tuple[int, str | None]:
+    """Validate GPS against either the legacy single-point or assigned multi-locations.
+
+    Returns (distance_in_meters, location_id_or_None). Raises HTTPException 400
+    if outside every allowed radius.
+    """
+    # Multi-location mode: must be inside the radius of at least one assigned location
+    if company.get("multi_location"):
+        res = (
+            supabase.table("employee_locations")
+            .select("location_id, locations(id, name, lat, lng, radius_meters, is_active)")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        active = [r["locations"] for r in (res.data or [])
+                  if r.get("locations") and r["locations"].get("is_active")]
+        if not active:
+            raise HTTPException(
+                400,
+                "Kamu belum di-assign ke lokasi manapun. Minta admin untuk mengatur lokasi absensimu dulu.",
+            )
+
+        best_distance: int | None = None
+        best_loc: dict | None = None
+        for loc in active:
+            within, dist = is_within_radius(
+                body.lat, body.lng, loc["lat"], loc["lng"], loc["radius_meters"],
+            )
+            if within:
+                return dist, loc["id"]
+            if best_distance is None or dist < best_distance:
+                best_distance, best_loc = dist, loc
+
+        names = ", ".join(l["name"] for l in active)
+        raise HTTPException(
+            400,
+            f"Kamu di luar radius semua lokasi yang ter-assign ({names}). "
+            f"Terdekat: {best_loc['name']} ({best_distance}m, maks {best_loc['radius_meters']}m).",
+        )
+
+    # Legacy single-point mode
     if company.get("lat") is None or company.get("lng") is None:
-        return 0
+        return 0, None
     within, distance = is_within_radius(
         body.lat, body.lng,
         company["lat"], company["lng"],
@@ -61,7 +101,7 @@ def _validate_radius(body, company) -> int:
             400,
             f"Kamu berada {distance}m dari kantor. Maksimal {company['radius_meters']}m.",
         )
-    return distance
+    return distance, None
 
 
 @router.post("/clock-in")
@@ -77,7 +117,7 @@ async def clock_in(
     if existing and existing.get("clock_in"):
         raise HTTPException(400, "Sudah clock-in hari ini")
 
-    distance = _validate_radius(body, company)
+    distance, location_id = _resolve_location(body, company, user_id)
 
     now = datetime.now(timezone.utc).isoformat()
     status = "present"
@@ -88,6 +128,7 @@ async def clock_in(
             "clock_in_lat": body.lat,
             "clock_in_lng": body.lng,
             "clock_in_distance_m": distance,
+            "location_id": location_id,
             "status": status,
             "notes": body.notes,
         }).eq("id", existing["id"]).execute()
@@ -100,6 +141,7 @@ async def clock_in(
             "clock_in_lat": body.lat,
             "clock_in_lng": body.lng,
             "clock_in_distance_m": distance,
+            "location_id": location_id,
             "status": status,
             "notes": body.notes,
         }).execute()
@@ -108,6 +150,7 @@ async def clock_in(
         "message": "Clock-in berhasil",
         "time": now,
         "distance_m": distance,
+        "location_id": location_id,
         "status": status,
     }
 
@@ -130,7 +173,7 @@ async def break_start(
     if existing.get("break_start"):
         raise HTTPException(400, "Istirahat sudah dimulai")
 
-    _validate_radius(body, company)
+    _resolve_location(body, company, profile["id"])
     now = datetime.now(timezone.utc).isoformat()
     supabase.table("attendance").update({"break_start": now}).eq("id", existing["id"]).execute()
     return {"message": "Mulai istirahat", "time": now}
@@ -152,7 +195,7 @@ async def break_end(
     if existing.get("break_end"):
         raise HTTPException(400, "Istirahat sudah selesai")
 
-    _validate_radius(body, company)
+    _resolve_location(body, company, profile["id"])
     now = datetime.now(timezone.utc).isoformat()
     supabase.table("attendance").update({"break_end": now}).eq("id", existing["id"]).execute()
     return {"message": "Selesai istirahat", "time": now}
@@ -176,7 +219,7 @@ async def clock_out(
     if existing.get("break_start") and not existing.get("break_end"):
         raise HTTPException(400, "Selesaikan istirahat dulu sebelum clock-out")
 
-    distance = _validate_radius(body, company)
+    distance, _ = _resolve_location(body, company, user_id)
 
     now_utc = datetime.now(timezone.utc)
     now = now_utc.isoformat()
@@ -227,7 +270,7 @@ async def get_history(
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance")
-        .select("*", count="exact")
+        .select("*, locations(name)", count="exact")
         .eq("user_id", profile["id"])
         .order("date", desc=True)
     )

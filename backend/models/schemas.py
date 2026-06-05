@@ -119,6 +119,30 @@ class AttendanceListResponse(BaseModel):
     per_page: int
 
 
+# ─── Locations (multi-location mode) ─────────────────────────────────────────
+
+class LocationCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    address: Optional[str] = Field(default=None, max_length=255)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    radius_meters: int = Field(default=100, ge=10, le=50000)
+
+
+class LocationUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    address: Optional[str] = Field(default=None, max_length=255)
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    radius_meters: Optional[int] = Field(default=None, ge=10, le=50000)
+    is_active: Optional[bool] = None
+
+
+class EmployeeLocationsAssignRequest(BaseModel):
+    """Replace the full list of locations assigned to one employee."""
+    location_ids: list[str]
+
+
 # ─── Leave ───────────────────────────────────────────────────────────────────
 
 _LEAVE_TYPES = {"annual", "sick", "personal", "other"}

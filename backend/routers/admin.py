@@ -24,6 +24,7 @@ class CompanyUpdateRequest(BaseModel):
     work_sunday: Optional[bool] = None
     flexible_attendance: Optional[bool] = None
     min_work_minutes: Optional[int] = Field(default=None, ge=30, le=1440)
+    multi_location: Optional[bool] = None
 
     @field_validator("work_start", "work_end")
     @classmethod
@@ -87,7 +88,7 @@ async def admin_attendance(
     offset = (page - 1) * per_page
     q = (
         supabase.table("attendance")
-        .select("*, profiles(full_name,position)", count="exact")
+        .select("*, profiles(full_name,position), locations(name)", count="exact")
         .eq("company_id", admin["company_id"])
         .order("date", desc=True)
         .order("clock_in", desc=True)
@@ -241,23 +242,86 @@ async def update_company(
     if not updates:
         raise HTTPException(400, "No fields to update")
 
-    supabase.table("companies") \
-        .update(updates) \
-        .eq("id", admin["company_id"]) \
-        .execute()
+    company_id = admin["company_id"]
+
+    # Detect first-time multi_location toggle ON → seed initial location from
+    # existing lat/lng and assign all current employees so nothing breaks.
+    try:
+        current = supabase.table("companies").select(
+            "multi_location, lat, lng, radius_meters, name"
+        ).eq("id", company_id).single().execute()
+        current_data = current.data or {}
+    except Exception:
+        current_data = {}
+
+    turning_on_multi = (
+        updates.get("multi_location") is True
+        and not current_data.get("multi_location")
+    )
+
+    supabase.table("companies").update(updates).eq("id", company_id).execute()
+
+    if turning_on_multi:
+        _seed_initial_location(company_id, current_data)
 
     try:
-        res = supabase.table("companies") \
-            .select("*") \
-            .eq("id", admin["company_id"]) \
-            .single() \
-            .execute()
+        res = supabase.table("companies").select("*").eq("id", company_id).single().execute()
     except Exception:
         raise HTTPException(404, "Company not found")
     if not res.data:
         raise HTTPException(404, "Company not found")
 
     return {"message": "Company settings updated", "data": res.data}
+
+
+def _seed_initial_location(company_id: str, company_data: dict) -> None:
+    """When a company first switches to multi_location, create one initial
+    location from its existing lat/lng and auto-assign every current employee
+    so that no one is locked out of clocking in."""
+    # Skip if there's already a location for this company (idempotent)
+    existing = (
+        supabase.table("locations")
+        .select("id")
+        .eq("company_id", company_id)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return
+
+    if company_data.get("lat") is None or company_data.get("lng") is None:
+        # No existing single-point to migrate — admin will create locations manually
+        return
+
+    try:
+        new_loc = supabase.table("locations").insert({
+            "company_id":    company_id,
+            "name":          "Kantor Utama",
+            "lat":           company_data["lat"],
+            "lng":           company_data["lng"],
+            "radius_meters": company_data.get("radius_meters") or 100,
+            "is_active":     True,
+        }).execute()
+        loc_id = (new_loc.data or [{}])[0].get("id")
+    except Exception:
+        return
+
+    if not loc_id:
+        return
+
+    # Auto-assign all employees of this company to the new location
+    emps = (
+        supabase.table("profiles")
+        .select("id")
+        .eq("company_id", company_id)
+        .execute()
+    )
+    rows = [{"user_id": e["id"], "location_id": loc_id} for e in (emps.data or [])]
+    if rows:
+        try:
+            supabase.table("employee_locations").insert(rows).execute()
+        except Exception:
+            pass  # Some rows may already exist — non-fatal
 
 
 @router.get("/report/monthly")
@@ -421,7 +485,7 @@ async def export_attendance_csv(
 
     res = (
         supabase.table("attendance")
-        .select("date, clock_in, clock_out, break_start, break_end, clock_in_distance_m, status, notes, profiles(full_name, position)")
+        .select("date, clock_in, clock_out, break_start, break_end, clock_in_distance_m, status, notes, profiles(full_name, position), locations(name)")
         .eq("company_id", admin["company_id"])
         .gte("date", date_from)
         .lte("date", date_to)
@@ -432,10 +496,11 @@ async def export_attendance_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Jarak (m)", "Status", "Catatan"])
+    writer.writerow(["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Lokasi", "Jarak (m)", "Status", "Catatan"])
 
     for row in (res.data or []):
         profile = row.get("profiles") or {}
+        loc = row.get("locations") or {}
 
         # Format timestamps to local time string HH:MM
         def fmt(ts):
@@ -461,6 +526,7 @@ async def export_attendance_csv(
             fmt(row.get("break_end")),
             fmt(row.get("clock_out")),
             work_hrs,
+            loc.get("name", ""),
             row.get("clock_in_distance_m", ""),
             row.get("status", ""),
             row.get("notes", ""),

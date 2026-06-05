@@ -128,7 +128,27 @@ export const attendanceApi = {
   history:      (page = 1, per_page = 10, date_from?: string, date_to?: string) =>
     api.get("/attendance/history", { params: { page, per_page, date_from, date_to } }),
   monthlyStats: () => api.get("/attendance/monthly-stats"),
+  myLocations:  () => api.get("/attendance/my-locations"),
 };
+
+export const locationsApi = {
+  list:         () => api.get("/admin/locations"),
+  create:       (data: LocationPayload) => api.post("/admin/locations", data),
+  update:       (id: string, data: Partial<LocationPayload> & { is_active?: boolean }) =>
+    api.patch(`/admin/locations/${id}`, data),
+  remove:       (id: string) => api.delete(`/admin/locations/${id}`),
+  getForEmployee: (user_id: string) => api.get(`/admin/employees/${user_id}/locations`),
+  assignToEmployee: (user_id: string, location_ids: string[]) =>
+    api.put(`/admin/employees/${user_id}/locations`, { location_ids }),
+};
+
+export interface LocationPayload {
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  radius_meters?: number;
+}
 
 export const leaveApi = {
   create:  (data: LeavePayload) => api.post("/leave", data),
@@ -220,6 +240,7 @@ export interface CompanyUpdatePayload {
   work_sunday?: boolean;
   flexible_attendance?: boolean;
   min_work_minutes?: number;
+  multi_location?: boolean;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ CREATE TABLE companies (
   work_end   TIME DEFAULT '17:00',
   flexible_attendance BOOLEAN NOT NULL DEFAULT FALSE, -- enables break sessions + duration-based status
   min_work_minutes INT NOT NULL DEFAULT 480,          -- threshold (in minutes) of effective work time to count as "present"
+  multi_location BOOLEAN NOT NULL DEFAULT FALSE,      -- enables multiple office points + per-employee assignment
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -40,6 +41,29 @@ CREATE TABLE profiles (
 );
 
 -- ============================================================
+-- LOCATIONS (multi-location mode only)
+-- ============================================================
+CREATE TABLE locations (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id    UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  address       TEXT,
+  lat           DOUBLE PRECISION NOT NULL,
+  lng           DOUBLE PRECISION NOT NULL,
+  radius_meters INT NOT NULL DEFAULT 100,
+  is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (company_id, name)
+);
+
+CREATE TABLE employee_locations (
+  user_id     UUID NOT NULL REFERENCES profiles(id)  ON DELETE CASCADE,
+  location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, location_id)
+);
+
+-- ============================================================
 -- ATTENDANCE
 -- ============================================================
 CREATE TABLE attendance (
@@ -51,6 +75,7 @@ CREATE TABLE attendance (
   clock_out TIMESTAMPTZ,
   break_start TIMESTAMPTZ, -- flexible mode: mulai istirahat
   break_end   TIMESTAMPTZ, -- flexible mode: selesai istirahat
+  location_id UUID REFERENCES locations(id) ON DELETE SET NULL, -- which point was used (multi-location mode)
   clock_in_lat DOUBLE PRECISION,
   clock_in_lng DOUBLE PRECISION,
   clock_out_lat DOUBLE PRECISION,

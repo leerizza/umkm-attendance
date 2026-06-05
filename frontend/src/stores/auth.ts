@@ -24,6 +24,7 @@ export interface UserProfile {
     work_sunday?: boolean;
     flexible_attendance?: boolean;
     min_work_minutes?: number;
+    multi_location?: boolean;
   };
 }
 

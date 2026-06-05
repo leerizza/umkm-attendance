@@ -698,13 +698,14 @@ export default function AdminPage() {
               data={attData}
               page={page}
               setPage={setPage}
-              cols={["Karyawan", "Tanggal", "Masuk", "Keluar", "Durasi", "Status"]}
+              cols={["Karyawan", "Tanggal", "Masuk", "Keluar", "Durasi", ...(multiLocationOn ? ["Lokasi"] : []), "Status"]}
               emptyIcon={<Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Belum ada data absensi"
               renderRow={(row: any) => {
                 const workMinutes = row.clock_in && row.clock_out
                   ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
                   : null;
+                const colspan = 6 + (multiLocationOn ? 1 : 0);
                 return (
                   <Fragment key={row.id}>
                     <tr className="border-b border-border/50 hover:bg-muted/30">
@@ -713,11 +714,14 @@ export default function AdminPage() {
                       <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : "—"}</td>
                       <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : "—"}</td>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-purple-600">{workMinutes != null ? fmtDuration(workMinutes) : "—"}</td>
+                      {multiLocationOn && (
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{row.locations?.name ?? "—"}</td>
+                      )}
                       <td className="px-4 py-3"><Badge status={row.status} /></td>
                     </tr>
                     {row.notes && (
                       <tr className="border-b border-border/50 bg-muted/20">
-                        <td colSpan={6} className="px-4 py-2 text-xs text-muted-foreground"><span className="font-semibold">Catatan:</span> {row.notes}</td>
+                        <td colSpan={colspan} className="px-4 py-2 text-xs text-muted-foreground"><span className="font-semibold">Catatan:</span> {row.notes}</td>
                       </tr>
                     )}
                   </Fragment>
@@ -739,6 +743,9 @@ export default function AdminPage() {
                       <span>Keluar: <span className="font-semibold">{row.clock_out ? fmtTime(row.clock_out) : "—"}</span></span>
                       {workMinutes != null && <span className="text-purple-600 font-bold">{fmtDuration(workMinutes)}</span>}
                     </div>
+                    {multiLocationOn && row.locations?.name && (
+                      <p className="text-xs text-muted-foreground">📍 {row.locations.name}</p>
+                    )}
                     {row.notes && <p className="text-xs text-muted-foreground truncate">📝 {row.notes}</p>}
                   </div>
                 );

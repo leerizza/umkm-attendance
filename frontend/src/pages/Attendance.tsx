@@ -8,20 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { attendanceApi, correctionsApi } from "@/lib/api";
-import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
+import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn, effectiveMinutes } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
-function effectiveMinutes(row: any): number | null {
-  if (!row.clock_in || !row.clock_out) return null;
-  const ci = new Date(row.clock_in).getTime();
-  const co = new Date(row.clock_out).getTime();
-  if (row.break_start && row.break_end) {
-    const bs = new Date(row.break_start).getTime();
-    const be = new Date(row.break_end).getTime();
-    return Math.max(0, Math.round((bs - ci) / 60000) + Math.round((co - be) / 60000));
-  }
-  return Math.max(0, Math.round((co - ci) / 60000));
-}
 
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";

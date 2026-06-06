@@ -37,6 +37,18 @@ export function fmtDuration(minutes: number) {
   return `${h}j ${m}m`;
 }
 
+export function effectiveMinutes(row: { clock_in?: string | null; clock_out?: string | null; break_start?: string | null; break_end?: string | null }): number | null {
+  if (!row.clock_in || !row.clock_out) return null;
+  const ci = new Date(row.clock_in).getTime();
+  const co = new Date(row.clock_out).getTime();
+  if (row.break_start && row.break_end) {
+    const bs = new Date(row.break_start).getTime();
+    const be = new Date(row.break_end).getTime();
+    return Math.max(0, Math.round((bs - ci) / 60000) + Math.round((co - be) / 60000));
+  }
+  return Math.max(0, Math.round((co - ci) / 60000));
+}
+
 export function statusColor(status: string): string {
   const map: Record<string, string> = {
     present:     "badge-present",

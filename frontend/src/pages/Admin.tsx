@@ -13,7 +13,7 @@ import { Badge, CardSkeleton, TableRowSkeleton } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { adminApi, leaveApi, overtimeApi, correctionsApi, locationsApi } from "@/lib/api";
-import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn } from "@/lib/utils";
+import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn, effectiveMinutes } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { IS_DEMO } from "@/lib/demo";
 
@@ -57,10 +57,7 @@ export default function AdminPage() {
 
   // Total durasi semua baris yang ada clock_in & clock_out
   const totalWorkMinutes = (attData?.data ?? []).reduce((sum: number, row: any) => {
-    if (!row.clock_in || !row.clock_out) return sum;
-    return sum + Math.floor(
-      (new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000
-    );
+    return sum + (effectiveMinutes(row) ?? 0);
   }, 0);
   const rowsWithDuration = (attData?.data ?? []).filter((r: any) => r.clock_in && r.clock_out).length;
 
@@ -702,9 +699,7 @@ export default function AdminPage() {
               emptyIcon={<Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Belum ada data absensi"
               renderRow={(row: any) => {
-                const workMinutes = row.clock_in && row.clock_out
-                  ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
-                  : null;
+                const workMinutes = effectiveMinutes(row);
                 const colspan = 6 + (multiLocationOn ? 1 : 0);
                 return (
                   <Fragment key={row.id}>
@@ -728,9 +723,7 @@ export default function AdminPage() {
                 );
               }}
               renderCard={(row: any) => {
-                const workMinutes = row.clock_in && row.clock_out
-                  ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
-                  : null;
+                const workMinutes = effectiveMinutes(row);
                 return (
                   <div key={row.id} className="px-4 py-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
@@ -1127,9 +1120,7 @@ export default function AdminPage() {
                         </tr>
                       )
                       : empHistData.data.map((row: any) => {
-                        const mins = row.clock_in && row.clock_out
-                          ? Math.floor((new Date(row.clock_out).getTime() - new Date(row.clock_in).getTime()) / 60_000)
-                          : null;
+                        const mins = effectiveMinutes(row);
                         return (
                           <tr key={row.id} className="border-b border-border/50 hover:bg-muted/20">
                             <td className="px-4 py-3 text-xs font-medium">{fmtDate(row.date)}</td>

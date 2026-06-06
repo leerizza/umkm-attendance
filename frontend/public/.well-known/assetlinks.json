@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "space.donkap.twa",
+    "sha256_cert_fingerprints": ["FE:0E:58:8B:24:CC:CD:B6:DF:77:9D:C1:35:25:3A:2B:21:1A:2A:EF:3D:63:01:E7:9D:A1:A7:A2:80:00:CC:F5"]
+  }
+}]

@@ -10,35 +10,68 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "icons/*.png"],
       manifest: {
+        id: "/",
         name: "Donkap",
         short_name: "Donkap",
         description: "Sistem absensi digital untuk UMKM Indonesia",
         theme_color: "#4f46e5",
         background_color: "#f8fafc",
         display: "standalone",
+        display_override: ["standalone", "minimal-ui"],
         orientation: "portrait",
         start_url: "/",
+        lang: "id",
+        categories: ["business", "productivity"],
         icons: [
           {
             src: "/icons/icon-192.png",
             sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/icons/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "/icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+        shortcuts: [
+          {
+            name: "Absensi",
+            short_name: "Absensi",
+            description: "Buka halaman absensi",
+            url: "/attendance",
+            icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Dashboard",
+            short_name: "Dashboard",
+            description: "Buka dashboard",
+            url: "/",
+            icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
           },
         ],
       },
       workbox: {
-        // Only pre-cache static assets — never HTML (avoids stale app shell on mobile)
         globPatterns: ["**/*.{js,css,ico,png,svg,woff2}"],
-        // Never cache API or Supabase auth calls — always go to the network
         runtimeCaching: [],
-        navigateFallback: null,
+        // Serve cached index.html for navigation — avoids blank screen offline
+        navigateFallback: "index.html",
+        // But never cache API or auth paths
+        navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       },
       devOptions: { enabled: true },
     }),

@@ -6,6 +6,17 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
+
+# Init Sentry before importing routers so router-level exceptions get captured.
+if settings.sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
+
 from routers import auth, attendance, leave, overtime, admin, corrections, superadmin, analytics, demo, locations
 
 
@@ -23,7 +34,10 @@ class CORSErrorMiddleware(BaseHTTPMiddleware):
             return response
         except FastAPIHTTPException:
             raise  # let FastAPI's ExceptionMiddleware handle it with proper status + CORS
-        except Exception:
+        except Exception as exc:
+            if settings.sentry_dsn:
+                import sentry_sdk
+                sentry_sdk.capture_exception(exc)
             origin = request.headers.get("origin", "*")
             return JSONResponse(
                 status_code=500,

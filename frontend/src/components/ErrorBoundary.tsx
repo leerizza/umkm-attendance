@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import * as Sentry from "@sentry/react";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +25,11 @@ export class ErrorBoundary extends Component<Props, State> {
     // Auto-reload on chunk fetch failures (stale service worker cache)
     if (error?.name === "ChunkLoadError" || /failed to fetch dynamically imported/i.test(error?.message ?? "")) {
       window.location.reload();
+      return;
     }
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: info.componentStack } },
+    });
   }
 
   handleReset = () => {

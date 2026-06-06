@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     superadmin_key: str = ""
     superadmin_email: str = ""
 
+    sentry_dsn: str = ""
+    sentry_environment: str = "production"
+
     @property
     def allowed_origins(self) -> List[str]:
         origins = [o.strip() for o in self.frontend_url.split(",") if o.strip()]

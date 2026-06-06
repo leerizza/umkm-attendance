@@ -1046,39 +1046,48 @@ export default function AdminPage() {
                   </td>
                 </tr>
               )}
-              renderCard={(row: any) => (
-                <div key={row.id} className={cn("px-4 py-3 space-y-2", !row.is_active && "opacity-60")}>
-                  <div className="flex items-center justify-between gap-2">
-                    <button onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }} className="font-semibold text-sm text-left hover:text-primary truncate">
-                      {row.full_name}
-                    </button>
-                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0", row.is_active !== false ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600")}>
-                      {row.is_active !== false ? "Aktif" : "Nonaktif"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">{row.position ?? "—"}</span>
-                    <span className="text-muted-foreground">·</span>
-                    <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">
-                      <option value="employee">employee</option>
-                      <option value="admin">admin</option>
-                    </select>
-                    {multiLocationOn && (
-                      <button
-                        onClick={() => openAssignLocations(row.id, row.full_name)}
-                        className="text-xs px-2 py-0.5 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 inline-flex items-center gap-1"
-                      >
-                        <MapPin className="h-3 w-3" /> Lokasi
-                      </button>
+              renderCard={(row: any) => {
+                const hasActions = multiLocationOn || (row.id !== adminProfile?.id && !IS_DEMO);
+                return (
+                  <div key={row.id} className={cn("px-4 py-3 space-y-2.5", !row.is_active && "opacity-60")}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <button onClick={() => { setEmpHistModal({ id: row.id, name: row.full_name }); setEmpHistPage(1); }} className="font-semibold text-sm text-left hover:text-primary truncate block w-full">
+                          {row.full_name}
+                        </button>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{row.position ?? "—"}</p>
+                      </div>
+                      <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0", row.is_active !== false ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600")}>
+                        {row.is_active !== false ? "Aktif" : "Nonaktif"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Role</span>
+                      <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="employee">employee</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    </div>
+                    {hasActions && (
+                      <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                        {multiLocationOn && (
+                          <button
+                            onClick={() => openAssignLocations(row.id, row.full_name)}
+                            className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 inline-flex items-center justify-center gap-1"
+                          >
+                            <MapPin className="h-3 w-3" /> Lokasi
+                          </button>
+                        )}
+                        {row.id !== adminProfile?.id && !IS_DEMO && (
+                          <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("flex-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors", row.is_active !== false ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
+                            {row.is_active !== false ? "Nonaktifkan" : "Aktifkan"}
+                          </button>
+                        )}
+                      </div>
                     )}
-                    {row.id !== adminProfile?.id && !IS_DEMO && (
-                      <button onClick={() => toggleActive.mutate({ id: row.id, is_active: !row.is_active })} className={cn("text-xs px-2 py-1 rounded-lg font-medium transition-colors ml-auto", row.is_active !== false ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100")}>
-                        {row.is_active !== false ? "Nonaktifkan" : "Aktifkan"}
-                      </button>
-                    )}
                   </div>
-                </div>
-              )}
+                );
+              }}
             />
           </div>
         )}

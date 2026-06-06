@@ -724,6 +724,7 @@ export default function AdminPage() {
               }}
               renderCard={(row: any) => {
                 const workMinutes = effectiveMinutes(row);
+                const hasBreak = row.break_start && row.break_end;
                 return (
                   <div key={row.id} className="px-4 py-3 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
@@ -731,11 +732,16 @@ export default function AdminPage() {
                       <Badge status={row.status} />
                     </div>
                     <p className="text-xs text-muted-foreground">{fmtDate(row.date)}</p>
-                    <div className="flex gap-3 text-xs font-mono">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-mono">
                       <span>Masuk: <span className="font-semibold">{row.clock_in ? fmtTime(row.clock_in) : "—"}</span></span>
                       <span>Keluar: <span className="font-semibold">{row.clock_out ? fmtTime(row.clock_out) : "—"}</span></span>
                       {workMinutes != null && <span className="text-purple-600 font-bold">{fmtDuration(workMinutes)}</span>}
                     </div>
+                    {hasBreak && (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        Istirahat: <span className="font-semibold">{fmtTime(row.break_start)} – {fmtTime(row.break_end)}</span>
+                      </p>
+                    )}
                     {multiLocationOn && row.locations?.name && (
                       <p className="text-xs text-muted-foreground">📍 {row.locations.name}</p>
                     )}
@@ -795,17 +801,9 @@ export default function AdminPage() {
               )}
               renderCard={(row: any) => (
                 <div key={row.id} className="px-4 py-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge status={row.status} />
-                      {row.status === "pending" && (
-                        <>
-                          <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
-                          <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-sm truncate flex-1 min-w-0">{row.profiles?.full_name ?? "—"}</span>
+                    <Badge status={row.status} />
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     <span className="capitalize">{row.leave_type === "annual" ? "Cuti Tahunan" : row.leave_type === "sick" ? "Sakit" : row.leave_type === "personal" ? "Keperluan Pribadi" : "Lainnya"}</span>
@@ -815,6 +813,12 @@ export default function AdminPage() {
                     <span>{fmtDate(row.start_date)}{row.start_date !== row.end_date && ` – ${fmtDate(row.end_date)}`}</span>
                   </div>
                   {row.reviewer_note && <p className="text-xs text-muted-foreground italic">"{row.reviewer_note}"</p>}
+                  {row.status === "pending" && (
+                    <div className="flex gap-2 pt-1 border-t border-border/50">
+                      <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
+                      <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 inline-flex items-center justify-center gap-1"><XCircle className="h-3.5 w-3.5" /> Tolak</button>
+                    </div>
+                  )}
                 </div>
               )}
             />
@@ -869,17 +873,9 @@ export default function AdminPage() {
               )}
               renderCard={(row: any) => (
                 <div key={row.id} className="px-4 py-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge status={row.status} />
-                      {row.status === "pending" && (
-                        <>
-                          <button onClick={() => openReview("overtime", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
-                          <button onClick={() => openReview("overtime", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-sm truncate flex-1 min-w-0">{row.profiles?.full_name ?? "—"}</span>
+                    <Badge status={row.status} />
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     <span>{fmtDate(row.date)}</span>
@@ -889,6 +885,12 @@ export default function AdminPage() {
                     <span className="text-amber-600 font-semibold">{fmtDuration(row.duration_minutes)}</span>
                   </div>
                   {row.reviewer_note && <p className="text-xs text-muted-foreground italic">"{row.reviewer_note}"</p>}
+                  {row.status === "pending" && (
+                    <div className="flex gap-2 pt-1 border-t border-border/50">
+                      <button onClick={() => openReview("overtime", row.id, "approved", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
+                      <button onClick={() => openReview("overtime", row.id, "rejected", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 inline-flex items-center justify-center gap-1"><XCircle className="h-3.5 w-3.5" /> Tolak</button>
+                    </div>
+                  )}
                 </div>
               )}
             />
@@ -944,24 +946,22 @@ export default function AdminPage() {
               )}
               renderCard={(row: any) => (
                 <div key={row.id} className="px-4 py-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm truncate">{row.profiles?.full_name ?? "—"}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge status={row.status} />
-                      {row.status === "pending" && (
-                        <>
-                          <button onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /></button>
-                          <button onClick={() => approveCorr.mutate({ id: row.id, status: "rejected" })} disabled={approveCorr.isPending} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"><XCircle className="h-4 w-4" /></button>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-sm truncate flex-1 min-w-0">{row.profiles?.full_name ?? "—"}</span>
+                    <Badge status={row.status} />
                   </div>
                   <p className="text-xs text-muted-foreground">{fmtDate(row.attendance?.date)}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-mono">
                     {row.requested_clock_in && <span>Masuk → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_in)}</span></span>}
                     {row.requested_clock_out && <span>Keluar → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_out)}</span></span>}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{row.reason}</p>
+                  <p className="text-xs text-muted-foreground">{row.reason}</p>
+                  {row.status === "pending" && (
+                    <div className="flex gap-2 pt-1 border-t border-border/50">
+                      <button onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })} disabled={approveCorr.isPending} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
+                      <button onClick={() => approveCorr.mutate({ id: row.id, status: "rejected" })} disabled={approveCorr.isPending} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 inline-flex items-center justify-center gap-1 disabled:opacity-50"><XCircle className="h-3.5 w-3.5" /> Tolak</button>
+                    </div>
+                  )}
                 </div>
               )}
             />

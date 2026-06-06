@@ -90,6 +90,12 @@ async def health():
     return {"status": "ok", "service": "Smart UMKM Attendance"}
 
 
+# TEMP: trigger a test exception to verify Sentry capture. Remove after verifying.
+@app.get("/debug/sentry-test")
+async def sentry_test():
+    raise RuntimeError("sentry-test: this is intentional, verifying Sentry capture")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

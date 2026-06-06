@@ -60,3 +60,13 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+// Sync store token whenever Supabase silently refreshes it in the background.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "TOKEN_REFRESHED" && session) {
+    const { profile, isAuthenticated } = useAuthStore.getState();
+    if (isAuthenticated && profile) {
+      useAuthStore.getState().setAuth(session.access_token, profile);
+    }
+  }
+});

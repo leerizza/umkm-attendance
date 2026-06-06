@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui/toast";
@@ -65,8 +65,26 @@ function PageLoader() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const { isAuthenticated, token, profile, setAuth, logout } = useAuthStore();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token || !profile) { setReady(true); return; }
+    try {
+      const exp = JSON.parse(atob(token.split(".")[1])).exp as number;
+      if (exp * 1000 > Date.now()) { setReady(true); return; } // still valid
+    } catch { setReady(true); return; }
+    // Token expired — refresh before any query fires
+    supabase.auth.refreshSession().then(({ data, error }) => {
+      if (!error && data.session) setAuth(data.session.access_token, profile);
+      else logout();
+      setReady(true);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!ready) return <PageLoader />;
+  return <>{children}</>;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -82,31 +100,6 @@ function AppTracker() {
   return null;
 }
 
-// On startup, proactively refresh the Supabase session if the stored JWT is
-// expired or within 5 minutes of expiry. This prevents cascade 401s that
-// would trigger ErrorBoundary when employees open the app in the morning.
-function TokenRefresher() {
-  const { isAuthenticated, token, setAuth, profile, logout } = useAuthStore();
-
-  useEffect(() => {
-    if (!isAuthenticated || !token || !profile) return;
-
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const expiresInMs = payload.exp * 1000 - Date.now();
-      if (expiresInMs > 5 * 60 * 1000) return; // still fresh
-
-      supabase.auth.refreshSession().then(({ data, error }) => {
-        if (error || !data.session) { logout(); return; }
-        setAuth(data.session.access_token, profile);
-      });
-    } catch {
-      // malformed token — let the 401 interceptor handle it
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return null;
-}
 
 export default function App() {
   return (
@@ -114,7 +107,6 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <AppTracker />
-          <TokenRefresher />
           <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
             <Routes>

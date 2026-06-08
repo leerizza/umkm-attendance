@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X, MapPin,
+  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X, MapPin, Mail, Phone,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -1007,7 +1007,7 @@ export default function AdminPage() {
               data={empData}
               page={page}
               setPage={setPage}
-              cols={["Nama", "Jabatan", "Role", "HP", "Aksi"]}
+              cols={["Nama", "Email", "Jabatan", "Role", "HP", "Aksi"]}
               emptyIcon={<Users className="h-8 w-8 mx-auto mb-2 opacity-30" />}
               emptyText="Belum ada karyawan"
               renderRow={(row: any) => (
@@ -1018,6 +1018,7 @@ export default function AdminPage() {
                     </button>
                     {!row.is_active && <span className="ml-1.5 text-[10px] text-red-500 font-normal">(nonaktif)</span>}
                   </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-[220px] truncate" title={row.email ?? ""}>{row.email ?? "—"}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
                   <td className="px-4 py-3">
                     <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">
@@ -1061,6 +1062,25 @@ export default function AdminPage() {
                         {row.is_active !== false ? "Aktif" : "Nonaktif"}
                       </span>
                     </div>
+
+                    {/* Contact info — email + phone, mobile-friendly stack */}
+                    {(row.email || row.phone) && (
+                      <div className="space-y-1 text-xs">
+                        {row.email && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <span className="truncate" title={row.email}>{row.email}</span>
+                          </div>
+                        )}
+                        {row.phone && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            <span>{row.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Role</span>
                       <select value={row.role} onChange={(e) => changeRole.mutate({ id: row.id, role: e.target.value })} disabled={row.id === adminProfile?.id} className="text-xs border border-border rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed">

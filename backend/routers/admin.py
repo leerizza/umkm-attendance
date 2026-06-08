@@ -166,6 +166,9 @@ async def admin_employees(
     is_active: bool = None,
     admin: dict = Depends(require_admin),
 ):
+    import asyncio
+    from utils.auth import _get_auth_email
+
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
@@ -179,7 +182,17 @@ async def admin_employees(
     if is_active is not None:
         q = q.eq("is_active", is_active)
     res = q.range(offset, offset + per_page - 1).execute()
-    return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
+
+    rows = res.data or []
+    if rows:
+        emails = await asyncio.gather(
+            *[_get_auth_email(r["id"]) for r in rows],
+            return_exceptions=True,
+        )
+        for row, email in zip(rows, emails):
+            row["email"] = email if isinstance(email, str) else None
+
+    return {"data": rows, "total": res.count, "page": page, "per_page": per_page}
 
 
 @router.get("/employees/{user_id}/attendance")

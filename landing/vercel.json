@@ -4,6 +4,6 @@
     { "source": "/perbandingan", "destination": "/perbandingan.html" },
     { "source": "/kebijakan-privasi", "destination": "/kebijakan-privasi.html" },
     { "source": "/syarat-layanan", "destination": "/syarat-layanan.html" },
-    { "source": "/((?!.*\\.pdf$)(?!perbandingan)(?!kebijakan-privasi)(?!syarat-layanan).*)", "destination": "/index.html" }
+    { "source": "/((?!.*\\.pdf$)(?!robots\\.txt$)(?!sitemap\\.xml$)(?!perbandingan)(?!kebijakan-privasi)(?!syarat-layanan).*)", "destination": "/index.html" }
   ]
 }

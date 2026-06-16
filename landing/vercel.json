@@ -1,5 +1,7 @@
 {
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/((?!.*\\.pdf$).*)", "destination": "/index.html" }
+    { "source": "/perbandingan", "destination": "/perbandingan.html" },
+    { "source": "/((?!.*\\.pdf$)(?!perbandingan).*)", "destination": "/index.html" }
   ]
 }

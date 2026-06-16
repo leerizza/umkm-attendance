@@ -1,3 +1,5 @@
+import re
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,6 +8,14 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
+
+_VERCEL_ORIGIN_RE = re.compile(r"^https://.*\.vercel\.app$")
+
+
+def _is_allowed_origin(origin: str | None) -> bool:
+    if not origin:
+        return False
+    return origin in settings.allowed_origins or bool(_VERCEL_ORIGIN_RE.match(origin))
 
 # Init Sentry before importing routers so router-level exceptions get captured.
 if settings.sentry_dsn:
@@ -38,14 +48,15 @@ class CORSErrorMiddleware(BaseHTTPMiddleware):
             if settings.sentry_dsn:
                 import sentry_sdk
                 sentry_sdk.capture_exception(exc)
-            origin = request.headers.get("origin", "*")
+            origin = request.headers.get("origin")
+            headers = {}
+            if _is_allowed_origin(origin):
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = "true"
             return JSONResponse(
                 status_code=500,
                 content={"detail": "Internal server error"},
-                headers={
-                    "Access-Control-Allow-Origin": origin,
-                    "Access-Control-Allow-Credentials": "true",
-                },
+                headers=headers,
             )
 
 

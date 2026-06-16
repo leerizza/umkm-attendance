@@ -760,6 +760,56 @@
     </div>
   </section>
 
+  <!-- FAQ Structured Data (schema.org FAQPage) for Google rich results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Apakah data absensi karyawan saya aman?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Data kamu disimpan di server dengan enkripsi penuh. Kami menggunakan Supabase dan Railway — infrastruktur kelas enterprise yang sama dipakai banyak startup besar. Kamu tidak perlu khawatir soal keamanan data."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Bagaimana kalau karyawan lupa absen?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Admin bisa melakukan koreksi absensi langsung dari dashboard. Karyawan juga bisa ajukan permintaan koreksi yang perlu disetujui admin — semuanya ada trail-nya, tidak bisa diedit sembarangan."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "HP karyawan saya yang lama, bisa pakai Donkap?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Donkap adalah web app yang berjalan di browser — tidak butuh HP baru atau spesifikasi tinggi. Selama HP punya browser dan GPS aktif, langsung bisa dipakai. Tidak ada minimum versi Android atau iOS."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Berapa lama proses aktivasi setelah daftar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Biasanya kurang dari 1 jam di hari kerja. Untuk proses lebih cepat, konfirmasi via WhatsApp ke 0812-2006-0169 setelah mendaftar — biasanya langsung diproses."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Kalau mau berhenti berlangganan Pro, bagaimana?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tidak ada kontrak, tidak ada penalti. Hubungi kami kapanpun dan kami proses dalam 1 hari kerja. Data kamu tetap bisa diakses sampai akhir periode yang sudah dibayar."
+        }
+      }
+    ]
+  }
+  </script>
+
   <!-- HARGA -->
   <section id="harga" class="py-24 px-4 bg-gray-50">
     <div class="max-w-4xl mx-auto">

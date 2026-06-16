@@ -2,6 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/perbandingan", "destination": "/perbandingan.html" },
-    { "source": "/((?!.*\\.pdf$)(?!perbandingan).*)", "destination": "/index.html" }
+    { "source": "/kebijakan-privasi", "destination": "/kebijakan-privasi.html" },
+    { "source": "/syarat-layanan", "destination": "/syarat-layanan.html" },
+    { "source": "/((?!.*\\.pdf$)(?!perbandingan)(?!kebijakan-privasi)(?!syarat-layanan).*)", "destination": "/index.html" }
   ]
 }

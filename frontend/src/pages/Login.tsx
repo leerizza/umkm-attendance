@@ -68,6 +68,21 @@ export default function LoginPage() {
     IS_DEMO ? { email: DEMO_ADMIN.email, password: DEMO_ADMIN.password } : { email: "", password: "" }
   );
 
+  // ── Demo auto-login (?demo=admin|karyawan from landing page) ────────────────
+  const demoAutoLoginRan = useRef(false);
+  useEffect(() => {
+    if (!IS_DEMO || demoAutoLoginRan.current) return;
+    const role = new URLSearchParams(window.location.search).get("demo");
+    if (role !== "admin" && role !== "karyawan") return;
+    demoAutoLoginRan.current = true;
+    const creds = role === "karyawan" ? DEMO_KARYAWAN : DEMO_ADMIN;
+    setLoginForm(creds);
+    // Clean the query string so a refresh doesn't retrigger auto-login
+    window.history.replaceState(null, "", window.location.pathname);
+    performLogin(creds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Forgot password (OTP flow) ────────────────────────────────────────────
   const [forgotMode, setForgotMode]   = useState(false);
   const [forgotStep, setForgotStep]   = useState<"email" | "otp">("email");
@@ -95,9 +110,13 @@ export default function LoginPage() {
       toast.error("Verifikasi captcha dulu", "Centang kotak di bawah sebelum login.");
       return;
     }
+    await performLogin(loginForm);
+  }
+
+  async function performLogin(creds: { email: string; password: string }) {
     setLoading(true);
     try {
-      const res = await authApi.login(loginForm.email, loginForm.password, captchaToken ?? undefined);
+      const res = await authApi.login(creds.email, creds.password, captchaToken ?? undefined);
       const { access_token, refresh_token } = res.data;
 
       const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
@@ -107,7 +126,7 @@ export default function LoginPage() {
       const profile = profileRes.data;
 
       // Enforce demo / non-demo boundary
-      const email = loginForm.email.toLowerCase();
+      const email = creds.email.toLowerCase();
       const isDemoEmail = email === DEMO_ADMIN.email || email === DEMO_KARYAWAN.email;
       if (IS_DEMO && !isDemoEmail) {
         await supabase.auth.signOut();
@@ -120,7 +139,7 @@ export default function LoginPage() {
         return;
       }
 
-      setAuth(access_token, { ...profile, email: loginForm.email });
+      setAuth(access_token, { ...profile, email: creds.email });
       setLoginAttempts(0);
       if (IS_DEMO) {
         trackEvent("demo_login");

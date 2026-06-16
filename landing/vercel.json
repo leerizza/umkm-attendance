@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "rewrites": [
     { "source": "/perbandingan", "destination": "/perbandingan.html" },
     { "source": "/kebijakan-privasi", "destination": "/kebijakan-privasi.html" },

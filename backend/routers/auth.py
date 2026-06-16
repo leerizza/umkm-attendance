@@ -499,7 +499,8 @@ async def change_password_otp(
 
 
 @router.post("/refresh")
-async def refresh_token(body: RefreshRequest):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, body: RefreshRequest):
     try:
         res = supabase.auth.refresh_session(body.refresh_token)
     except AuthApiError:

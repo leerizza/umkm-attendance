@@ -105,11 +105,54 @@
         <a href="/perbandingan" class="hover:text-brand-600 transition-colors">Perbandingan</a>
       </div>
       <div class="flex items-center gap-3">
-        <a href="https://www.donkap.space" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Masuk</a>
-        <a href="https://www.donkap.space" class="g-btn text-white text-sm font-semibold px-4 py-2 rounded-lg g-shadow">Aktifkan Gratis</a>
+        <a href="https://www.donkap.space" class="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Masuk</a>
+        <a href="https://www.donkap.space" class="hidden md:block g-btn text-white text-sm font-semibold px-4 py-2 rounded-lg g-shadow">Aktifkan Gratis</a>
+        <!-- Hamburger (mobile only) -->
+        <button id="nav-toggle" class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors" aria-label="Buka menu">
+          <svg id="icon-menu" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <!-- Mobile menu dropdown -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-gray-100 bg-white/95 backdrop-blur">
+      <div class="px-4 py-3 flex flex-col gap-1">
+        <a href="#fitur"        class="mobile-nav-link" onclick="closeMenu()">Fitur</a>
+        <a href="#fleksibel"    class="mobile-nav-link" onclick="closeMenu()">Fleksibel <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded uppercase ml-1">Baru</span></a>
+        <a href="#multi-lokasi" class="mobile-nav-link" onclick="closeMenu()">Multi-Lokasi <span class="text-[9px] bg-cyan-100 text-cyan-700 font-bold px-1.5 py-0.5 rounded uppercase ml-1">Baru</span></a>
+        <a href="#demo"         class="mobile-nav-link" onclick="closeMenu()">Demo</a>
+        <a href="#harga"        class="mobile-nav-link" onclick="closeMenu()">Harga</a>
+        <a href="/perbandingan" class="mobile-nav-link">Perbandingan</a>
+        <div class="flex gap-2 pt-2 border-t border-gray-100 mt-1">
+          <a href="https://www.donkap.space" class="flex-1 text-center py-2.5 text-sm font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Masuk</a>
+          <a href="https://www.donkap.space" class="flex-1 text-center py-2.5 text-sm font-semibold text-white g-btn rounded-lg g-shadow">Aktifkan Gratis</a>
+        </div>
       </div>
     </div>
   </nav>
+  <style>
+    .mobile-nav-link { display:block; padding:0.625rem 0.75rem; font-size:0.9375rem; font-weight:600; color:#374151; border-radius:0.5rem; transition:background 0.15s; }
+    .mobile-nav-link:hover { background:#f3f4f6; }
+  </style>
+  <script>
+    const navToggle = document.getElementById('nav-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const iconMenu = document.getElementById('icon-menu');
+    const iconClose = document.getElementById('icon-close');
+    function closeMenu() { mobileMenu.classList.add('hidden'); iconMenu.classList.remove('hidden'); iconClose.classList.add('hidden'); }
+    navToggle.addEventListener('click', () => {
+      const open = !mobileMenu.classList.contains('hidden');
+      if (open) { closeMenu(); } else {
+        mobileMenu.classList.remove('hidden');
+        iconMenu.classList.add('hidden');
+        iconClose.classList.remove('hidden');
+      }
+    });
+  </script>
 
   <!-- HERO -->
   <section class="g-hero pt-20 pb-24 px-4">

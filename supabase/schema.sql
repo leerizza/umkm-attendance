@@ -100,13 +100,14 @@ CREATE TABLE leave_requests (
   end_date DATE NOT NULL,
   days_count INT GENERATED ALWAYS AS (end_date - start_date + 1) STORED,
   reason TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  status TEXT DEFAULT 'pending',
   reviewed_by UUID REFERENCES profiles(id),
   reviewed_at TIMESTAMPTZ,
   reviewer_note TEXT,
   attachment_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT leave_requests_status_check CHECK (status IN ('pending','approved','rejected','cancelled'))
 );
 
 -- ============================================================

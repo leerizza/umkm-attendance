@@ -42,12 +42,11 @@ function notify(title: string, body: string, tag: string) {
   const options: NotificationOptions = { body, icon: "/favicon.png", tag };
 
   if ("serviceWorker" in navigator) {
+    // Browsers with SW support (e.g. mobile Chrome) ban new Notification() —
+    // use showNotification() only, silent fail if SW isn't ready yet.
     navigator.serviceWorker.ready
       .then((reg) => reg.showNotification(title, options))
-      .catch(() => {
-        // SW not controlling this page yet — fall back to direct API
-        try { new Notification(title, options); } catch { /* unsupported */ }
-      });
+      .catch(() => { /* SW not controlling page yet — skip silently */ });
   } else {
     try { new Notification(title, options); } catch { /* unsupported */ }
   }

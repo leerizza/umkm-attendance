@@ -874,47 +874,74 @@
 
   <!-- HARGA -->
   <section id="harga" class="py-24 px-4 bg-gray-50">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-5xl mx-auto">
       <div class="text-center mb-16">
         <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Harga yang Masuk Akal</h2>
         <p class="text-gray-500 text-lg">Mulai gratis tanpa batas waktu. Upgrade kapanpun kamu siap berkembang.</p>
       </div>
-      <div class="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+        <!-- GRATIS -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm flex flex-col">
           <p class="font-bold text-gray-400 text-sm mb-2">GRATIS</p>
           <p class="text-4xl font-extrabold text-gray-900 mb-1">Rp 0</p>
           <p class="text-gray-400 text-sm mb-6">Selamanya, tidak ada kadaluarsa</p>
-          <ul class="space-y-3 text-sm text-gray-600 mb-8">
+          <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
             <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Hingga 10 karyawan</li>
             <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Absensi GPS</li>
             <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Manajemen cuti &amp; lembur</li>
             <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> Laporan bulanan</li>
+            <li class="flex gap-2.5 items-start"><span class="g-text font-bold flex-shrink-0">✓</span> 1 lokasi kantor</li>
           </ul>
           <a href="https://www.donkap.space" class="block text-center border-2 border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors">
             Mulai Gratis
           </a>
         </div>
 
-        <div class="g-brand-diag rounded-2xl p-8 text-white relative overflow-hidden g-shadow">
+        <!-- BISNIS -->
+        <div class="g-brand-diag rounded-2xl p-8 text-white relative overflow-hidden g-shadow flex flex-col">
           <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">TERPOPULER</div>
-          <p class="font-bold text-cyan-100 text-sm mb-2">PRO</p>
+          <p class="font-bold text-cyan-100 text-sm mb-2">BISNIS</p>
           <div class="flex items-end gap-2 mb-1">
             <span class="text-4xl font-extrabold">Rp 79rb</span>
           </div>
           <p class="text-cyan-100 text-sm mb-1">per bulan · setara <em>1 cup kopi</em></p>
           <p class="text-white/60 text-xs mb-6">Tanpa kontrak, batal kapanpun</p>
-          <ul class="space-y-3 text-sm mb-8">
-            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Karyawan tidak terbatas</li>
+          <ul class="space-y-3 text-sm mb-8 flex-1">
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Hingga 50 karyawan</li>
             <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Semua fitur Gratis</li>
             <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Koreksi absensi oleh admin</li>
             <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Notifikasi email otomatis</li>
             <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Export Excel &amp; laporan lanjutan</li>
-            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Prioritas support via WhatsApp</li>
+            <li class="flex gap-2.5 items-start"><span class="text-white/80 flex-shrink-0">✓</span> Support via WhatsApp</li>
           </ul>
-          <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Pro%20Rp%2079rb" target="_blank"
+          <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Bisnis%20Rp%2079rb" target="_blank"
              class="block text-center bg-white text-sky-700 font-bold py-3 rounded-xl hover:bg-sky-50 transition-colors">
-            Mulai Pro — Rp 79rb/bulan
+            Mulai Bisnis — Rp 79rb/bulan
+          </a>
+        </div>
+
+        <!-- PRO -->
+        <div class="bg-gray-900 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl flex flex-col">
+          <div class="absolute top-4 right-4 bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">PREMIUM</div>
+          <p class="font-bold text-purple-300 text-sm mb-2">PRO</p>
+          <div class="flex items-end gap-2 mb-1">
+            <span class="text-4xl font-extrabold">Rp 199rb</span>
+          </div>
+          <p class="text-gray-400 text-sm mb-1">per bulan</p>
+          <p class="text-gray-600 text-xs mb-6">Tanpa kontrak, batal kapanpun</p>
+          <ul class="space-y-3 text-sm mb-8 flex-1">
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Karyawan tidak terbatas</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Semua fitur Bisnis</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Multi-lokasi &amp; cabang</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Mode absensi fleksibel (WFH/hybrid)</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Notifikasi telat real-time ke owner</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Rekap mingguan via WhatsApp</li>
+            <li class="flex gap-2.5 items-start"><span class="text-purple-400 flex-shrink-0">✓</span> Prioritas support</li>
+          </ul>
+          <a href="https://wa.me/6281220060169?text=Halo,%20saya%20mau%20berlangganan%20Donkap%20Pro%20Rp%20199rb" target="_blank"
+             class="block text-center bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-500 transition-colors">
+            Mulai Pro — Rp 199rb/bulan
           </a>
         </div>
 

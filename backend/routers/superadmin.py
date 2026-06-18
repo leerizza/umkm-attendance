@@ -123,7 +123,7 @@ async def approve_company(company_id: str, approved: bool = True):
             .select("full_name, id")
             .eq("company_id", company_id)
             .eq("role", "admin")
-            .single()
+            .maybe_single()
             .execute()
         )
         if profile.data:

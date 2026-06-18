@@ -38,11 +38,19 @@ async function askPermission() {
 function notify(title: string, body: string, tag: string) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
-  new Notification(title, {
-    body,
-    icon: "/favicon.png",
-    tag,         // replaces previous notification with same tag
-  } as NotificationOptions);
+
+  const options: NotificationOptions = { body, icon: "/favicon.png", tag };
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then((reg) => reg.showNotification(title, options))
+      .catch(() => {
+        // SW not controlling this page yet — fall back to direct API
+        try { new Notification(title, options); } catch { /* unsupported */ }
+      });
+  } else {
+    try { new Notification(title, options); } catch { /* unsupported */ }
+  }
 }
 
 export function AttendanceNotifier() {

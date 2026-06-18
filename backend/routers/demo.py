@@ -27,7 +27,7 @@ async def reset_demo_session(
 
     if user_ids:
         supabase.table("attendance").delete().in_("user_id", user_ids).eq("date", today).execute()
-        for tbl in ("leave_requests", "overtime_requests", "corrections"):
+        for tbl in ("leave_requests", "overtime_requests", "attendance_corrections"):
             supabase.table(tbl).delete().in_("user_id", user_ids).gte("created_at", f"{today}T00:00:00+00:00").execute()
 
     return {"ok": True}

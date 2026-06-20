@@ -145,13 +145,14 @@ async def get_leave_balance(
     except Exception:
         pass
 
-    # Sum approved non-sick leave days this year, counted as work days
+    # Sum approved+pending non-sick leave days this year — mirrors the quota check in
+    # create_leave so that the balance shown is the same as what's actually enforced.
     res = (
         supabase.table("leave_requests")
         .select("start_date, end_date")
         .eq("user_id", user_id)
         .neq("leave_type", "sick")
-        .eq("status", "approved")
+        .in_("status", ["approved", "pending"])
         .gte("start_date", first_day)
         .lte("end_date", last_day)
         .execute()

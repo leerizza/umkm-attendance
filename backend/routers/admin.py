@@ -596,11 +596,20 @@ async def correct_attendance(
     if not updates:
         raise HTTPException(400, "Nothing to update")
 
-    # Validate clock_out > clock_in if both are being set or one already exists
+    # Validate ordering: clock_out > clock_in, and break within that window
     final_in  = updates.get("clock_in")  or rec.data.get("clock_in")
     final_out = updates.get("clock_out") or rec.data.get("clock_out")
+    final_bs  = updates.get("break_start") or rec.data.get("break_start")
+    final_be  = updates.get("break_end")   or rec.data.get("break_end")
+
     if final_in and final_out and final_out <= final_in:
         raise HTTPException(400, "Jam keluar harus setelah jam masuk")
+    if final_bs and final_be and final_be <= final_bs:
+        raise HTTPException(400, "Jam selesai istirahat harus setelah jam mulai istirahat")
+    if final_in and final_bs and final_bs < final_in:
+        raise HTTPException(400, "Jam mulai istirahat harus setelah jam masuk")
+    if final_out and final_be and final_be > final_out:
+        raise HTTPException(400, "Jam selesai istirahat harus sebelum jam keluar")
 
     supabase.table("attendance").update(updates).eq("id", record_id).execute()
     return {"message": "Attendance corrected"}

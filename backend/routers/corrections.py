@@ -160,6 +160,20 @@ async def approve_correction(
         if corr.data.get("requested_clock_out"):
             updates["clock_out"] = corr.data["requested_clock_out"]
         if updates:
+            # Recalculate status for flexible-attendance companies so that
+            # a corrected clock-in/out is reflected immediately in the record.
+            try:
+                att = supabase.table("attendance").select("*").eq("id", corr.data["attendance_id"]).single().execute()
+                if att.data:
+                    merged = {**att.data, **updates}
+                    comp = supabase.table("companies").select("flexible_attendance, min_work_minutes").eq("id", corr.data["company_id"]).single().execute()
+                    if comp.data and comp.data.get("flexible_attendance") and merged.get("clock_in") and merged.get("clock_out"):
+                        from routers.attendance import effective_work_minutes
+                        work_min = effective_work_minutes(merged)
+                        min_req = comp.data.get("min_work_minutes") or 480
+                        updates["status"] = "present" if work_min >= min_req else "early_leave"
+            except Exception:
+                pass
             supabase.table("attendance").update(updates).eq("id", corr.data["attendance_id"]).execute()
 
     return {"message": f"Koreksi {body.status}"}

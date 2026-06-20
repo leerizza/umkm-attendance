@@ -162,6 +162,7 @@ export default function Dashboard() {
         break_start: "Gagal mulai istirahat", break_end: "Gagal selesai istirahat",
       };
       toast.error(errLabels[type], getErrMsg(err));
+      qc.invalidateQueries({ queryKey: ["attendance-today"] });
     } finally {
       setClockLoading(null);
     }

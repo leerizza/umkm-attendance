@@ -72,6 +72,10 @@ async def create_correction(
     if body.requested_clock_out:
         payload["requested_clock_out"] = _parse_wib(body.requested_clock_out)
 
+    if payload.get("requested_clock_in") and payload.get("requested_clock_out"):
+        if payload["requested_clock_out"] <= payload["requested_clock_in"]:
+            raise HTTPException(400, "Jam keluar koreksi harus setelah jam masuk koreksi")
+
     supabase.table("attendance_corrections").insert(payload).execute()
     return {"message": "Pengajuan koreksi terkirim"}
 

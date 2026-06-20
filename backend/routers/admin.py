@@ -596,11 +596,13 @@ async def correct_attendance(
     if not updates:
         raise HTTPException(400, "Nothing to update")
 
-    # Validate ordering: clock_out > clock_in, and break within that window
-    final_in  = updates.get("clock_in")  or rec.data.get("clock_in")
-    final_out = updates.get("clock_out") or rec.data.get("clock_out")
-    final_bs  = updates.get("break_start") or rec.data.get("break_start")
-    final_be  = updates.get("break_end")   or rec.data.get("break_end")
+    # Validate ordering: clock_out > clock_in, and break within that window.
+    # Use `in updates` (not `or`) so that explicitly-cleared values (None) are not
+    # overridden by the existing record's value during validation.
+    final_in  = updates["clock_in"]    if "clock_in"    in updates else rec.data.get("clock_in")
+    final_out = updates["clock_out"]   if "clock_out"   in updates else rec.data.get("clock_out")
+    final_bs  = updates["break_start"] if "break_start" in updates else rec.data.get("break_start")
+    final_be  = updates["break_end"]   if "break_end"   in updates else rec.data.get("break_end")
 
     if final_in and final_out and final_out <= final_in:
         raise HTTPException(400, "Jam keluar harus setelah jam masuk")

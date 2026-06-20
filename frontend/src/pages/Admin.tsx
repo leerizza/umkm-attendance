@@ -207,9 +207,18 @@ export default function AdminPage() {
         multi_location:      companyForm.multi_location,
       });
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success("Pengaturan disimpan!");
       qc.invalidateQueries({ queryKey: ["admin-company"] });
+      // Sync auth store so company-dependent UI (e.g. multiLocationOn) updates
+      // immediately without requiring a page refresh.
+      const updatedCompany = res.data?.data;
+      if (updatedCompany) {
+        const { profile, setProfile } = useAuthStore.getState();
+        if (profile) {
+          setProfile({ ...profile, companies: { ...profile.companies, ...updatedCompany } });
+        }
+      }
     },
     onError: (err) => toast.error("Gagal menyimpan", getErrMsg(err)),
   });

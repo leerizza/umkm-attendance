@@ -16,9 +16,6 @@ const PER_PAGE = 10;
 
 export default function OvertimePage() {
   const { profile } = useAuthStore();
-  if ((profile?.companies?.overtime_enabled ?? true) === false) {
-    return <Navigate to="/" replace />;
-  }
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
@@ -31,10 +28,13 @@ export default function OvertimePage() {
   const toast = useToast();
   const qc = useQueryClient();
 
+  const otEnabled = profile?.companies?.overtime_enabled ?? true;
+
   const { data, isLoading } = useQuery({
     queryKey: ["overtime", page, dateFrom, dateTo],
     queryFn: () => overtimeApi.list(page, PER_PAGE, dateFrom || undefined, dateTo || undefined).then((r) => r.data),
     placeholderData: (prev) => prev,
+    enabled: otEnabled,
   });
 
   const mutation = useMutation({
@@ -56,6 +56,8 @@ export default function OvertimePage() {
     },
     onError: (err) => toast.error("Gagal membatalkan", getErrMsg(err)),
   });
+
+  if (!otEnabled) return <Navigate to="/" replace />;
 
   const durationMins = form.start_time && form.end_time
     ? (() => {

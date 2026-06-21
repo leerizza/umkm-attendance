@@ -17,7 +17,15 @@ if (sentryDsn) {
   });
 }
 
-// Register service worker (handled by vite-plugin-pwa)
+// Register service worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .catch(() => { /* non-critical: SW unavailable in this context */ });
+  });
+}
+
 // PWA install prompt
 let deferredPrompt: any = null;
 window.addEventListener("beforeinstallprompt", (e) => {

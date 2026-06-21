@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!\\.well-known|sw\\.js|workbox-[^/]*\\.js).*)", "destination": "/index.html" }
+    { "source": "/((?!\\.well-known|sw\\.js|registerSW\\.js|workbox-[^/]*\\.js).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

@@ -307,23 +307,74 @@ export default function AdminPage() {
   // ── Export ─────────────────────────────────────────────────
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo]     = useState("");
-  const [exporting, setExporting]   = useState(false);
+  const [exporting,     setExporting]     = useState(false);
+  const [leaveExporting, setLeaveExporting] = useState(false);
+  const [otExporting,    setOtExporting]    = useState(false);
+  const [empExporting,   setEmpExporting]   = useState(false);
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleExport() {
     setExporting(true);
     try {
       const res = await adminApi.exportAttendance(exportFrom || undefined, exportTo || undefined);
-      const url = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `absensi_${exportFrom || "bulan-ini"}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const suffix = exportFrom ? `${exportFrom}_${exportTo || ""}` : "bulan-ini";
+      downloadBlob(res.data, `absensi_${suffix}.xlsx`);
       toast.success("Export berhasil!");
     } catch (err) {
       toast.error("Export gagal", getErrMsg(err));
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleLeaveExport() {
+    setLeaveExporting(true);
+    try {
+      const res = await adminApi.exportLeave(leaveFilter || undefined, leaveFrom || undefined, leaveTo || undefined);
+      const suffix = leaveFrom ? `${leaveFrom}_${leaveTo || ""}` : "semua";
+      downloadBlob(res.data, `cuti_${suffix}.xlsx`);
+      toast.success("Export cuti berhasil!");
+    } catch (err) {
+      toast.error("Export gagal", getErrMsg(err));
+    } finally {
+      setLeaveExporting(false);
+    }
+  }
+
+  async function handleOtExport() {
+    setOtExporting(true);
+    try {
+      const res = await adminApi.exportOvertime(otFilter || undefined, otFrom || undefined, otTo || undefined);
+      const suffix = otFrom ? `${otFrom}_${otTo || ""}` : "semua";
+      downloadBlob(res.data, `lembur_${suffix}.xlsx`);
+      toast.success("Export lembur berhasil!");
+    } catch (err) {
+      toast.error("Export gagal", getErrMsg(err));
+    } finally {
+      setOtExporting(false);
+    }
+  }
+
+  async function handleEmpExport() {
+    if (!empHistModal) return;
+    setEmpExporting(true);
+    try {
+      const res = await adminApi.exportEmployeeAttendance(empHistModal.id);
+      const safeName = empHistModal.name.replace(/\s+/g, "_");
+      downloadBlob(res.data, `absensi_${safeName}.xlsx`);
+      toast.success("Export berhasil!");
+    } catch (err) {
+      toast.error("Export gagal", getErrMsg(err));
+    } finally {
+      setEmpExporting(false);
     }
   }
 
@@ -782,6 +833,10 @@ export default function AdminPage() {
                 onTo={(v) => { setLeaveTo(v); resetPage(); }}
                 onClear={() => { setLeaveFrom(""); setLeaveTo(""); resetPage(); }}
               />
+              <Button size="sm" variant="outline" onClick={handleLeaveExport} loading={leaveExporting}>
+                <Download className="h-3.5 w-3.5" />
+                Export Excel
+              </Button>
             </div>
             <TableWrapper
               isLoading={leaveLoading}
@@ -854,6 +909,10 @@ export default function AdminPage() {
                 onTo={(v) => { setOtTo(v); resetPage(); }}
                 onClear={() => { setOtFrom(""); setOtTo(""); resetPage(); }}
               />
+              <Button size="sm" variant="outline" onClick={handleOtExport} loading={otExporting}>
+                <Download className="h-3.5 w-3.5" />
+                Export Excel
+              </Button>
             </div>
             <TableWrapper
               isLoading={otLoading}
@@ -1130,9 +1189,15 @@ export default function AdminPage() {
                   <h3 className="font-bold text-base">Riwayat Absensi</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{empHistModal.name}</p>
                 </div>
-                <button onClick={() => setEmpHistModal(null)} className="text-muted-foreground hover:text-foreground">
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={handleEmpExport} loading={empExporting}>
+                    <Download className="h-3.5 w-3.5" />
+                    Export
+                  </Button>
+                  <button onClick={() => setEmpHistModal(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
               <div className="overflow-auto flex-1">
                 <table className="w-full text-sm">
@@ -1219,12 +1284,7 @@ export default function AdminPage() {
                   setExporting(true);
                   try {
                     const res = await adminApi.exportMonthlyReport(reportYear, reportMonth);
-                    const url = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `rekap_${reportYear}_${String(reportMonth).padStart(2, "0")}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    downloadBlob(res.data, `rekap_${reportYear}_${String(reportMonth).padStart(2, "0")}.xlsx`);
                     toast.success("Export rekap berhasil!");
                   } catch (err) {
                     toast.error("Export gagal", getErrMsg(err));

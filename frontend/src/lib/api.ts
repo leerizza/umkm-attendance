@@ -201,6 +201,18 @@ export const adminApi = {
       params: { year, month },
       responseType: "blob",
     }),
+  exportLeave: (status_filter?: string, date_from?: string, date_to?: string) =>
+    api.get("/admin/leave/export", {
+      params: { status_filter, date_from, date_to },
+      responseType: "blob",
+    }),
+  exportOvertime: (status_filter?: string, date_from?: string, date_to?: string) =>
+    api.get("/admin/overtime/export", {
+      params: { status_filter, date_from, date_to },
+      responseType: "blob",
+    }),
+  exportEmployeeAttendance: (user_id: string) =>
+    api.get(`/admin/employees/${user_id}/attendance/export`, { responseType: "blob" }),
 };
 
 export const demoApi = {

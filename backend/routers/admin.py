@@ -1,4 +1,3 @@
-import csv
 import io
 import re
 from fastapi import APIRouter, Depends, HTTPException
@@ -42,6 +41,63 @@ class AttendanceCorrectionRequest(BaseModel):
     notes: Optional[str] = None
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+_STATUS_ID = {
+    "present":     "Hadir",
+    "late":        "Terlambat",
+    "early_leave": "Pulang Cepat",
+    "absent":      "Absen",
+    "leave":       "Cuti",
+    "pending":     "Menunggu",
+    "approved":    "Disetujui",
+    "rejected":    "Ditolak",
+}
+_LEAVE_TYPE_ID = {
+    "annual":   "Tahunan",
+    "sick":     "Sakit",
+    "personal": "Keperluan Pribadi",
+    "other":    "Lainnya",
+}
+
+
+def _make_xlsx(sheet_title: str, headers: list, rows: list, fill_hex: str = "2563EB") -> io.BytesIO:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_title
+
+    hfill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type="solid")
+    hfont = Font(bold=True, color="FFFFFF", size=10)
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = hfill
+        cell.font = hfont
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 18
+
+    for r_idx, row in enumerate(rows, 2):
+        for c_idx, val in enumerate(row, 1):
+            ws.cell(row=r_idx, column=c_idx, value=val)
+
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or "")) for cell in col), default=8)
+        ws.column_dimensions[col[0].column_letter].width = min(max(max_len + 2, 8), 42)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def _xlsx_response(buf: io.BytesIO, filename: str) -> StreamingResponse:
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/stats")
@@ -407,12 +463,12 @@ async def monthly_report(
 
 
 @router.get("/report/monthly/export")
-async def export_monthly_report_csv(
+async def export_monthly_report_xlsx(
     year: int = None,
     month: int = None,
     admin: dict = Depends(require_admin),
 ):
-    """Export monthly per-employee summary as CSV."""
+    """Export monthly per-employee summary as XLSX."""
     from datetime import datetime
     from zoneinfo import ZoneInfo
     import calendar
@@ -448,53 +504,41 @@ async def export_monthly_report_csv(
     for r in ot_rows:
         ot_by_user[r["user_id"]] += r.get("duration_minutes") or 0
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    month_name = f"{year}-{month:02d}"
-    writer.writerow(["Rekap Absensi Bulanan", month_name])
-    writer.writerow([])
-    writer.writerow(["Nama", "Jabatan", "Hadir", "Cuti (hari)", "Lembur (menit)", "Total Kerja (jam)"])
-
+    headers = ["Nama", "Jabatan", "Hadir", "Cuti (hari)", "Lembur (jam)", "Total Kerja (jam)"]
+    rows = []
     for emp in employees:
         uid  = emp["id"]
-        rows = att_by_user[uid]
-        hadir    = sum(1 for r in rows if r.get("status") in ("present", "late", "early_leave"))
-        work_min = sum(effective_work_minutes(r) for r in rows)
-        writer.writerow([
+        recs = att_by_user[uid]
+        hadir    = sum(1 for r in recs if r.get("status") in ("present", "late", "early_leave"))
+        work_min = sum(effective_work_minutes(r) for r in recs)
+        rows.append([
             emp["full_name"],
             emp.get("position") or "",
             hadir,
             leave_by_user[uid],
-            ot_by_user[uid],
+            round(ot_by_user[uid] / 60, 1),
             round(work_min / 60, 1),
         ])
 
-    output.seek(0)
-    filename = f"rekap_{year}_{month:02d}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    buf = _make_xlsx(f"Rekap {year}-{month:02d}", headers, rows, "059669")
+    return _xlsx_response(buf, f"rekap_{year}_{month:02d}.xlsx")
 
 
 @router.get("/attendance/export")
-async def export_attendance_csv(
+async def export_attendance_xlsx(
     date_from: str = None,
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
-    """Export attendance data as CSV. Defaults to current month."""
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
+    """Export attendance data as XLSX. Defaults to current month."""
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _Zi
     import calendar
 
     if not date_from or not date_to:
-        today = datetime.now(ZoneInfo("Asia/Jakarta")).date()
+        today = _dt.now(_Zi("Asia/Jakarta")).date()
         date_from = today.replace(day=1).isoformat()
-        date_to = today.replace(
-            day=calendar.monthrange(today.year, today.month)[1]
-        ).isoformat()
+        date_to = today.replace(day=calendar.monthrange(today.year, today.month)[1]).isoformat()
 
     res = (
         supabase.table("attendance")
@@ -507,30 +551,22 @@ async def export_attendance_csv(
         .execute()
     )
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Lokasi", "Jarak (m)", "Status", "Catatan"])
+    def fmt(ts):
+        if not ts:
+            return ""
+        try:
+            dt = _dt.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.astimezone(_Zi("Asia/Jakarta")).strftime("%H:%M")
+        except Exception:
+            return ts
 
+    headers = ["Nama", "Jabatan", "Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Lokasi", "Jarak (m)", "Status", "Catatan"]
+    rows = []
     for row in (res.data or []):
         profile = row.get("profiles") or {}
-        loc = row.get("locations") or {}
-
-        # Format timestamps to local time string HH:MM
-        def fmt(ts):
-            if not ts:
-                return ""
-            from datetime import datetime as _dt
-            from zoneinfo import ZoneInfo as _Zi
-            try:
-                dt = _dt.fromisoformat(ts.replace("Z", "+00:00"))
-                return dt.astimezone(_Zi("Asia/Jakarta")).strftime("%H:%M")
-            except Exception:
-                return ts
-
+        loc     = row.get("locations") or {}
         work_min = effective_work_minutes(row)
-        work_hrs = round(work_min / 60, 1) if work_min else ""
-
-        writer.writerow([
+        rows.append([
             profile.get("full_name", ""),
             profile.get("position", ""),
             row.get("date", ""),
@@ -538,20 +574,15 @@ async def export_attendance_csv(
             fmt(row.get("break_start")),
             fmt(row.get("break_end")),
             fmt(row.get("clock_out")),
-            work_hrs,
+            round(work_min / 60, 1) if work_min else "",
             loc.get("name", ""),
             row.get("clock_in_distance_m", ""),
-            row.get("status", ""),
+            _STATUS_ID.get(row.get("status", ""), row.get("status", "")),
             row.get("notes", ""),
         ])
 
-    output.seek(0)
-    filename = f"absensi_{date_from}_{date_to}.csv"
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
-    )
+    buf = _make_xlsx("Absensi", headers, rows, "2563EB")
+    return _xlsx_response(buf, f"absensi_{date_from}_{date_to}.xlsx")
 
 
 @router.patch("/attendance/{record_id}")
@@ -656,3 +687,146 @@ async def toggle_employee_active(
 
     supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).execute()
     return {"message": "activated" if is_active else "deactivated"}
+
+
+@router.get("/leave/export")
+async def export_leave_xlsx(
+    status_filter: str = None,
+    date_from: str = None,
+    date_to: str = None,
+    admin: dict = Depends(require_admin),
+):
+    """Export leave requests as XLSX."""
+    q = (
+        supabase.table("leave_requests")
+        .select("*, profiles!leave_requests_user_id_fkey(full_name, position)")
+        .eq("company_id", admin["company_id"])
+        .order("start_date", desc=True)
+    )
+    if status_filter:
+        q = q.eq("status", status_filter)
+    if date_from:
+        q = q.gte("start_date", date_from)
+    if date_to:
+        q = q.lte("start_date", date_to)
+    res = q.execute()
+
+    headers = ["Nama", "Jabatan", "Jenis Cuti", "Tanggal Mulai", "Tanggal Selesai", "Jumlah Hari", "Status", "Alasan", "Catatan Reviewer"]
+    rows = []
+    for row in (res.data or []):
+        profile = row.get("profiles") or {}
+        rows.append([
+            profile.get("full_name", ""),
+            profile.get("position", ""),
+            _LEAVE_TYPE_ID.get(row.get("leave_type", ""), row.get("leave_type", "")),
+            row.get("start_date", ""),
+            row.get("end_date", ""),
+            row.get("days_count", ""),
+            _STATUS_ID.get(row.get("status", ""), row.get("status", "")),
+            row.get("reason", ""),
+            row.get("reviewer_note", ""),
+        ])
+
+    suffix = f"_{date_from}_{date_to}" if date_from and date_to else ""
+    buf = _make_xlsx("Cuti", headers, rows, "DC2626")
+    return _xlsx_response(buf, f"cuti{suffix}.xlsx")
+
+
+@router.get("/overtime/export")
+async def export_overtime_xlsx(
+    status_filter: str = None,
+    date_from: str = None,
+    date_to: str = None,
+    admin: dict = Depends(require_admin),
+):
+    """Export overtime requests as XLSX."""
+    q = (
+        supabase.table("overtime_requests")
+        .select("*, profiles!overtime_requests_user_id_fkey(full_name, position)")
+        .eq("company_id", admin["company_id"])
+        .order("date", desc=True)
+    )
+    if status_filter:
+        q = q.eq("status", status_filter)
+    if date_from:
+        q = q.gte("date", date_from)
+    if date_to:
+        q = q.lte("date", date_to)
+    res = q.execute()
+
+    headers = ["Nama", "Jabatan", "Tanggal", "Jam Mulai", "Jam Selesai", "Durasi (jam)", "Status", "Keterangan"]
+    rows = []
+    for row in (res.data or []):
+        profile = row.get("profiles") or {}
+        dur_min = row.get("duration_minutes") or 0
+        rows.append([
+            profile.get("full_name", ""),
+            profile.get("position", ""),
+            row.get("date", ""),
+            (row.get("start_time") or "")[:5],
+            (row.get("end_time") or "")[:5],
+            round(dur_min / 60, 1) if dur_min else "",
+            _STATUS_ID.get(row.get("status", ""), row.get("status", "")),
+            row.get("description", ""),
+        ])
+
+    suffix = f"_{date_from}_{date_to}" if date_from and date_to else ""
+    buf = _make_xlsx("Lembur", headers, rows, "D97706")
+    return _xlsx_response(buf, f"lembur{suffix}.xlsx")
+
+
+@router.get("/employees/{user_id}/attendance/export")
+async def export_employee_attendance_xlsx(
+    user_id: str,
+    admin: dict = Depends(require_admin),
+):
+    """Export all attendance records for a single employee as XLSX."""
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _Zi
+
+    try:
+        emp = supabase.table("profiles").select("company_id, full_name").eq("id", user_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Karyawan tidak ditemukan")
+    if not emp.data or emp.data["company_id"] != admin["company_id"]:
+        raise HTTPException(404, "Karyawan tidak ditemukan")
+
+    res = (
+        supabase.table("attendance")
+        .select("date, clock_in, clock_out, break_start, break_end, status, notes, locations(name)")
+        .eq("user_id", user_id)
+        .eq("company_id", admin["company_id"])
+        .order("date", desc=False)
+        .execute()
+    )
+
+    def fmt(ts):
+        if not ts:
+            return ""
+        try:
+            dt = _dt.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.astimezone(_Zi("Asia/Jakarta")).strftime("%H:%M")
+        except Exception:
+            return ts
+
+    emp_name = emp.data["full_name"]
+    headers = ["Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Lokasi", "Status", "Catatan"]
+    rows = []
+    for row in (res.data or []):
+        loc = row.get("locations") or {}
+        work_min = effective_work_minutes(row)
+        rows.append([
+            row.get("date", ""),
+            fmt(row.get("clock_in")),
+            fmt(row.get("break_start")),
+            fmt(row.get("break_end")),
+            fmt(row.get("clock_out")),
+            round(work_min / 60, 1) if work_min else "",
+            loc.get("name", ""),
+            _STATUS_ID.get(row.get("status", ""), row.get("status", "")),
+            row.get("notes", ""),
+        ])
+
+    safe_name = emp_name.replace(" ", "_")
+    buf = _make_xlsx(emp_name[:31], headers, rows, "7C3AED")
+    return _xlsx_response(buf, f"absensi_{safe_name}.xlsx")

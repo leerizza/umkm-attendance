@@ -8,17 +8,10 @@ import { useAuthStore } from "@/stores/auth";
 import { IS_DEMO } from "@/lib/demo";
 import { demoApi } from "@/lib/api";
 
-const EMPLOYEE_NAV = [
-  { to: "/",           label: "Dashboard",  Icon: Home },
-  { to: "/attendance", label: "Absensi",    Icon: Clock },
-  { to: "/leave",      label: "Cuti",       Icon: CalendarOff },
-  { to: "/overtime",   label: "Lembur",     Icon: Timer },
-  { to: "/profile",    label: "Profil",     Icon: User },
-];
-
 export function Sidebar() {
   const { profile, logout } = useAuthStore();
   const isAdmin = profile?.role === "admin";
+  const otEnabled = profile?.companies?.overtime_enabled ?? true;
 
   function handleLogout() {
     if (IS_DEMO) demoApi.reset().catch(() => {});
@@ -26,7 +19,11 @@ export function Sidebar() {
   }
 
   const navItems = [
-    ...EMPLOYEE_NAV,
+    { to: "/",           label: "Dashboard",  Icon: Home },
+    { to: "/attendance", label: "Absensi",    Icon: Clock },
+    { to: "/leave",      label: "Cuti",       Icon: CalendarOff },
+    ...(otEnabled ? [{ to: "/overtime", label: "Lembur", Icon: Timer }] : []),
+    { to: "/profile",    label: "Profil",     Icon: User },
     ...(isAdmin ? [{ to: "/admin", label: "Admin Panel", Icon: LayoutDashboard }] : []),
   ];
 

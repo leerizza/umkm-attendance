@@ -29,6 +29,9 @@ async def create_overtime(
     body: OvertimeCreateRequest,
     profile: dict = Depends(get_current_profile),
 ):
+    if not (profile.get("companies") or {}).get("overtime_enabled", True):
+        raise HTTPException(403, "Fitur lembur tidak diaktifkan oleh perusahaan")
+
     user_id = profile["id"]
     req_date = body.date.isoformat()
 
@@ -56,6 +59,8 @@ async def get_my_overtime(
     date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
+    if not (profile.get("companies") or {}).get("overtime_enabled", True):
+        raise HTTPException(403, "Fitur lembur tidak diaktifkan oleh perusahaan")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (

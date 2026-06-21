@@ -24,6 +24,7 @@ class CompanyUpdateRequest(BaseModel):
     flexible_attendance: Optional[bool] = None
     min_work_minutes: Optional[int] = Field(default=None, ge=30, le=1440)
     multi_location: Optional[bool] = None
+    overtime_enabled: Optional[bool] = None
 
     @field_validator("work_start", "work_end")
     @classmethod

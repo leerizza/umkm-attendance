@@ -1,4 +1,5 @@
 import { Fragment, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, X, Timer, ChevronLeft, ChevronRight, Filter, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -7,12 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Badge, TableRowSkeleton } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { useAuthStore } from "@/stores/auth";
 import { overtimeApi } from "@/lib/api";
 import { fmtDate, fmtDuration, getErrMsg, cn } from "@/lib/utils";
 
 const PER_PAGE = 10;
 
 export default function OvertimePage() {
+  const { profile } = useAuthStore();
+  if ((profile?.companies?.overtime_enabled ?? true) === false) {
+    return <Navigate to="/" replace />;
+  }
   const [showForm, setShowForm] = useState(false);
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");

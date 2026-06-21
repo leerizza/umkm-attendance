@@ -3,22 +3,19 @@ import { Home, Clock, CalendarOff, Timer, User, LayoutDashboard } from "lucide-r
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
-const BASE_NAV = [
-  { to: "/",           label: "Home",    Icon: Home },
-  { to: "/attendance", label: "Absensi", Icon: Clock },
-  { to: "/leave",      label: "Cuti",    Icon: CalendarOff },
-  { to: "/overtime",   label: "Lembur",  Icon: Timer },
-  { to: "/profile",    label: "Profil",  Icon: User },
-];
-
 export function BottomNav() {
   const location = useLocation();
   const { profile } = useAuthStore();
 
   const isAdmin = profile?.role === "admin";
+  const otEnabled = profile?.companies?.overtime_enabled ?? true;
 
   const NAV_ITEMS = [
-    ...BASE_NAV,
+    { to: "/",           label: "Home",    Icon: Home },
+    { to: "/attendance", label: "Absensi", Icon: Clock },
+    { to: "/leave",      label: "Cuti",    Icon: CalendarOff },
+    ...(otEnabled ? [{ to: "/overtime", label: "Lembur", Icon: Timer }] : []),
+    { to: "/profile",    label: "Profil",  Icon: User },
     ...(isAdmin ? [{ to: "/admin", label: "Admin", Icon: LayoutDashboard }] : []),
   ];
 

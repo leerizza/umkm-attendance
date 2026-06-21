@@ -33,6 +33,12 @@ const TABS: { id: AdminTab; label: string; Icon: any }[] = [
 export default function AdminPage() {
   const { profile: adminProfile } = useAuthStore();
   const [tab, setTab] = useState<AdminTab>("overview");
+  const otEnabled = adminProfile?.companies?.overtime_enabled ?? true;
+
+  // If overtime is disabled and we're on that tab, bounce to overview
+  useEffect(() => {
+    if (tab === "overtime" && !otEnabled) setTab("overview");
+  }, [otEnabled]);
   const [page, setPage] = useState(1);
   const toast = useToast();
   const qc = useQueryClient();
@@ -159,6 +165,7 @@ export default function AdminPage() {
     work_saturday: false, work_sunday: false,
     flexible_attendance: false, min_work_hours: "8",
     multi_location: false,
+    overtime_enabled: true,
   });
 
   // Sync form when company data loads or refreshes after save
@@ -177,6 +184,7 @@ export default function AdminPage() {
       flexible_attendance: companyData.flexible_attendance ?? false,
       min_work_hours: ((companyData.min_work_minutes ?? 480) / 60).toString(),
       multi_location: companyData.multi_location ?? false,
+      overtime_enabled: companyData.overtime_enabled ?? true,
     });
   }, [companyData]);
 
@@ -205,6 +213,7 @@ export default function AdminPage() {
         flexible_attendance: companyForm.flexible_attendance,
         min_work_minutes:    Math.round(minHours * 60),
         multi_location:      companyForm.multi_location,
+        overtime_enabled:    companyForm.overtime_enabled,
       });
     },
     onSuccess: (res) => {
@@ -650,7 +659,7 @@ export default function AdminPage() {
       {/* Tab bar */}
       <div className="sticky top-14 md:top-16 z-20 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex overflow-x-auto px-4 md:px-6 gap-0 scrollbar-hide">
-          {TABS.map(({ id, label, Icon }) => {
+          {TABS.filter((t) => t.id !== "overtime" || otEnabled).map(({ id, label, Icon }) => {
             const badge =
               id === "leave"       ? (stats?.pending_leaves      ?? 0)
             : id === "overtime"    ? (stats?.pending_overtime    ?? 0)
@@ -1661,6 +1670,33 @@ export default function AdminPage() {
                         </p>
                       </>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Overtime feature toggle */}
+                <Card>
+                  <CardContent className="p-5 space-y-4">
+                    <p className="text-sm font-semibold text-foreground">Fitur Lembur</p>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      Aktifkan jika perusahaan menerapkan kebijakan lembur. Jika dinonaktifkan,
+                      menu Lembur akan disembunyikan dari semua karyawan.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyForm((f) => ({ ...f, overtime_enabled: !f.overtime_enabled }))}
+                      className="flex items-center gap-3 w-full text-left"
+                    >
+                      <div className={cn(
+                        "w-10 h-6 rounded-full transition-colors flex items-center px-0.5 shrink-0",
+                        companyForm.overtime_enabled ? "bg-primary" : "bg-muted"
+                      )}>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full bg-white shadow transition-transform",
+                          companyForm.overtime_enabled ? "translate-x-4" : "translate-x-0"
+                        )} />
+                      </div>
+                      <span className="text-sm text-foreground">Aktifkan fitur lembur</span>
+                    </button>
                   </CardContent>
                 </Card>
 

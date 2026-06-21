@@ -760,10 +760,57 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          Donkap &copy; 2026
-        </p>
+        <ChangelogFooter />
       </div>
+    </div>
+  );
+}
+
+const CHANGELOG = [
+  {
+    version: "1.1.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Export laporan ke Excel (.xlsx) — Absensi, Rekap, Cuti, Lembur, per Karyawan" },
+      { type: "✨", text: "Toggle aktifkan/nonaktifkan fitur Lembur per perusahaan" },
+      { type: "🐛", text: "Perbaikan notifikasi push lebih stabil di semua browser & PWA" },
+      { type: "🐛", text: "Fix sinkronisasi settings perusahaan langsung tanpa refresh" },
+      { type: "🐛", text: "Perbaikan validasi break, status koreksi, dan saldo cuti" },
+    ],
+  },
+];
+
+function ChangelogFooter() {
+  const [open, setOpen] = useState(false);
+  const latest = CHANGELOG[0];
+  return (
+    <div className="mt-4 px-2">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span>Donkap v{latest.version}</span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Baru</span>
+        <span className="text-[10px]">{open ? "▲" : "▼"} Apa yang baru?</span>
+      </button>
+      {open && (
+        <div className="mt-3 rounded-xl border border-border bg-muted/30 px-4 py-3 space-y-3">
+          {CHANGELOG.map((log) => (
+            <div key={log.version}>
+              <p className="text-xs font-bold text-foreground mb-1.5">v{log.version} — {log.date}</p>
+              <ul className="space-y-1">
+                {log.items.map((item, i) => (
+                  <li key={i} className="text-xs text-muted-foreground flex gap-1.5">
+                    <span>{item.type}</span>
+                    <span>{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-center text-xs text-muted-foreground mt-3">Donkap &copy; 2026</p>
     </div>
   );
 }

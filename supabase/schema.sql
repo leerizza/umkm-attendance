@@ -21,6 +21,7 @@ CREATE TABLE companies (
   flexible_attendance BOOLEAN NOT NULL DEFAULT FALSE, -- enables break sessions + duration-based status
   min_work_minutes INT NOT NULL DEFAULT 480,          -- threshold (in minutes) of effective work time to count as "present"
   multi_location BOOLEAN NOT NULL DEFAULT FALSE,      -- enables multiple office points + per-employee assignment
+  overtime_enabled BOOLEAN NOT NULL DEFAULT TRUE,     -- show/hide overtime feature for all employees
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

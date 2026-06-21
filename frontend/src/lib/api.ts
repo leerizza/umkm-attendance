@@ -253,6 +253,7 @@ export interface CompanyUpdatePayload {
   flexible_attendance?: boolean;
   min_work_minutes?: number;
   multi_location?: boolean;
+  overtime_enabled?: boolean;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────

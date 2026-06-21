@@ -740,7 +740,7 @@ export default function AdminPage() {
               />
               <Button size="sm" variant="outline" onClick={handleExport} loading={exporting}>
                 <Download className="h-3.5 w-3.5" />
-                Export CSV
+                Export Excel
               </Button>
             </div>
 
@@ -1303,7 +1303,7 @@ export default function AdminPage() {
                 }}
               >
                 <Download className="h-3.5 w-3.5" />
-                Export CSV
+                Export Excel
               </Button>
             </div>
 

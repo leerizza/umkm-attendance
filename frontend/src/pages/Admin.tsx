@@ -94,6 +94,17 @@ export default function AdminPage() {
   const [corrFrom,   setCorrFrom]   = useState("");
   const [corrTo,     setCorrTo]     = useState("");
   const [reasonModal, setReasonModal] = useState<string | null>(null);
+
+  // ── Overview modals ────────────────────────────────────────
+  type OverviewModal = "employees" | "present" | "leave" | "overtime" | "corrections" | null;
+  const [overviewModal, setOverviewModal] = useState<OverviewModal>(null);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const { data: ovEmpData,  isLoading: ovEmpLoading  } = useQuery({ queryKey: ["ov-employees"],  queryFn: () => adminApi.overviewEmployees().then((r) => r.data),              enabled: overviewModal === "employees"  });
+  const { data: ovPresData, isLoading: ovPresLoading } = useQuery({ queryKey: ["ov-present"],    queryFn: () => adminApi.overviewPresent(todayIso).then((r) => r.data),       enabled: overviewModal === "present"    });
+  const { data: ovLeaveData,isLoading: ovLeaveLoading} = useQuery({ queryKey: ["ov-leave"],      queryFn: () => adminApi.overviewPendingLeave().then((r) => r.data),          enabled: overviewModal === "leave"      });
+  const { data: ovOtData,   isLoading: ovOtLoading   } = useQuery({ queryKey: ["ov-overtime"],   queryFn: () => adminApi.overviewPendingOvertime().then((r) => r.data),       enabled: overviewModal === "overtime"   });
+  const { data: ovCorrData, isLoading: ovCorrLoading } = useQuery({ queryKey: ["ov-corrections"],queryFn: () => adminApi.overviewPendingCorrections().then((r) => r.data),    enabled: overviewModal === "corrections" });
+
   const { data: corrData, isLoading: corrLoading } = useQuery({
     queryKey: ["admin-corrections", page, corrFilter, corrFrom, corrTo],
     queryFn: () => correctionsApi.adminList(page, corrFilter || undefined, corrFrom || undefined, corrTo || undefined).then((r) => r.data),
@@ -701,13 +712,13 @@ export default function AdminPage() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Total Karyawan",   value: stats?.total_employees,    Icon: Users,       color: "bg-blue-50 text-blue-600",    show: true },
-                  { label: "Hadir Hari Ini",  value: stats?.present_today,      Icon: Clock,       color: "bg-emerald-50 text-emerald-600", show: true },
-                  { label: "Cuti Pending",    value: stats?.pending_leaves,     Icon: CalendarOff, color: "bg-amber-50 text-amber-600",  show: true },
-                  { label: "Lembur Pending",  value: stats?.pending_overtime,   Icon: Timer,       color: "bg-indigo-50 text-indigo-600", show: otEnabled },
-                  { label: "Koreksi Pending", value: stats?.pending_corrections,Icon: Pencil,      color: "bg-rose-50 text-rose-600",    show: true },
-                ].filter((item) => item.show).map(({ label, value, Icon, color }) => (
-                  <Card key={label} className="card-interactive cursor-pointer">
+                  { label: "Total Karyawan",   value: stats?.total_employees,    Icon: Users,       color: "bg-blue-50 text-blue-600",    show: true,      modal: "employees"   as OverviewModal },
+                  { label: "Hadir Hari Ini",   value: stats?.present_today,      Icon: Clock,       color: "bg-emerald-50 text-emerald-600", show: true,   modal: "present"     as OverviewModal },
+                  { label: "Cuti Pending",     value: stats?.pending_leaves,     Icon: CalendarOff, color: "bg-amber-50 text-amber-600",  show: true,      modal: "leave"       as OverviewModal },
+                  { label: "Lembur Pending",   value: stats?.pending_overtime,   Icon: Timer,       color: "bg-indigo-50 text-indigo-600", show: otEnabled, modal: "overtime"    as OverviewModal },
+                  { label: "Koreksi Pending",  value: stats?.pending_corrections,Icon: Pencil,      color: "bg-rose-50 text-rose-600",    show: true,      modal: "corrections" as OverviewModal },
+                ].filter((item) => item.show).map(({ label, value, Icon, color, modal }) => (
+                  <Card key={label} className="card-interactive cursor-pointer" onClick={() => setOverviewModal(modal)}>
                     <CardContent className="p-4">
                       <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", color)}>
                         <Icon className="h-4 w-4" />
@@ -1767,6 +1778,90 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* ── Overview detail modal ── */}
+      {overviewModal && (() => {
+        const titles: Record<NonNullable<OverviewModal>, string> = {
+          employees:   "Semua Karyawan",
+          present:     "Hadir Hari Ini",
+          leave:       "Cuti Pending",
+          overtime:    "Lembur Pending",
+          corrections: "Koreksi Pending",
+        };
+        const isLoading = overviewModal === "employees" ? ovEmpLoading : overviewModal === "present" ? ovPresLoading : overviewModal === "leave" ? ovLeaveLoading : overviewModal === "overtime" ? ovOtLoading : ovCorrLoading;
+        const rows: any[] = overviewModal === "employees" ? (ovEmpData?.data ?? []) : overviewModal === "present" ? (ovPresData?.data ?? []) : overviewModal === "leave" ? (ovLeaveData?.data ?? []) : overviewModal === "overtime" ? (ovOtData?.data ?? []) : (ovCorrData?.data ?? []);
+        const headers: Record<NonNullable<OverviewModal>, string[]> = {
+          employees:   ["Nama", "Jabatan", "Email", "No. HP"],
+          present:     ["Nama", "Jabatan", "Masuk", "Keluar"],
+          leave:       ["Nama", "Jenis", "Tanggal", "Hari"],
+          overtime:    ["Nama", "Tanggal", "Jam", "Durasi"],
+          corrections: ["Nama", "Tgl Absen", "Alasan"],
+        };
+        return (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setOverviewModal(null)}>
+            <div className="w-full md:max-w-2xl bg-card rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+                <div>
+                  <h3 className="font-bold text-base">{titles[overviewModal]}</h3>
+                  {!isLoading && <p className="text-xs text-muted-foreground mt-0.5">{rows.length} data</p>}
+                </div>
+                <button onClick={() => setOverviewModal(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="overflow-auto flex-1">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-muted/90">
+                    <tr className="border-b border-border">
+                      {headers[overviewModal].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading
+                      ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={headers[overviewModal].length} />)
+                      : !rows.length
+                      ? <tr><td colSpan={headers[overviewModal].length} className="text-center py-10 text-muted-foreground text-sm">Tidak ada data</td></tr>
+                      : rows.map((row: any, i: number) => (
+                        <tr key={row.id ?? i} className="border-b border-border/50 hover:bg-muted/20">
+                          {overviewModal === "employees" && (<>
+                            <td className="px-4 py-3 font-medium text-sm">{row.full_name}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{row.position ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs">{row.email ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs font-mono">{row.phone ?? "—"}</td>
+                          </>)}
+                          {overviewModal === "present" && (<>
+                            <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{row.profiles?.position ?? "—"}</td>
+                            <td className="px-4 py-3 font-mono text-xs">{row.clock_in ? fmtTime(row.clock_in) : "—"}</td>
+                            <td className="px-4 py-3 font-mono text-xs">{row.clock_out ? fmtTime(row.clock_out) : "—"}</td>
+                          </>)}
+                          {overviewModal === "leave" && (<>
+                            <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs capitalize">{row.leave_type === "annual" ? "Tahunan" : row.leave_type === "sick" ? "Sakit" : row.leave_type === "personal" ? "Pribadi" : "Lainnya"}</td>
+                            <td className="px-4 py-3 text-xs">{fmtDate(row.start_date)}{row.start_date !== row.end_date && ` – ${fmtDate(row.end_date)}`}</td>
+                            <td className="px-4 py-3 text-center font-semibold text-sm">{row.days_count}</td>
+                          </>)}
+                          {overviewModal === "overtime" && (<>
+                            <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs">{fmtDate(row.date)}</td>
+                            <td className="px-4 py-3 font-mono text-xs">{row.start_time}–{row.end_time}</td>
+                            <td className="px-4 py-3 text-xs text-purple-600 font-mono">{fmtDuration(row.duration_minutes)}</td>
+                          </>)}
+                          {overviewModal === "corrections" && (<>
+                            <td className="px-4 py-3 font-medium text-sm">{row.profiles?.full_name ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs">{row.attendance?.date ? fmtDate(row.attendance.date) : "—"}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground max-w-[180px] truncate" title={row.reason}>{row.reason}</td>
+                          </>)}
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reason detail popup */}
       {reasonModal !== null && (

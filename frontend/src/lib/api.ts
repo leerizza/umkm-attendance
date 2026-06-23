@@ -216,6 +216,16 @@ export const adminApi = {
     api.get(`/admin/employees/${user_id}/attendance/export`, { responseType: "blob" }),
   sickNoteUrl: (leave_id: string) =>
     api.get<{ url: string }>(`/admin/leave/${leave_id}/sick-note`),
+  overviewEmployees: () =>
+    api.get("/admin/employees", { params: { page: 1, per_page: 50, is_active: true } }),
+  overviewPresent: (today: string) =>
+    api.get("/admin/attendance", { params: { page: 1, per_page: 50, date_from: today, date_to: today } }),
+  overviewPendingLeave: () =>
+    api.get("/admin/leave", { params: { page: 1, per_page: 50, status_filter: "pending" } }),
+  overviewPendingOvertime: () =>
+    api.get("/admin/overtime", { params: { page: 1, per_page: 50, status_filter: "pending" } }),
+  overviewPendingCorrections: () =>
+    api.get("/corrections/admin", { params: { page: 1, per_page: 50, status_filter: "pending" } }),
 };
 
 export const demoApi = {

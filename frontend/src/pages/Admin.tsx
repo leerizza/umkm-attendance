@@ -93,6 +93,7 @@ export default function AdminPage() {
   const [corrFilter, setCorrFilter] = useState("pending");
   const [corrFrom,   setCorrFrom]   = useState("");
   const [corrTo,     setCorrTo]     = useState("");
+  const [reasonModal, setReasonModal] = useState<string | null>(null);
   const { data: corrData, isLoading: corrLoading } = useQuery({
     queryKey: ["admin-corrections", page, corrFilter, corrFrom, corrTo],
     queryFn: () => correctionsApi.adminList(page, corrFilter || undefined, corrFrom || undefined, corrTo || undefined).then((r) => r.data),
@@ -1009,7 +1010,15 @@ export default function AdminPage() {
                   <td className="px-4 py-3 text-xs">{fmtDate(row.attendance?.date)}</td>
                   <td className="px-4 py-3 font-mono text-xs text-indigo-600">{row.requested_clock_in ? fmtTime(row.requested_clock_in) : "—"}</td>
                   <td className="px-4 py-3 font-mono text-xs text-indigo-600">{row.requested_clock_out ? fmtTime(row.requested_clock_out) : "—"}</td>
-                  <td className="px-4 py-3 text-xs max-w-[120px] truncate" title={row.reason}>{row.reason}</td>
+                  <td className="px-4 py-3 text-xs max-w-[120px]">
+                    <button
+                      onClick={() => setReasonModal(row.reason)}
+                      className="truncate block max-w-[120px] text-left hover:text-primary hover:underline transition-colors"
+                      title="Klik untuk lihat selengkapnya"
+                    >
+                      {row.reason}
+                    </button>
+                  </td>
                   <td className="px-4 py-3"><Badge status={row.status} /></td>
                   <td className="px-4 py-3">
                     {row.status === "pending" && (
@@ -1032,7 +1041,13 @@ export default function AdminPage() {
                     {row.requested_clock_in && <span>Masuk → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_in)}</span></span>}
                     {row.requested_clock_out && <span>Keluar → <span className="text-indigo-600 font-semibold">{fmtTime(row.requested_clock_out)}</span></span>}
                   </div>
-                  <p className="text-xs text-muted-foreground">{row.reason}</p>
+                  <button
+                    onClick={() => setReasonModal(row.reason)}
+                    className="text-xs text-muted-foreground text-left hover:text-primary transition-colors line-clamp-2"
+                    title="Klik untuk lihat selengkapnya"
+                  >
+                    {row.reason}
+                  </button>
                   {row.status === "pending" && (
                     <div className="flex gap-2 pt-1 border-t border-border/50">
                       <button onClick={() => approveCorr.mutate({ id: row.id, status: "approved" })} disabled={approveCorr.isPending} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
@@ -1719,6 +1734,21 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Reason detail popup */}
+      {reasonModal !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setReasonModal(null)}>
+          <div className="bg-background rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm">Alasan Koreksi</h3>
+              <button onClick={() => setReasonModal(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm text-foreground whitespace-pre-wrap break-words">{reasonModal}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

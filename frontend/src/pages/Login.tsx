@@ -768,6 +768,14 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.3.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Klik alasan koreksi absen di tab Admin → popup tampil teks lengkap" },
+      { type: "🐛", text: "Fix export Excel tidak mencerminkan hasil koreksi absen yang sudah disetujui" },
+    ],
+  },
+  {
     version: "1.2.0",
     date: "Juni 2026",
     items: [

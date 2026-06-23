@@ -246,15 +246,15 @@ export default function LeavePage() {
                   ) : (
                     <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
                       <Paperclip className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Pilih foto/PDF surat sakit (maks. 5 MB)</span>
+                      <span className="text-xs text-muted-foreground">Pilih foto/PDF surat sakit (maks. 1 MB)</span>
                       <input
                         type="file"
                         className="hidden"
                         accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f && f.size > 5 * 1024 * 1024) {
-                            toast.error("File terlalu besar", "Maksimal 5 MB");
+                          if (f && f.size > 1 * 1024 * 1024) {
+                            toast.error("File terlalu besar", "Maksimal 1 MB");
                             return;
                           }
                           setSickNoteFile(f ?? null);

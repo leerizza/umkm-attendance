@@ -1,4 +1,8 @@
 import re
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +12,50 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from limiter import limiter
 from config import settings
+
+_log = logging.getLogger(__name__)
+
+
+async def _cleanup_sick_notes_loop() -> None:
+    """Hapus file surat sakit dari rejected/cancelled leaves yang lebih dari 7 hari."""
+    while True:
+        try:
+            from db import supabase
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            res = (
+                supabase.table("leave_requests")
+                .select("id, attachment_url")
+                .in_("status", ["rejected", "cancelled"])
+                .not_.is_("attachment_url", "null")
+                .lte("created_at", cutoff)
+                .execute()
+            )
+            cleaned = 0
+            for row in (res.data or []):
+                path = row.get("attachment_url")
+                if path:
+                    try:
+                        supabase.storage.from_("sick-notes").remove([path])
+                        supabase.table("leave_requests").update({"attachment_url": None}).eq("id", row["id"]).execute()
+                        cleaned += 1
+                    except Exception as e:
+                        _log.warning("cleanup_sick_notes: gagal hapus %s: %s", path, e)
+            if cleaned:
+                _log.info("cleanup_sick_notes: %d file terhapus", cleaned)
+        except Exception as e:
+            _log.warning("cleanup_sick_notes: error: %s", e)
+        await asyncio.sleep(86400)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_cleanup_sick_notes_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 _VERCEL_ORIGIN_RE = re.compile(r"^https://.*\.vercel\.app$")
 
@@ -65,6 +113,7 @@ app = FastAPI(
     version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter

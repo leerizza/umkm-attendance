@@ -49,6 +49,14 @@ def _check_overlap(user_id: str, start: str, end: str, exclude_id: str = None):
     return len(res.data) > 0
 
 
+def _delete_sick_note(path: str) -> None:
+    """Best-effort deletion of a sick note file from Supabase Storage."""
+    try:
+        supabase.storage.from_("sick-notes").remove([path])
+    except Exception as e:
+        _log.warning("_delete_sick_note: gagal hapus %s: %s", path, e)
+
+
 @router.post("")
 async def create_leave(
     body: LeaveCreateRequest,
@@ -242,7 +250,7 @@ async def update_leave(
     profile: dict = Depends(get_current_profile),
 ):
     try:
-        res = supabase.table("leave_requests").select("user_id, status").eq("id", leave_id).single().execute()
+        res = supabase.table("leave_requests").select("user_id, status, leave_type, attachment_url").eq("id", leave_id).single().execute()
     except Exception:
         raise HTTPException(404, "Leave request not found")
     if not res.data:
@@ -306,12 +314,16 @@ async def update_leave(
                 f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari kerja, diminta: {days_requested} hari kerja."
             )
 
-    supabase.table("leave_requests").update({
+    update_data: dict = {
         "leave_type": body.leave_type,
         "start_date": start,
         "end_date": end,
         "reason": body.reason,
-    }).eq("id", leave_id).execute()
+    }
+    if res.data.get("leave_type") == "sick" and body.leave_type != "sick" and res.data.get("attachment_url"):
+        _delete_sick_note(res.data["attachment_url"])
+        update_data["attachment_url"] = None
+    supabase.table("leave_requests").update(update_data).eq("id", leave_id).execute()
 
     return {"message": "Leave request updated"}
 
@@ -322,7 +334,7 @@ async def cancel_leave(
     profile: dict = Depends(get_current_profile),
 ):
     try:
-        res = supabase.table("leave_requests").select("user_id, status").eq("id", leave_id).single().execute()
+        res = supabase.table("leave_requests").select("user_id, status, leave_type, attachment_url").eq("id", leave_id).single().execute()
     except Exception:
         raise HTTPException(404, "Leave request not found")
     if not res.data:
@@ -332,7 +344,11 @@ async def cancel_leave(
     if res.data["status"] != "pending":
         raise HTTPException(400, "Hanya pengajuan yang masih menunggu yang bisa dibatalkan")
 
-    supabase.table("leave_requests").update({"status": "cancelled"}).eq("id", leave_id).execute()
+    update_payload: dict = {"status": "cancelled"}
+    if res.data.get("leave_type") == "sick" and res.data.get("attachment_url"):
+        _delete_sick_note(res.data["attachment_url"])
+        update_payload["attachment_url"] = None
+    supabase.table("leave_requests").update(update_payload).eq("id", leave_id).execute()
     return {"message": "Leave request cancelled"}
 
 
@@ -360,12 +376,16 @@ async def approve_leave(
     if res.data["status"] != "pending":
         raise HTTPException(400, "Request already processed")
 
-    supabase.table("leave_requests").update({
+    update_leave_data: dict = {
         "status": body.status,
         "reviewed_by": admin["id"],
         "reviewed_at": datetime.now(timezone.utc).isoformat(),
         "reviewer_note": body.reviewer_note,
-    }).eq("id", leave_id).execute()
+    }
+    if body.status == "rejected" and res.data.get("leave_type") == "sick" and res.data.get("attachment_url"):
+        _delete_sick_note(res.data["attachment_url"])
+        update_leave_data["attachment_url"] = None
+    supabase.table("leave_requests").update(update_leave_data).eq("id", leave_id).execute()
 
     # Fetch employee name for email
     full_name = "Karyawan"

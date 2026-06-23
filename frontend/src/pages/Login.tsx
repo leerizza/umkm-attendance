@@ -768,6 +768,15 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.5.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Admin bisa lihat surat sakit langsung dari panel — klik ikon lampiran di tab Cuti" },
+      { type: "🐛", text: "Fix kalkulasi hari kerja tidak memperhitungkan setting work_saturday/work_sunday perusahaan" },
+      { type: "🐛", text: "Fix self-approve koreksi absen untuk perusahaan yang hanya punya satu admin" },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "Juni 2026",
     items: [

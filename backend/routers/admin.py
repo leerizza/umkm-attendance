@@ -418,8 +418,20 @@ async def monthly_report(
     employees = emp_res.data or []
 
     # All attendance in range
-    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_res = supabase.table("attendance").select("id, user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
     att_rows = att_res.data or []
+
+    # Approved corrections — overlay corrected clock_in/clock_out
+    att_ids_view = [r["id"] for r in att_rows if r.get("id")]
+    corr_map_view: dict = {}
+    if att_ids_view:
+        _c = supabase.table("attendance_corrections").select("attendance_id, requested_clock_in, requested_clock_out").eq("company_id", company_id).eq("status", "approved").in_("attendance_id", att_ids_view).execute()
+        corr_map_view = {c["attendance_id"]: c for c in (_c.data or [])}
+    for r in att_rows:
+        c = corr_map_view.get(r.get("id"))
+        if c:
+            if c.get("requested_clock_in"):  r["clock_in"]  = c["requested_clock_in"]
+            if c.get("requested_clock_out"): r["clock_out"] = c["requested_clock_out"]
 
     # Approved leaves in range
     leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").lte("start_date", last_day).gte("end_date", first_day).execute()
@@ -486,8 +498,19 @@ async def export_monthly_report_xlsx(
     emp_res = supabase.table("profiles").select("id, full_name, position").eq("company_id", company_id).eq("is_active", True).order("full_name").execute()
     employees = emp_res.data or []
 
-    att_res = supabase.table("attendance").select("user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
+    att_res = supabase.table("attendance").select("id, user_id, status, clock_in, clock_out, break_start, break_end").eq("company_id", company_id).gte("date", first_day).lte("date", last_day).execute()
     att_rows = att_res.data or []
+
+    att_ids_exp = [r["id"] for r in att_rows if r.get("id")]
+    corr_map_exp: dict = {}
+    if att_ids_exp:
+        _ce = supabase.table("attendance_corrections").select("attendance_id, requested_clock_in, requested_clock_out").eq("company_id", company_id).eq("status", "approved").in_("attendance_id", att_ids_exp).execute()
+        corr_map_exp = {c["attendance_id"]: c for c in (_ce.data or [])}
+    for r in att_rows:
+        c = corr_map_exp.get(r.get("id"))
+        if c:
+            if c.get("requested_clock_in"):  r["clock_in"]  = c["requested_clock_in"]
+            if c.get("requested_clock_out"): r["clock_out"] = c["requested_clock_out"]
 
     leave_res = supabase.table("leave_requests").select("user_id, days_count").eq("company_id", company_id).eq("status", "approved").lte("start_date", last_day).gte("end_date", first_day).execute()
     leave_rows = leave_res.data or []
@@ -543,7 +566,7 @@ async def export_attendance_xlsx(
 
     res = (
         supabase.table("attendance")
-        .select("date, clock_in, clock_out, break_start, break_end, clock_in_distance_m, status, notes, profiles(full_name, position), locations(name)")
+        .select("id, date, clock_in, clock_out, break_start, break_end, clock_in_distance_m, status, notes, profiles(full_name, position), locations(name)")
         .eq("company_id", admin["company_id"])
         .gte("date", date_from)
         .lte("date", date_to)
@@ -551,6 +574,19 @@ async def export_attendance_xlsx(
         .order("clock_in", desc=False)
         .execute()
     )
+
+    att_ids = [r["id"] for r in (res.data or []) if r.get("id")]
+    corr_map: dict = {}
+    if att_ids:
+        corr_res = (
+            supabase.table("attendance_corrections")
+            .select("attendance_id, requested_clock_in, requested_clock_out")
+            .eq("company_id", admin["company_id"])
+            .eq("status", "approved")
+            .in_("attendance_id", att_ids)
+            .execute()
+        )
+        corr_map = {c["attendance_id"]: c for c in (corr_res.data or [])}
 
     def fmt(ts):
         if not ts:
@@ -566,15 +602,18 @@ async def export_attendance_xlsx(
     for row in (res.data or []):
         profile = row.get("profiles") or {}
         loc     = row.get("locations") or {}
-        work_min = effective_work_minutes(row)
+        corr    = corr_map.get(row.get("id"))
+        clock_in  = corr["requested_clock_in"]  if corr and corr.get("requested_clock_in")  else row.get("clock_in")
+        clock_out = corr["requested_clock_out"] if corr and corr.get("requested_clock_out") else row.get("clock_out")
+        work_min = effective_work_minutes({**row, "clock_in": clock_in, "clock_out": clock_out})
         rows.append([
             profile.get("full_name", ""),
             profile.get("position", ""),
             row.get("date", ""),
-            fmt(row.get("clock_in")),
+            fmt(clock_in),
             fmt(row.get("break_start")),
             fmt(row.get("break_end")),
-            fmt(row.get("clock_out")),
+            fmt(clock_out),
             round(work_min / 60, 1) if work_min else "",
             loc.get("name", ""),
             row.get("clock_in_distance_m", ""),
@@ -794,12 +833,18 @@ async def export_employee_attendance_xlsx(
 
     res = (
         supabase.table("attendance")
-        .select("date, clock_in, clock_out, break_start, break_end, status, notes, locations(name)")
+        .select("id, date, clock_in, clock_out, break_start, break_end, status, notes, locations(name)")
         .eq("user_id", user_id)
         .eq("company_id", admin["company_id"])
         .order("date", desc=False)
         .execute()
     )
+
+    emp_att_ids = [r["id"] for r in (res.data or []) if r.get("id")]
+    emp_corr_map: dict = {}
+    if emp_att_ids:
+        _ec = supabase.table("attendance_corrections").select("attendance_id, requested_clock_in, requested_clock_out").eq("company_id", admin["company_id"]).eq("status", "approved").in_("attendance_id", emp_att_ids).execute()
+        emp_corr_map = {c["attendance_id"]: c for c in (_ec.data or [])}
 
     def fmt(ts):
         if not ts:
@@ -814,14 +859,17 @@ async def export_employee_attendance_xlsx(
     headers = ["Tanggal", "Jam Masuk", "Mulai Istirahat", "Selesai Istirahat", "Jam Keluar", "Durasi Kerja (jam)", "Lokasi", "Status", "Catatan"]
     rows = []
     for row in (res.data or []):
-        loc = row.get("locations") or {}
-        work_min = effective_work_minutes(row)
+        loc  = row.get("locations") or {}
+        corr = emp_corr_map.get(row.get("id"))
+        clock_in  = corr["requested_clock_in"]  if corr and corr.get("requested_clock_in")  else row.get("clock_in")
+        clock_out = corr["requested_clock_out"] if corr and corr.get("requested_clock_out") else row.get("clock_out")
+        work_min = effective_work_minutes({**row, "clock_in": clock_in, "clock_out": clock_out})
         rows.append([
             row.get("date", ""),
-            fmt(row.get("clock_in")),
+            fmt(clock_in),
             fmt(row.get("break_start")),
             fmt(row.get("break_end")),
-            fmt(row.get("clock_out")),
+            fmt(clock_out),
             round(work_min / 60, 1) if work_min else "",
             loc.get("name", ""),
             _STATUS_ID.get(row.get("status", ""), row.get("status", "")),

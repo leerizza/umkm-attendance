@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from datetime import datetime, timezone, date, timedelta
+import logging
 from models.schemas import LeaveCreateRequest, LeaveApproveRequest
 from utils.auth import get_current_profile, require_admin
-from utils.email import send_leave_decision_email
+from utils.email import send_leave_decision_email, send_sick_note_notification
 from db import supabase
+
+_log = logging.getLogger(__name__)
 
 # Default annual leave allowance (days/year) if not set per company
 DEFAULT_ANNUAL_ALLOWANCE = 12
@@ -49,6 +52,7 @@ def _check_overlap(user_id: str, start: str, end: str, exclude_id: str = None):
 @router.post("")
 async def create_leave(
     body: LeaveCreateRequest,
+    background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_profile),
 ):
     user_id = profile["id"]
@@ -108,7 +112,7 @@ async def create_leave(
                 f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari kerja, diminta: {days_requested} hari kerja."
             )
 
-    supabase.table("leave_requests").insert({
+    payload: dict = {
         "user_id": user_id,
         "company_id": profile["company_id"],
         "leave_type": body.leave_type,
@@ -116,7 +120,38 @@ async def create_leave(
         "end_date": end,
         "reason": body.reason,
         "status": "pending",
-    }).execute()
+    }
+    if body.sick_note_path and body.leave_type == "sick":
+        payload["attachment_url"] = body.sick_note_path
+
+    supabase.table("leave_requests").insert(payload).execute()
+
+    # Notify all company admins when a sick note is attached
+    if body.leave_type == "sick" and body.sick_note_path:
+        try:
+            signed = supabase.storage.from_("sick-notes").create_signed_url(body.sick_note_path, 7 * 24 * 3600)
+            signed_url = signed.get("signedURL") or (signed.get("data") or {}).get("signedUrl", "")
+            if signed_url:
+                admin_res = (
+                    supabase.table("profiles")
+                    .select("id")
+                    .eq("company_id", profile["company_id"])
+                    .eq("role", "admin")
+                    .eq("is_active", True)
+                    .execute()
+                )
+                admin_ids = [a["id"] for a in (admin_res.data or [])]
+                background_tasks.add_task(
+                    send_sick_note_notification,
+                    admin_user_ids=admin_ids,
+                    employee_name=profile.get("full_name", "Karyawan"),
+                    start_date=start,
+                    end_date=end,
+                    reason=body.reason,
+                    signed_url=signed_url,
+                )
+        except Exception as e:
+            _log.error("Sick note notification failed: %s", e)
 
     return {"message": "Leave request submitted"}
 

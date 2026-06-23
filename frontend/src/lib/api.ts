@@ -300,6 +300,7 @@ export interface LeavePayload {
   start_date: string;
   end_date: string;
   reason: string;
+  sick_note_path?: string;
 }
 
 export interface OvertimePayload {

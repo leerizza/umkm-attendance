@@ -182,6 +182,39 @@ async def send_new_company_notification(
     await _send(settings.superadmin_email, title, _card(title, "#2563eb", body))
 
 
+async def send_sick_note_notification(
+    admin_user_ids: list,
+    employee_name: str,
+    start_date: str,
+    end_date: str,
+    reason: str,
+    signed_url: str,
+) -> None:
+    for uid in admin_user_ids:
+        email = await _get_user_email(uid)
+        if not email:
+            continue
+        title = f"Surat Sakit dari {employee_name}"
+        body = f"""
+    <p style="margin:0 0 20px;color:#09090b;font-size:15px;">
+      Karyawan <strong>{employee_name}</strong> mengajukan cuti sakit dan melampirkan surat keterangan sakit.
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%">
+      {_row("Karyawan:", employee_name)}
+      {_row("Tanggal Mulai:", start_date)}
+      {_row("Tanggal Selesai:", end_date)}
+      {_row("Alasan:", reason)}
+    </table>
+    <div style="margin-top:24px;">
+      <a href="{signed_url}"
+         style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;text-decoration:none;">
+        Lihat Surat Sakit
+      </a>
+    </div>
+    <p style="margin:16px 0 0;font-size:12px;color:#71717a;">Link berlaku selama 7 hari.</p>"""
+        await _send(email, title, _card(title, "#2563eb", body))
+
+
 async def send_company_approved_email(
     owner_email: str,
     owner_name: str,

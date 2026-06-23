@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter, Trash2, Pencil } from "lucide-react";
+import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter, Trash2, Pencil, Paperclip, FileText } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Badge, TableRowSkeleton } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { leaveApi } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { fmtDate, getErrMsg, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
@@ -45,6 +46,8 @@ export default function LeavePage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingLeave, setEditingLeave] = useState<any>(null);
+  const [sickNoteFile, setSickNoteFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -71,12 +74,24 @@ export default function LeavePage() {
   });
 
   const mutation = useMutation({
-    mutationFn: () => leaveApi.create(form),
+    mutationFn: async () => {
+      let sick_note_path: string | undefined;
+      if (form.leave_type === "sick" && sickNoteFile && profile?.id) {
+        const ext = sickNoteFile.name.split(".").pop();
+        const path = `${profile.id}/${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from("sick-notes").upload(path, sickNoteFile, { upsert: false });
+        if (error) throw new Error("Gagal upload surat sakit: " + error.message);
+        sick_note_path = path;
+      }
+      return leaveApi.create({ ...form, sick_note_path });
+    },
     onSuccess: () => {
-      toast.success("Pengajuan terkirim!", "Menunggu persetujuan admin");
+      const hasSickNote = form.leave_type === "sick" && sickNoteFile;
+      toast.success("Pengajuan terkirim!", hasSickNote ? "Surat sakit dikirim ke admin via email" : "Menunggu persetujuan admin");
       qc.invalidateQueries({ queryKey: ["leave"] });
       qc.invalidateQueries({ queryKey: ["leave-balance"] });
       setShowForm(false);
+      setSickNoteFile(null);
       setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
     },
     onError: (err) => toast.error("Gagal mengajukan", getErrMsg(err)),
@@ -144,6 +159,7 @@ export default function LeavePage() {
               <button onClick={() => {
                 setShowForm(false);
                 setEditingLeave(null);
+                setSickNoteFile(null);
                 setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
               }} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
@@ -209,10 +225,55 @@ export default function LeavePage() {
                 required
               />
 
+              {/* Sick note upload — only for sick leave, only on create */}
+              {form.leave_type === "sick" && !editingLeave && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-foreground/80">
+                    Surat Sakit <span className="text-muted-foreground font-normal">(opsional)</span>
+                  </label>
+                  {sickNoteFile ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-primary/40 bg-primary/5">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-xs text-foreground flex-1 truncate">{sickNoteFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSickNoteFile(null)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
+                      <Paperclip className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Pilih foto/PDF surat sakit (maks. 5 MB)</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f && f.size > 5 * 1024 * 1024) {
+                            toast.error("File terlalu besar", "Maksimal 5 MB");
+                            return;
+                          }
+                          setSickNoteFile(f ?? null);
+                        }}
+                      />
+                    </label>
+                  )}
+                  {sickNoteFile && (
+                    <p className="text-[11px] text-muted-foreground px-1">
+                      Surat sakit akan dikirimkan ke email admin perusahaan secara otomatis.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <Button
                 className="w-full"
                 size="lg"
-                loading={editingLeave ? updateMutation.isPending : mutation.isPending}
+                loading={editingLeave ? updateMutation.isPending : (mutation.isPending || uploading)}
                 onClick={() => {
                   if (editingLeave) {
                     updateMutation.mutate({ id: editingLeave.id, data: form });
@@ -312,6 +373,11 @@ export default function LeavePage() {
                     {fmtDate(row.start_date)}{row.start_date !== row.end_date ? ` – ${fmtDate(row.end_date)}` : ""} · <span className="font-semibold text-foreground">{countBusinessDays(row.start_date, row.end_date, workSaturday, workSunday)} hari kerja</span>
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{row.reason}</p>
+                  {row.attachment_url && (
+                    <p className="text-xs text-blue-600 flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" /> Surat sakit terlampir
+                    </p>
+                  )}
                   {row.reviewer_note && (
                     <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-2 py-1">
                       <span className="font-semibold">Catatan admin:</span> {row.reviewer_note}
@@ -354,7 +420,14 @@ export default function LeavePage() {
                           {fmtDate(row.start_date)}{row.start_date !== row.end_date ? ` – ${fmtDate(row.end_date)}` : ""}
                         </td>
                         <td className="px-4 py-3 text-center font-semibold">{countBusinessDays(row.start_date, row.end_date, workSaturday, workSunday)}</td>
-                        <td className="px-4 py-3 text-xs max-w-[120px] truncate">{row.reason}</td>
+                        <td className="px-4 py-3 text-xs max-w-[120px]">
+                          <span className="truncate block">{row.reason}</span>
+                          {row.attachment_url && (
+                            <span className="text-blue-600 flex items-center gap-1 mt-0.5">
+                              <Paperclip className="h-3 w-3" /> Surat sakit
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3"><Badge status={row.status} /></td>
                         <td className="px-4 py-3">
                           {row.status === "pending" && (

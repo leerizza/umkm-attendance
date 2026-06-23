@@ -152,6 +152,7 @@ class LeaveCreateRequest(BaseModel):
     start_date: date
     end_date: date
     reason: str = Field(min_length=1, max_length=500)
+    sick_note_path: Optional[str] = None  # supabase storage path, only for sick leave
 
     @field_validator("leave_type")
     @classmethod

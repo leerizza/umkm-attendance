@@ -61,6 +61,8 @@ async def get_my_overtime(
 ):
     if not (profile.get("companies") or {}).get("overtime_enabled", True):
         raise HTTPException(403, "Fitur lembur tidak diaktifkan oleh perusahaan")
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (

@@ -141,6 +141,8 @@ async def admin_attendance(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
@@ -168,6 +170,8 @@ async def admin_leave(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
@@ -196,6 +200,8 @@ async def admin_overtime(
     date_to: str = None,
     admin: dict = Depends(require_admin),
 ):
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (
@@ -737,6 +743,8 @@ async def export_leave_xlsx(
     admin: dict = Depends(require_admin),
 ):
     """Export leave requests as XLSX."""
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     q = (
         supabase.table("leave_requests")
         .select("*, profiles!leave_requests_user_id_fkey(full_name, position)")

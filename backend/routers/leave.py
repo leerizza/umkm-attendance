@@ -217,6 +217,8 @@ async def get_my_leave(
     date_to: str = None,
     profile: dict = Depends(get_current_profile),
 ):
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(400, "date_from tidak boleh setelah date_to")
     per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     q = (

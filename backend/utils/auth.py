@@ -13,6 +13,9 @@ bearer = HTTPBearer()
 _auth_cache: dict[str, tuple[dict, float]] = {}
 _AUTH_CACHE_TTL = 300  # 5 minutes
 
+_profile_cache: dict[str, tuple[dict, float]] = {}
+_PROFILE_CACHE_TTL = 60  # 1 minute
+
 
 def _token_key(token: str) -> str:
     """SHA-256 hash of the full token — collision-safe cache key."""
@@ -77,13 +80,24 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="Token expired or invalid")
 
 
+def _invalidate_profile_cache(user_id: str):
+    _profile_cache.pop(user_id, None)
+
+
 async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
-    """Fetch full profile + company from DB."""
+    """Fetch full profile + company from DB, cached for 60s per user."""
+    user_id = user["user_id"]
+    entry = _profile_cache.get(user_id)
+    if entry:
+        profile, expire = entry
+        if time.time() < expire:
+            return profile
+
     try:
         res = (
             supabase.table("profiles")
             .select("*, companies(*)")
-            .eq("id", user["user_id"])
+            .eq("id", user_id)
             .single()
             .execute()
         )
@@ -92,10 +106,17 @@ async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
     if not res.data:
         raise HTTPException(status_code=404, detail="Profile not found")
     if res.data.get("is_active") is False:
+        _profile_cache.pop(user_id, None)
         raise HTTPException(status_code=403, detail="Akun Anda telah dinonaktifkan")
     company = res.data.get("companies") or {}
     if company.get("is_approved") is False:
         raise HTTPException(status_code=403, detail="pending_approval")
+
+    if len(_profile_cache) > 500:
+        now = time.time()
+        for k in [k for k, (_, exp) in list(_profile_cache.items()) if exp < now]:
+            _profile_cache.pop(k, None)
+    _profile_cache[user_id] = (res.data, time.time() + _PROFILE_CACHE_TTL)
     return res.data
 
 

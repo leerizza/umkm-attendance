@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
-from utils.auth import require_admin
+from utils.auth import require_admin, _invalidate_profile_cache
 from db import supabase
 from routers.attendance import effective_work_minutes
 
@@ -713,6 +713,7 @@ async def update_employee_role(
         raise HTTPException(400, "Tidak dapat mengubah role diri sendiri")
 
     supabase.table("profiles").update({"role": role}).eq("id", user_id).execute()
+    _invalidate_profile_cache(user_id)
     return {"message": f"Role updated to {role}"}
 
 
@@ -732,6 +733,7 @@ async def toggle_employee_active(
         raise HTTPException(400, "Cannot deactivate yourself")
 
     supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).execute()
+    _invalidate_profile_cache(user_id)
     return {"message": "activated" if is_active else "deactivated"}
 
 

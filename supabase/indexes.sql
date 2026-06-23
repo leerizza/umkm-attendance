@@ -20,3 +20,16 @@ CREATE INDEX IF NOT EXISTS idx_profiles_company_active
 -- Attendance export: date range filter per company
 CREATE INDEX IF NOT EXISTS idx_attendance_company_date_range
   ON attendance(company_id, date ASC);
+
+-- attendance_corrections: admin list + stats filter by company + status
+CREATE INDEX IF NOT EXISTS idx_corrections_company_status
+  ON attendance_corrections(company_id, status);
+
+-- attendance_corrections: check existing pending correction per attendance record
+-- also used by monthly report IN(attendance_ids) + approved status
+CREATE INDEX IF NOT EXISTS idx_corrections_attendance_status
+  ON attendance_corrections(attendance_id, status);
+
+-- attendance_corrections: employee list ordered by newest first
+CREATE INDEX IF NOT EXISTS idx_corrections_user_created
+  ON attendance_corrections(user_id, created_at DESC);

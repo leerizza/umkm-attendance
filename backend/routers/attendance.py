@@ -298,13 +298,14 @@ async def monthly_stats(profile: dict = Depends(get_current_profile)):
 
     att_res = (
         supabase.table("attendance")
-        .select("id", count="exact")
+        .select("clock_in, clock_out, break_start, break_end")
         .eq("user_id", user_id)
         .gte("date", first_day)
         .lte("date", last_day)
         .not_.is_("clock_in", "null")
         .execute()
     )
+    att_rows = att_res.data or []
 
     leave_res = (
         supabase.table("leave_requests")
@@ -327,21 +328,10 @@ async def monthly_stats(profile: dict = Depends(get_current_profile)):
     )
 
     total_leave_days = sum(r.get("days_count") or 0 for r in (leave_res.data or []))
-
-    work_res = (
-        supabase.table("attendance")
-        .select("clock_in, clock_out, break_start, break_end")
-        .eq("user_id", user_id)
-        .gte("date", first_day)
-        .lte("date", last_day)
-        .not_.is_("clock_in", "null")
-        .not_.is_("clock_out", "null")
-        .execute()
-    )
-    total_work_minutes = sum(effective_work_minutes(r) for r in (work_res.data or []))
+    total_work_minutes = sum(effective_work_minutes(r) for r in att_rows if r.get("clock_out"))
 
     return {
-        "hadir": att_res.count or 0,
+        "hadir": len(att_rows),
         "cuti": total_leave_days,
         "lembur": ot_res.count or 0,
         "total_work_minutes": total_work_minutes,

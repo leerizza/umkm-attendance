@@ -7,7 +7,7 @@ from models.schemas import (
     ResetPasswordOTPRequest, ChangePasswordOTPRequest,
     VerifyRegisterRequest, VerifyRegisterOwnerRequest,
 )
-from utils.auth import get_current_profile, get_current_user
+from utils.auth import get_current_profile, get_current_user, _invalidate_profile_cache
 from utils.email import send_new_company_notification
 from db import supabase
 from config import settings
@@ -556,4 +556,5 @@ async def update_profile(
         .eq("id", profile["id"])
         .execute()
     )
+    _invalidate_profile_cache(profile["id"])
     return {"message": "Profile updated", "data": res.data[0] if res.data else updates}

@@ -155,7 +155,7 @@ async def approve_correction(
             .neq("id", admin["id"])
             .execute()
         )
-        if other_admins.count and other_admins.count > 0:
+        if other_admins.count is None or other_admins.count > 0:
             raise HTTPException(403, "Tidak dapat menyetujui pengajuan koreksi milik sendiri")
 
     # Update correction record

@@ -1789,7 +1789,9 @@ export default function AdminPage() {
           corrections: "Koreksi Pending",
         };
         const isLoading = overviewModal === "employees" ? ovEmpLoading : overviewModal === "present" ? ovPresLoading : overviewModal === "leave" ? ovLeaveLoading : overviewModal === "overtime" ? ovOtLoading : ovCorrLoading;
-        const rows: any[] = overviewModal === "employees" ? (ovEmpData?.data ?? []) : overviewModal === "present" ? (ovPresData?.data ?? []) : overviewModal === "leave" ? (ovLeaveData?.data ?? []) : overviewModal === "overtime" ? (ovOtData?.data ?? []) : (ovCorrData?.data ?? []);
+        const activeData = overviewModal === "employees" ? ovEmpData : overviewModal === "present" ? ovPresData : overviewModal === "leave" ? ovLeaveData : overviewModal === "overtime" ? ovOtData : ovCorrData;
+        const rows: any[] = activeData?.data ?? [];
+        const totalCount: number = activeData?.total ?? rows.length;
         const headers: Record<NonNullable<OverviewModal>, string[]> = {
           employees:   ["Nama", "Jabatan", "Email", "No. HP"],
           present:     ["Nama", "Jabatan", "Masuk", "Keluar"],
@@ -1803,7 +1805,11 @@ export default function AdminPage() {
               <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
                 <div>
                   <h3 className="font-bold text-base">{titles[overviewModal]}</h3>
-                  {!isLoading && <p className="text-xs text-muted-foreground mt-0.5">{rows.length} data</p>}
+                  {!isLoading && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {totalCount > rows.length ? `Menampilkan ${rows.length} dari ${totalCount}` : `${rows.length} data`}
+                    </p>
+                  )}
                 </div>
                 <button onClick={() => setOverviewModal(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
               </div>

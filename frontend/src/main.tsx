@@ -12,8 +12,16 @@ if (sentryDsn) {
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    // replayIntegration excluded here — loaded from CDN after idle to keep
+    // ~40 KB out of the initial bundle
+    integrations: [Sentry.browserTracingIntegration()],
     ignoreErrors: ["ChunkLoadError", /failed to fetch dynamically imported/i],
+  });
+  // Load replay integration after browser is idle
+  (window.requestIdleCallback ?? setTimeout)(() => {
+    Sentry.lazyLoadIntegration("replayIntegration")
+      .then((replayIntegration) => Sentry.addIntegration(replayIntegration()))
+      .catch(() => {});
   });
 }
 

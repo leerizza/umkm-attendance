@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter, Trash2 } from "lucide-react";
+import { Plus, X, CalendarOff, ChevronLeft, ChevronRight, Palmtree, Filter, Trash2, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,7 @@ export default function LeavePage() {
   const workSunday   = profile?.companies?.work_sunday   ?? false;
 
   const [showForm, setShowForm] = useState(false);
+  const [editingLeave, setEditingLeave] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -79,6 +80,18 @@ export default function LeavePage() {
       setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
     },
     onError: (err) => toast.error("Gagal mengajukan", getErrMsg(err)),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: typeof form }) => leaveApi.update(id, data),
+    onSuccess: () => {
+      toast.success("Pengajuan diperbarui");
+      qc.invalidateQueries({ queryKey: ["leave"] });
+      qc.invalidateQueries({ queryKey: ["leave-balance"] });
+      setEditingLeave(null);
+      setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
+    },
+    onError: (err) => toast.error("Gagal memperbarui", getErrMsg(err)),
   });
 
   const cancelMutation = useMutation({
@@ -122,13 +135,17 @@ export default function LeavePage() {
         }
       />
 
-      {/* Form modal */}
-      {showForm && (
+      {/* Form modal — create or edit */}
+      {(showForm || editingLeave) && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm">
           <Card className="w-full md:max-w-md rounded-t-2xl md:rounded-2xl animate-slide-up border-0 shadow-xl">
             <div className="flex items-center justify-between p-5 border-b border-border">
-              <h3 className="font-bold text-base">Ajukan Cuti</h3>
-              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-bold text-base">{editingLeave ? "Koreksi Pengajuan Cuti" : "Ajukan Cuti"}</h3>
+              <button onClick={() => {
+                setShowForm(false);
+                setEditingLeave(null);
+                setForm({ leave_type: "annual", start_date: "", end_date: "", reason: "" });
+              }} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -195,11 +212,17 @@ export default function LeavePage() {
               <Button
                 className="w-full"
                 size="lg"
-                loading={mutation.isPending}
-                onClick={() => mutation.mutate()}
+                loading={editingLeave ? updateMutation.isPending : mutation.isPending}
+                onClick={() => {
+                  if (editingLeave) {
+                    updateMutation.mutate({ id: editingLeave.id, data: form });
+                  } else {
+                    mutation.mutate();
+                  }
+                }}
                 disabled={!form.start_date || !form.end_date || !form.reason || days < 1 || exceedsBalance}
               >
-                Kirim Pengajuan
+                {editingLeave ? "Simpan Perubahan" : "Kirim Pengajuan"}
               </Button>
             </CardContent>
           </Card>
@@ -262,14 +285,26 @@ export default function LeavePage() {
                     <div className="flex items-center gap-2">
                       <Badge status={row.status} />
                       {row.status === "pending" && (
-                        <button
-                          onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
-                          disabled={cancelMutation.isPending}
-                          className="p-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                          title="Batalkan"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditingLeave(row);
+                              setForm({ leave_type: row.leave_type, start_date: row.start_date, end_date: row.end_date, reason: row.reason });
+                            }}
+                            className="p-1 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors"
+                            title="Koreksi"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
+                            disabled={cancelMutation.isPending}
+                            className="p-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                            title="Batalkan"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -323,14 +358,26 @@ export default function LeavePage() {
                         <td className="px-4 py-3"><Badge status={row.status} /></td>
                         <td className="px-4 py-3">
                           {row.status === "pending" && (
-                            <button
-                              onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
-                              disabled={cancelMutation.isPending}
-                              className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                              title="Batalkan"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setEditingLeave(row);
+                                  setForm({ leave_type: row.leave_type, start_date: row.start_date, end_date: row.end_date, reason: row.reason });
+                                }}
+                                className="p-1.5 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors"
+                                title="Koreksi"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => { if (window.confirm("Batalkan pengajuan cuti ini?")) cancelMutation.mutate(row.id); }}
+                                disabled={cancelMutation.isPending}
+                                className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                                title="Batalkan"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

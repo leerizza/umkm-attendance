@@ -157,6 +157,7 @@ export const leaveApi = {
   balance: () => api.get("/leave/balance"),
   approve: (id: string, status: string, reviewer_note?: string) =>
     api.post(`/leave/${id}/approve`, { status, reviewer_note }),
+  update:  (id: string, data: LeavePayload) => api.put(`/leave/${id}`, data),
   cancel:  (id: string) => api.delete(`/leave/${id}`),
 };
 

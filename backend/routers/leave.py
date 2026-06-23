@@ -198,6 +198,87 @@ async def get_my_leave(
     return {"data": res.data, "total": res.count, "page": page, "per_page": per_page}
 
 
+@router.put("/{leave_id}")
+async def update_leave(
+    leave_id: str,
+    body: LeaveCreateRequest,
+    profile: dict = Depends(get_current_profile),
+):
+    try:
+        res = supabase.table("leave_requests").select("user_id, status").eq("id", leave_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Leave request not found")
+    if not res.data:
+        raise HTTPException(404, "Leave request not found")
+    if res.data["user_id"] != profile["id"]:
+        raise HTTPException(403, "Not authorized")
+    if res.data["status"] != "pending":
+        raise HTTPException(400, "Hanya pengajuan yang masih menunggu yang bisa dikoreksi")
+
+    start = body.start_date.isoformat()
+    end = body.end_date.isoformat()
+
+    if _check_overlap(profile["id"], start, end, exclude_id=leave_id):
+        raise HTTPException(400, "Leave dates overlap with an existing request")
+
+    if body.leave_type != "sick":
+        days_requested = _count_business_days(body.start_date, body.end_date)
+        if days_requested == 0:
+            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja (Senin–Jumat).")
+
+        year = body.start_date.year
+        first_day = f"{year}-01-01"
+        last_day  = f"{year}-12-31"
+
+        allowance = DEFAULT_ANNUAL_ALLOWANCE
+        work_saturday = False
+        work_sunday = False
+        try:
+            comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
+            if comp.data:
+                if comp.data.get("leave_allowance"):
+                    allowance = comp.data["leave_allowance"]
+                work_saturday = bool(comp.data.get("work_saturday"))
+                work_sunday   = bool(comp.data.get("work_sunday"))
+        except Exception:
+            pass
+
+        used_res = (
+            supabase.table("leave_requests")
+            .select("start_date, end_date")
+            .eq("user_id", profile["id"])
+            .neq("leave_type", "sick")
+            .in_("status", ["approved", "pending"])
+            .gte("start_date", first_day)
+            .lte("end_date", last_day)
+            .neq("id", leave_id)
+            .execute()
+        )
+        used = sum(
+            _count_business_days(
+                date.fromisoformat(r["start_date"]),
+                date.fromisoformat(r["end_date"]),
+                work_saturday, work_sunday,
+            )
+            for r in (used_res.data or [])
+        )
+        remaining = allowance - used
+        if days_requested > remaining:
+            raise HTTPException(
+                400,
+                f"Sisa jatah cuti tidak cukup. Sisa: {remaining} hari kerja, diminta: {days_requested} hari kerja."
+            )
+
+    supabase.table("leave_requests").update({
+        "leave_type": body.leave_type,
+        "start_date": start,
+        "end_date": end,
+        "reason": body.reason,
+    }).eq("id", leave_id).execute()
+
+    return {"message": "Leave request updated"}
+
+
 @router.delete("/{leave_id}")
 async def cancel_leave(
     leave_id: str,

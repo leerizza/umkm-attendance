@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Clock, CalendarOff, Timer,
   CheckCircle2, XCircle, ChevronLeft, ChevronRight,
-  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X, MapPin, Mail, Phone,
+  TrendingUp, Settings, Download, Pencil, BarChart2, Search, X, MapPin, Mail, Phone, Paperclip,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -864,12 +864,28 @@ export default function AdminPage() {
                   <td className="px-4 py-3 text-center font-semibold">{row.days_count}</td>
                   <td className="px-4 py-3"><Badge status={row.status} /></td>
                   <td className="px-4 py-3">
-                    {row.status === "pending" && (
-                      <div className="flex gap-1">
-                        <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors" title="Setujui"><CheckCircle2 className="h-4 w-4" /></button>
-                        <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Tolak"><XCircle className="h-4 w-4" /></button>
-                      </div>
-                    )}
+                    <div className="flex gap-1">
+                      {row.leave_type === "sick" && row.attachment_url && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await adminApi.sickNoteUrl(row.id);
+                              window.open(res.data.url, "_blank");
+                            } catch { toast.error("Gagal membuka surat sakit"); }
+                          }}
+                          className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          title="Lihat surat sakit"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </button>
+                      )}
+                      {row.status === "pending" && (
+                        <>
+                          <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors" title="Setujui"><CheckCircle2 className="h-4 w-4" /></button>
+                          <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Tolak"><XCircle className="h-4 w-4" /></button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -887,10 +903,27 @@ export default function AdminPage() {
                     <span>{fmtDate(row.start_date)}{row.start_date !== row.end_date && ` – ${fmtDate(row.end_date)}`}</span>
                   </div>
                   {row.reviewer_note && <p className="text-xs text-muted-foreground italic">"{row.reviewer_note}"</p>}
-                  {row.status === "pending" && (
+                  {(row.status === "pending" || (row.leave_type === "sick" && row.attachment_url)) && (
                     <div className="flex gap-2 pt-1 border-t border-border/50">
-                      <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
-                      <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 inline-flex items-center justify-center gap-1"><XCircle className="h-3.5 w-3.5" /> Tolak</button>
+                      {row.leave_type === "sick" && row.attachment_url && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await adminApi.sickNoteUrl(row.id);
+                              window.open(res.data.url, "_blank");
+                            } catch { toast.error("Gagal membuka surat sakit"); }
+                          }}
+                          className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 inline-flex items-center justify-center gap-1"
+                        >
+                          <Paperclip className="h-3.5 w-3.5" /> Surat Sakit
+                        </button>
+                      )}
+                      {row.status === "pending" && (
+                        <>
+                          <button onClick={() => openReview("leave", row.id, "approved", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 inline-flex items-center justify-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Setujui</button>
+                          <button onClick={() => openReview("leave", row.id, "rejected", row.profiles?.full_name ?? "")} className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 inline-flex items-center justify-center gap-1"><XCircle className="h-3.5 w-3.5" /> Tolak</button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

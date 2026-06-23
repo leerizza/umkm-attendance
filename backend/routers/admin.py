@@ -780,6 +780,32 @@ async def export_leave_xlsx(
     return _xlsx_response(buf, f"cuti{suffix}.xlsx")
 
 
+@router.get("/leave/{leave_id}/sick-note")
+async def get_leave_sick_note(
+    leave_id: str,
+    admin: dict = Depends(require_admin),
+):
+    """Generate a short-lived signed URL for a sick leave attachment."""
+    try:
+        leave = supabase.table("leave_requests").select("attachment_url, leave_type, company_id").eq("id", leave_id).single().execute()
+    except Exception:
+        raise HTTPException(404, "Pengajuan cuti tidak ditemukan")
+    if not leave.data or leave.data.get("company_id") != admin["company_id"]:
+        raise HTTPException(404, "Pengajuan cuti tidak ditemukan")
+    if leave.data.get("leave_type") != "sick" or not leave.data.get("attachment_url"):
+        raise HTTPException(404, "Tidak ada surat sakit untuk pengajuan ini")
+    try:
+        signed = supabase.storage.from_("sick-notes").create_signed_url(leave.data["attachment_url"], 3600)
+        signed_url = signed.get("signedURL") or (signed.get("data") or {}).get("signedUrl", "")
+        if not signed_url:
+            raise HTTPException(500, "Gagal membuat URL surat sakit")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(500, "Gagal membuat URL surat sakit")
+    return {"url": signed_url}
+
+
 @router.get("/overtime/export")
 async def export_overtime_xlsx(
     status_filter: str = None,

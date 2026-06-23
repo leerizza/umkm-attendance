@@ -146,7 +146,17 @@ async def approve_correction(
     if corr.data["status"] != "pending":
         raise HTTPException(400, "Pengajuan ini sudah diproses sebelumnya")
     if corr.data["user_id"] == admin["id"]:
-        raise HTTPException(403, "Tidak dapat menyetujui pengajuan koreksi milik sendiri")
+        other_admins = (
+            supabase.table("profiles")
+            .select("id", count="exact")
+            .eq("company_id", admin["company_id"])
+            .eq("role", "admin")
+            .eq("is_active", True)
+            .neq("id", admin["id"])
+            .execute()
+        )
+        if other_admins.count and other_admins.count > 0:
+            raise HTTPException(403, "Tidak dapat menyetujui pengajuan koreksi milik sendiri")
 
     # Update correction record
     supabase.table("attendance_corrections").update({

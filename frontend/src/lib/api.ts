@@ -214,6 +214,8 @@ export const adminApi = {
     }),
   exportEmployeeAttendance: (user_id: string) =>
     api.get(`/admin/employees/${user_id}/attendance/export`, { responseType: "blob" }),
+  sickNoteUrl: (leave_id: string) =>
+    api.get<{ url: string }>(`/admin/leave/${leave_id}/sick-note`),
 };
 
 export const demoApi = {

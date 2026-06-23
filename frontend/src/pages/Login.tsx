@@ -768,6 +768,14 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.2.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Koreksi pengajuan cuti — edit tanggal, jenis, dan alasan selama masih pending" },
+      { type: "🐛", text: "Fix card Lembur Pending di overview admin tidak muncul jika fitur lembur dinonaktifkan" },
+    ],
+  },
+  {
     version: "1.1.0",
     date: "Juni 2026",
     items: [

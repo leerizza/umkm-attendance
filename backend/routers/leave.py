@@ -64,16 +64,8 @@ async def create_leave(
 
     # Enforce annual leave quota for all types except sick leave.
     # Sick leave is uncapped; annual/personal/other share the quota.
-    # Quota is counted in business days (Mon–Fri) only.
+    # Quota is counted in business days respecting company's work_saturday/work_sunday.
     if body.leave_type != "sick":
-        days_requested = _count_business_days(body.start_date, body.end_date)
-        if days_requested == 0:
-            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja (Senin–Jumat).")
-
-        year = body.start_date.year
-        first_day = f"{year}-01-01"
-        last_day  = f"{year}-12-31"
-
         allowance = DEFAULT_ANNUAL_ALLOWANCE
         work_saturday = False
         work_sunday = False
@@ -86,6 +78,14 @@ async def create_leave(
                 work_sunday   = bool(comp.data.get("work_sunday"))
         except Exception as e:
             _log.warning("create_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
+
+        days_requested = _count_business_days(body.start_date, body.end_date, work_saturday, work_sunday)
+        if days_requested == 0:
+            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja.")
+
+        year = body.start_date.year
+        first_day = f"{year}-01-01"
+        last_day  = f"{year}-12-31"
 
         used_res = (
             supabase.table("leave_requests")
@@ -259,14 +259,6 @@ async def update_leave(
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
     if body.leave_type != "sick":
-        days_requested = _count_business_days(body.start_date, body.end_date)
-        if days_requested == 0:
-            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja (Senin–Jumat).")
-
-        year = body.start_date.year
-        first_day = f"{year}-01-01"
-        last_day  = f"{year}-12-31"
-
         allowance = DEFAULT_ANNUAL_ALLOWANCE
         work_saturday = False
         work_sunday = False
@@ -279,6 +271,14 @@ async def update_leave(
                 work_sunday   = bool(comp.data.get("work_sunday"))
         except Exception as e:
             _log.warning("update_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
+
+        days_requested = _count_business_days(body.start_date, body.end_date, work_saturday, work_sunday)
+        if days_requested == 0:
+            raise HTTPException(400, "Tanggal yang dipilih tidak mengandung hari kerja.")
+
+        year = body.start_date.year
+        first_day = f"{year}-01-01"
+        last_day  = f"{year}-12-31"
 
         used_res = (
             supabase.table("leave_requests")

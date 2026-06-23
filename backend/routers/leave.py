@@ -84,8 +84,8 @@ async def create_leave(
                     allowance = comp.data["leave_allowance"]
                 work_saturday = bool(comp.data.get("work_saturday"))
                 work_sunday   = bool(comp.data.get("work_sunday"))
-        except Exception:
-            pass
+        except Exception as e:
+            _log.warning("create_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
 
         used_res = (
             supabase.table("leave_requests")
@@ -177,8 +177,8 @@ async def get_leave_balance(
                 allowance = comp.data["leave_allowance"]
             work_saturday = bool(comp.data.get("work_saturday"))
             work_sunday   = bool(comp.data.get("work_sunday"))
-    except Exception:
-        pass
+    except Exception as e:
+        _log.warning("get_leave_balance: failed to fetch company config for %s: %s", profile["company_id"], e)
 
     # Sum approved+pending non-sick leave days this year — mirrors the quota check in
     # create_leave so that the balance shown is the same as what's actually enforced.
@@ -275,8 +275,8 @@ async def update_leave(
                     allowance = comp.data["leave_allowance"]
                 work_saturday = bool(comp.data.get("work_saturday"))
                 work_sunday   = bool(comp.data.get("work_sunday"))
-        except Exception:
-            pass
+        except Exception as e:
+            _log.warning("update_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
 
         used_res = (
             supabase.table("leave_requests")
@@ -371,8 +371,8 @@ async def approve_leave(
         p = supabase.table("profiles").select("full_name").eq("id", res.data["user_id"]).single().execute()
         if p.data:
             full_name = p.data.get("full_name", "Karyawan")
-    except Exception:
-        pass
+    except Exception as e:
+        _log.warning("approve_leave: failed to fetch employee name for %s: %s", res.data["user_id"], e)
 
     background_tasks.add_task(
         send_leave_decision_email,

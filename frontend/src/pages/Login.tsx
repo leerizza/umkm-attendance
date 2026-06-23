@@ -768,6 +768,13 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.4.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Upload surat sakit saat ajukan cuti sakit — otomatis terkirim ke email admin" },
+    ],
+  },
+  {
     version: "1.3.0",
     date: "Juni 2026",
     items: [

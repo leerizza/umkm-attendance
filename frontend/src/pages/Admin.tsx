@@ -700,12 +700,12 @@ export default function AdminPage() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Total Karyawan",   value: stats?.total_employees,    Icon: Users,       color: "bg-blue-50 text-blue-600" },
-                  { label: "Hadir Hari Ini",  value: stats?.present_today,      Icon: Clock,       color: "bg-emerald-50 text-emerald-600" },
-                  { label: "Cuti Pending",    value: stats?.pending_leaves,     Icon: CalendarOff, color: "bg-amber-50 text-amber-600" },
-                  { label: "Lembur Pending",  value: stats?.pending_overtime,   Icon: Timer,       color: "bg-indigo-50 text-indigo-600" },
-                  { label: "Koreksi Pending", value: stats?.pending_corrections,Icon: Pencil,      color: "bg-rose-50 text-rose-600" },
-                ].map(({ label, value, Icon, color }) => (
+                  { label: "Total Karyawan",   value: stats?.total_employees,    Icon: Users,       color: "bg-blue-50 text-blue-600",    show: true },
+                  { label: "Hadir Hari Ini",  value: stats?.present_today,      Icon: Clock,       color: "bg-emerald-50 text-emerald-600", show: true },
+                  { label: "Cuti Pending",    value: stats?.pending_leaves,     Icon: CalendarOff, color: "bg-amber-50 text-amber-600",  show: true },
+                  { label: "Lembur Pending",  value: stats?.pending_overtime,   Icon: Timer,       color: "bg-indigo-50 text-indigo-600", show: otEnabled },
+                  { label: "Koreksi Pending", value: stats?.pending_corrections,Icon: Pencil,      color: "bg-rose-50 text-rose-600",    show: true },
+                ].filter((item) => item.show).map(({ label, value, Icon, color }) => (
                   <Card key={label} className="card-interactive cursor-pointer">
                     <CardContent className="p-4">
                       <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", color)}>

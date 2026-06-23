@@ -21,6 +21,11 @@ CREATE INDEX IF NOT EXISTS idx_profiles_company_active
 CREATE INDEX IF NOT EXISTS idx_attendance_company_date_range
   ON attendance(company_id, date ASC);
 
+-- Admin attendance list orders by date DESC, clock_in DESC — extend the existing
+-- idx_attendance_company to cover the secondary sort key
+CREATE INDEX IF NOT EXISTS idx_attendance_company_date_clockin
+  ON attendance(company_id, date DESC, clock_in DESC);
+
 -- attendance_corrections: admin list + stats filter by company + status
 CREATE INDEX IF NOT EXISTS idx_corrections_company_status
   ON attendance_corrections(company_id, status);

@@ -16,6 +16,9 @@ _AUTH_CACHE_TTL = 300  # 5 minutes
 _profile_cache: dict[str, tuple[dict, float]] = {}
 _PROFILE_CACHE_TTL = 60  # 1 minute
 
+_email_cache: dict[str, tuple[str | None, float]] = {}
+_EMAIL_CACHE_TTL = 300  # 5 minutes
+
 
 def _token_key(token: str) -> str:
     """SHA-256 hash of the full token — collision-safe cache key."""
@@ -44,13 +47,20 @@ def _cache_user(token: str, user: dict):
 
 
 async def _get_auth_email(user_id: str) -> str | None:
+    entry = _email_cache.get(user_id)
+    if entry:
+        email, expire = entry
+        if time.time() < expire:
+            return email
     try:
         res = await asyncio.get_event_loop().run_in_executor(
             None, lambda: supabase.auth.admin.get_user_by_id(user_id)
         )
-        return res.user.email if res.user else None
+        email = res.user.email if res.user else None
     except Exception:
-        return None
+        email = None
+    _email_cache[user_id] = (email, time.time() + _EMAIL_CACHE_TTL)
+    return email
 
 
 async def get_current_user(

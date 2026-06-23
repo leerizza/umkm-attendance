@@ -768,6 +768,13 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.6.0",
+    date: "Juni 2026",
+    items: [
+      { type: "✨", text: "Overview admin interaktif — klik kartu untuk lihat detail karyawan, yang hadir, cuti/lembur/koreksi pending" },
+    ],
+  },
+  {
     version: "1.5.0",
     date: "Juni 2026",
     items: [

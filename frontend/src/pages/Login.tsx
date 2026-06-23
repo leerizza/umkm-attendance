@@ -768,6 +768,15 @@ export default function LoginPage() {
 
 const CHANGELOG = [
   {
+    version: "1.7.0",
+    date: "Juni 2026",
+    items: [
+      { type: "🐛", text: "Fix file surat sakit tidak terhapus saat cuti dibatalkan, ditolak, atau ganti jenis" },
+      { type: "🐛", text: "Cleanup otomatis harian — file surat sakit orphan >7 hari dihapus dari storage" },
+      { type: "🐛", text: "Batas upload surat sakit diperkecil dari 5 MB menjadi 1 MB" },
+    ],
+  },
+  {
     version: "1.6.0",
     date: "Juni 2026",
     items: [

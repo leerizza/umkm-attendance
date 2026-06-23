@@ -38,3 +38,12 @@ CREATE INDEX IF NOT EXISTS idx_corrections_attendance_status
 -- attendance_corrections: employee list ordered by newest first
 CREATE INDEX IF NOT EXISTS idx_corrections_user_created
   ON attendance_corrections(user_id, created_at DESC);
+
+-- Employee leave list orders by created_at DESC — idx_leave_user_status(user_id, status)
+-- doesn't cover the sort key
+CREATE INDEX IF NOT EXISTS idx_leave_user_created
+  ON leave_requests(user_id, created_at DESC);
+
+-- Employee overtime list orders by created_at DESC — same issue as above
+CREATE INDEX IF NOT EXISTS idx_overtime_user_created
+  ON overtime_requests(user_id, created_at DESC);

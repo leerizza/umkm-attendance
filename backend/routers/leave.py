@@ -74,18 +74,10 @@ async def create_leave(
     # Sick leave is uncapped; annual/personal/other share the quota.
     # Quota is counted in business days respecting company's work_saturday/work_sunday.
     if body.leave_type != "sick":
-        allowance = DEFAULT_ANNUAL_ALLOWANCE
-        work_saturday = False
-        work_sunday = False
-        try:
-            comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
-            if comp.data:
-                if comp.data.get("leave_allowance"):
-                    allowance = comp.data["leave_allowance"]
-                work_saturday = bool(comp.data.get("work_saturday"))
-                work_sunday   = bool(comp.data.get("work_sunday"))
-        except Exception as e:
-            _log.warning("create_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
+        company = profile.get("companies") or {}
+        allowance = company.get("leave_allowance") or DEFAULT_ANNUAL_ALLOWANCE
+        work_saturday = bool(company.get("work_saturday"))
+        work_sunday   = bool(company.get("work_sunday"))
 
         days_requested = _count_business_days(body.start_date, body.end_date, work_saturday, work_sunday)
         if days_requested == 0:
@@ -175,18 +167,10 @@ async def get_leave_balance(
     last_day  = f"{year}-12-31"
 
     # Company allowance + work schedule
-    allowance = DEFAULT_ANNUAL_ALLOWANCE
-    work_saturday = False
-    work_sunday = False
-    try:
-        comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
-        if comp.data:
-            if comp.data.get("leave_allowance"):
-                allowance = comp.data["leave_allowance"]
-            work_saturday = bool(comp.data.get("work_saturday"))
-            work_sunday   = bool(comp.data.get("work_sunday"))
-    except Exception as e:
-        _log.warning("get_leave_balance: failed to fetch company config for %s: %s", profile["company_id"], e)
+    company = profile.get("companies") or {}
+    allowance = company.get("leave_allowance") or DEFAULT_ANNUAL_ALLOWANCE
+    work_saturday = bool(company.get("work_saturday"))
+    work_sunday   = bool(company.get("work_sunday"))
 
     # Sum approved+pending non-sick leave days this year — mirrors the quota check in
     # create_leave so that the balance shown is the same as what's actually enforced.
@@ -267,18 +251,10 @@ async def update_leave(
         raise HTTPException(400, "Leave dates overlap with an existing request")
 
     if body.leave_type != "sick":
-        allowance = DEFAULT_ANNUAL_ALLOWANCE
-        work_saturday = False
-        work_sunday = False
-        try:
-            comp = supabase.table("companies").select("leave_allowance, work_saturday, work_sunday").eq("id", profile["company_id"]).single().execute()
-            if comp.data:
-                if comp.data.get("leave_allowance"):
-                    allowance = comp.data["leave_allowance"]
-                work_saturday = bool(comp.data.get("work_saturday"))
-                work_sunday   = bool(comp.data.get("work_sunday"))
-        except Exception as e:
-            _log.warning("update_leave: failed to fetch company config for %s: %s", profile["company_id"], e)
+        company = profile.get("companies") or {}
+        allowance = company.get("leave_allowance") or DEFAULT_ANNUAL_ALLOWANCE
+        work_saturday = bool(company.get("work_saturday"))
+        work_sunday   = bool(company.get("work_sunday"))
 
         days_requested = _count_business_days(body.start_date, body.end_date, work_saturday, work_sunday)
         if days_requested == 0:

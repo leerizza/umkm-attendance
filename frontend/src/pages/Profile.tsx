@@ -324,9 +324,7 @@ export default function ProfilePage() {
           Keluar
         </Button>
 
-        <p className="text-center text-xs text-muted-foreground pb-2">
-          Donkap v1.1.0
-        </p>
+
       </div>
     </div>
   );

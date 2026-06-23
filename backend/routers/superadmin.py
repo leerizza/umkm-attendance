@@ -161,7 +161,13 @@ async def get_analytics():
     week_ago  = (now - timedelta(days=7)).date().isoformat()
     month_ago = (now - timedelta(days=30)).date().isoformat()
 
-    res = supabase.table("analytics_events").select("event_type, source, created_at").execute()
+    # Only fetch last 30 days for windowed + source breakdowns — avoids full table scan
+    res = (
+        supabase.table("analytics_events")
+        .select("event_type, source, created_at")
+        .gte("created_at", month_ago + "T00:00:00+00:00")
+        .execute()
+    )
     events = res.data or []
 
     def count(etype=None, since=None, source=None):
@@ -175,12 +181,16 @@ async def get_analytics():
     def count_sources(etype, sources):
         return sum(1 for e in events if e["event_type"] == etype and e["source"] in sources)
 
+    def total(etype):
+        r = supabase.table("analytics_events").select("id", count="exact").eq("event_type", etype).execute()
+        return r.count or 0
+
     return {
         "page_views": {
             "today":    count("page_view", today),
             "last_7d":  count("page_view", week_ago),
-            "last_30d": count("page_view", month_ago),
-            "total":    count("page_view"),
+            "last_30d": count("page_view"),
+            "total":    total("page_view"),
             "demo":     count("page_view", source="demo"),
             "by_source": {
                 "landing": count_sources("page_view", {"landing"}),
@@ -191,21 +201,21 @@ async def get_analytics():
         "demo_logins": {
             "today":    count("demo_login", today),
             "last_7d":  count("demo_login", week_ago),
-            "last_30d": count("demo_login", month_ago),
-            "total":    count("demo_login"),
+            "last_30d": count("demo_login"),
+            "total":    total("demo_login"),
         },
         "registrations": {
             "company": {
                 "today":    count("register_company", today),
                 "last_7d":  count("register_company", week_ago),
-                "last_30d": count("register_company", month_ago),
-                "total":    count("register_company"),
+                "last_30d": count("register_company"),
+                "total":    total("register_company"),
             },
             "employee": {
                 "today":    count("register_employee", today),
                 "last_7d":  count("register_employee", week_ago),
-                "last_30d": count("register_employee", month_ago),
-                "total":    count("register_employee"),
+                "last_30d": count("register_employee"),
+                "total":    total("register_employee"),
             },
         },
     }

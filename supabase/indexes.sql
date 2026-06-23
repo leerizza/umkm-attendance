@@ -47,3 +47,12 @@ CREATE INDEX IF NOT EXISTS idx_leave_user_created
 -- Employee overtime list orders by created_at DESC — same issue as above
 CREATE INDEX IF NOT EXISTS idx_overtime_user_created
   ON overtime_requests(user_id, created_at DESC);
+
+-- analytics_events: date range filter used by /analytics/range, /analytics/trend,
+-- and the new windowed fetch in /analytics
+CREATE INDEX IF NOT EXISTS idx_analytics_created_at
+  ON analytics_events(created_at DESC);
+
+-- analytics_events: all-time COUNT per event_type used by /analytics total()
+CREATE INDEX IF NOT EXISTS idx_analytics_event_type
+  ON analytics_events(event_type);

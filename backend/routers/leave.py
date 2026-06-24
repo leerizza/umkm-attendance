@@ -122,6 +122,8 @@ async def create_leave(
         "status": "pending",
     }
     if body.sick_note_path and body.leave_type == "sick":
+        if not body.sick_note_path.startswith(f"{user_id}/"):
+            raise HTTPException(400, "Invalid sick note path")
         payload["attachment_url"] = body.sick_note_path
 
     supabase.table("leave_requests").insert(payload).execute()

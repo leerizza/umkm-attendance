@@ -25,6 +25,8 @@ class Settings(BaseSettings):
         # Always allow all known Donkap domains + local dev
         always = [
             "http://localhost:5173",
+            "https://localhost",
+            "capacitor://localhost",
             "https://donkap.space",
             "https://www.donkap.space",
             "https://site.donkap.space",

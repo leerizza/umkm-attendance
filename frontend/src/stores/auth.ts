@@ -62,12 +62,16 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Sync store token whenever Supabase silently refreshes it in the background.
 supabase.auth.onAuthStateChange((event, session) => {
+  const store = useAuthStore.getState();
   if (event === "TOKEN_REFRESHED" && session) {
-    const { profile, isAuthenticated } = useAuthStore.getState();
-    if (isAuthenticated && profile) {
-      useAuthStore.getState().setAuth(session.access_token, profile);
+    if (store.isAuthenticated && store.profile) {
+      store.setAuth(session.access_token, store.profile);
     }
+  }
+  // Supabase fires SIGNED_OUT when refresh token expires or is revoked.
+  // Clear the store without calling signOut() again (Supabase already did).
+  if (event === "SIGNED_OUT" && store.isAuthenticated) {
+    useAuthStore.setState({ token: null, profile: null, isAuthenticated: false });
   }
 });

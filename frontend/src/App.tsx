@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui/toast";
@@ -6,7 +6,6 @@ import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuthStore } from "@/stores/auth";
 import { Skeleton } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
 
 // Lazy import with automatic page reload on ChunkLoadError.
 // Old service worker versions can cache stale chunk hashes; a reload
@@ -65,25 +64,10 @@ function PageLoader() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, token, profile, setAuth, logout } = useAuthStore();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated || !token || !profile) { setReady(true); return; }
-    try {
-      const exp = JSON.parse(atob(token.split(".")[1])).exp as number;
-      if (exp * 1000 > Date.now()) { setReady(true); return; } // still valid
-    } catch { setReady(true); return; }
-    // Token expired — refresh before any query fires
-    supabase.auth.refreshSession().then(({ data, error }) => {
-      if (!error && data.session) setAuth(data.session.access_token, profile);
-      else logout();
-      setReady(true);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const { isAuthenticated } = useAuthStore();
+  // autoRefreshToken handles token refresh; api.ts 401 interceptor handles retry.
+  // Don't call refreshSession() here — it races with autoRefreshToken for the lock.
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!ready) return <PageLoader />;
   return <>{children}</>;
 }
 

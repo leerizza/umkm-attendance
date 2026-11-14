@@ -180,6 +180,10 @@ export const adminApi = {
     api.get("/admin/leave", { params: { page, per_page: 10, status_filter, date_from, date_to } }),
   overtime:        (page = 1, status_filter?: string, date_from?: string, date_to?: string) =>
     api.get("/admin/overtime", { params: { page, per_page: 10, status_filter, date_from, date_to } }),
+  invitations:       () => api.get("/admin/invitations"),
+  createInvitations: (emails: string[], role: "employee" | "admin", position?: string) =>
+    api.post("/admin/invitations", { emails, role, position: position || undefined }),
+  revokeInvitation:  (id: string) => api.delete(`/admin/invitations/${id}`),
   employees:       (page = 1, search?: string, is_active?: boolean) =>
     api.get("/admin/employees", { params: { page, per_page: 10, search: search || undefined, is_active } }),
   employeeAttendance: (user_id: string, page = 1) =>

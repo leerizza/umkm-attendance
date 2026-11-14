@@ -16,6 +16,8 @@ import { adminApi, leaveApi, overtimeApi, correctionsApi, locationsApi } from "@
 import { fmtDate, fmtTime, fmtDuration, getErrMsg, cn, effectiveMinutes } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { IS_DEMO } from "@/lib/demo";
+import { SSO_GOOGLE_ENABLED } from "@/lib/sso";
+import { InvitationsPanel } from "@/components/InvitationsPanel";
 
 type AdminTab = "overview" | "attendance" | "leave" | "overtime" | "employees" | "corrections" | "report" | "settings";
 
@@ -1108,6 +1110,7 @@ export default function AdminPage() {
         {/* ── Employees ── */}
         {tab === "employees" && (
           <div className="space-y-3 animate-fade-in">
+            {SSO_GOOGLE_ENABLED && <InvitationsPanel />}
             {/* Search + filter bar */}
             <div className="flex gap-2 items-center">
               <div className="relative flex-1">

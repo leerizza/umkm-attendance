@@ -278,7 +278,13 @@ class _FakeAdmin:
         if not u:
             return SimpleNamespace(user=None)
         identities = [SimpleNamespace(provider=p) for p in u.get("providers", ["email"])]
-        return SimpleNamespace(user=SimpleNamespace(id=user_id, email=u["email"], identities=identities))
+        return SimpleNamespace(user=SimpleNamespace(
+            id=user_id,
+            email=u["email"],
+            identities=identities,
+            email_confirmed_at=u.get("email_confirmed_at", "2026-01-01T00:00:00+00:00"),
+            user_metadata=u.get("metadata", {}),
+        ))
 
     def delete_user(self, user_id, *a, **k):
         self.db.auth_users.pop(user_id, None)

@@ -74,7 +74,7 @@ if settings.sentry_dsn:
         send_default_pii=False,
     )
 
-from routers import auth, attendance, leave, overtime, admin, corrections, superadmin, analytics, demo, locations
+from routers import auth, attendance, leave, overtime, admin, corrections, superadmin, analytics, demo, locations, invitations
 
 
 # ─── CORS error fallback middleware ───────────────────────────────────────────
@@ -140,6 +140,7 @@ app.include_router(auth.router)
 app.include_router(attendance.router)
 app.include_router(leave.router)
 app.include_router(overtime.router)
+app.include_router(invitations.router)
 app.include_router(admin.router)
 app.include_router(corrections.router)
 app.include_router(superadmin.router)

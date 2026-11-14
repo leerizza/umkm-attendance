@@ -1,12 +1,43 @@
 {
   "rewrites": [
-    { "source": "/((?!\\.well-known|sw\\.js|registerSW\\.js|workbox-[^/]*\\.js).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!\\.well-known|sw\\.js|registerSW\\.js|workbox-[^/]*\\.js).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(self), camera=(), microphone=(), payment=(), usb=()"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' https://hcaptcha.com https://*.hcaptcha.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://hcaptcha.com https://*.hcaptcha.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://api.donkap.space https://umkm-attendance-production.up.railway.app https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://*.ingest.us.sentry.io https://hcaptcha.com https://*.hcaptcha.com; frame-src https://maps.google.com https://www.google.com https://hcaptcha.com https://*.hcaptcha.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri https://o4511516939190272.ingest.us.sentry.io/api/4511516960358400/security/?sentry_key=628b8e3b835974450c0d73e5a1e644e6"
+        }
+      ]
+    },
+    {
       "source": "/.well-known/assetlinks.json",
       "headers": [
-        { "key": "Content-Type", "value": "application/json" }
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
       ]
     }
   ]

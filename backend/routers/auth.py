@@ -12,7 +12,7 @@ from utils.email import send_new_company_notification
 from db import supabase
 from config import settings
 from gotrue.errors import AuthApiError
-from limiter import limiter
+from limiter import limiter, ip_key
 
 
 class RefreshRequest(BaseModel):
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def register(request: Request, body: RegisterRequest):
     # 1. Validate company code
     try:
@@ -114,7 +114,7 @@ async def register(request: Request, body: RegisterRequest):
 
 
 @router.post("/verify-register")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def verify_register(request: Request, body: VerifyRegisterRequest):
     """Verify OTP then create employee profile — completes registration."""
     # 1. Verify OTP
@@ -164,7 +164,7 @@ async def verify_register(request: Request, body: VerifyRegisterRequest):
 
 
 @router.post("/register-company")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def register_company(request: Request, body: RegisterCompanyRequest):
     """Owner registers: create unconfirmed user + send OTP. Company created after OTP verified."""
     code = body.company_code.upper()
@@ -236,7 +236,7 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
 
 
 @router.post("/verify-register-company")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def verify_register_company(request: Request, body: VerifyRegisterOwnerRequest):
     """Verify OTP then create company + admin profile — completes owner registration."""
     import logging
@@ -330,7 +330,7 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
 
 
 @router.post("/login")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=ip_key)
 async def login(request: Request, body: LoginRequest):
     # Use httpx (async) instead of supabase-py SDK (sync) to avoid blocking
     # the event loop — sync SDK calls on Railway caused 499 proxy timeouts on mobile
@@ -370,7 +370,7 @@ async def login(request: Request, body: LoginRequest):
 
 
 @router.post("/send-otp")
-@limiter.limit("3/minute")
+@limiter.limit("3/minute", key_func=ip_key)
 async def send_otp(request: Request, body: SendOTPRequest):
     """Send OTP to the user's email via Supabase."""
     async with httpx.AsyncClient() as client:
@@ -397,7 +397,7 @@ async def send_otp(request: Request, body: SendOTPRequest):
 
 
 @router.post("/verify-otp")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def verify_otp(request: Request, body: VerifyOTPRequest):
     """Verify a 6-digit OTP and return a session."""
     async with httpx.AsyncClient() as client:
@@ -427,7 +427,7 @@ async def verify_otp(request: Request, body: VerifyOTPRequest):
 
 
 @router.post("/reset-password-otp")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def reset_password_otp(request: Request, body: ResetPasswordOTPRequest):
     """Verify OTP then reset password — used by forgot-password flow."""
     # 1. Verify OTP → get session + user_id
@@ -462,7 +462,7 @@ async def reset_password_otp(request: Request, body: ResetPasswordOTPRequest):
 
 
 @router.post("/change-password-otp")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute", key_func=ip_key)
 async def change_password_otp(
     request: Request,
     body: ChangePasswordOTPRequest,
@@ -499,7 +499,7 @@ async def change_password_otp(
 
 
 @router.post("/refresh")
-@limiter.limit("20/minute")
+@limiter.limit("20/minute", key_func=ip_key)
 async def refresh_token(request: Request, body: RefreshRequest):
     try:
         res = supabase.auth.refresh_session(body.refresh_token)

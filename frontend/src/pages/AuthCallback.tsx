@@ -59,7 +59,7 @@ export default function AuthCallbackPage() {
         if (detail === "sso_not_registered") {
           await fail(
             "Email belum terdaftar",
-            `${session.user.email} belum terdaftar di Donkap. Daftar dulu dengan kode perusahaan, atau minta admin mendaftarkan email ini.`,
+            `${session.user.email} belum terdaftar di Donkap dan belum diundang. Minta admin perusahaanmu mengundang email ini, atau daftar dengan kode perusahaan.`,
           );
           return;
         }

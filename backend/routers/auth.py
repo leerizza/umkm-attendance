@@ -1,4 +1,6 @@
 import asyncio
+import secrets
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import httpx
@@ -11,6 +13,7 @@ from models.schemas import (
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from utils.auth import bearer, get_current_profile, get_current_user, _invalidate_profile_cache, invalidate_token
 from utils.email import send_new_company_notification
+from utils.audit import write_audit
 from db import supabase, db_run
 from config import settings
 from limiter import limiter, ip_key
@@ -564,11 +567,14 @@ def logout(
 
 
 # ─── SSO (OAuth via Supabase Auth, e.g. "Masuk dengan Google") ────────────────
-# SSO is LOGIN-ONLY: it never creates a Donkap account or joins anyone to a
-# company. Supabase Auth links a Google identity to the existing user that has
-# the same verified email, so the user_id (and all attendance/leave data) stays
-# the same. When no such user exists, Supabase still creates a bare auth user
-# without a profile — /auth/sso/session deletes that user again.
+# SSO never lets anyone pick a company. Two ways in:
+#   1. Existing account: Supabase Auth links the Google identity to the user
+#      with the same verified email, so the user_id (and all attendance/leave
+#      data) stays the same.
+#   2. Invitation: an admin invited exactly this email (routers/invitations.py)
+#      → a profile is created in that company with the invited role.
+# Otherwise Supabase still creates a bare auth user without a profile —
+# /auth/sso/session deletes that user again.
 
 _SSO_LOGIN_PROVIDERS = {"email", "phone"}  # identities created by Donkap's own sign-up
 
@@ -593,9 +599,99 @@ def _delete_if_sso_only_user(user_id: str) -> None:
             return
         providers = {getattr(i, "provider", None) for i in (getattr(u, "identities", None) or [])}
         if providers and not (providers & _SSO_LOGIN_PROVIDERS):
+            # Re-check right before deleting: a parallel request may have just
+            # accepted an invitation for this user.
+            if supabase.table("profiles").select("id").eq("id", user_id).execute().data:
+                return
             supabase.auth.admin.delete_user(user_id)
     except Exception as exc:  # cleanup is best-effort; the login is refused either way
         logging.getLogger(__name__).warning("SSO orphan cleanup failed for %s: %s", user_id, exc)
+
+
+def _sso_display_name(u, email: str) -> str:
+    meta = getattr(u, "user_metadata", None) or {}
+    name = (meta.get("full_name") or meta.get("name") or "").strip()
+    return (name or email.split("@")[0])[:100]
+
+
+async def _accept_invitation(user: dict) -> bool:
+    """Create the profile for an invited email. True if a profile was created."""
+    import logging
+    from routers.invitations import is_expired, normalize_email
+
+    res = await asyncio.to_thread(supabase.auth.admin.get_user_by_id, user["user_id"])
+    u = res.user
+    # Only trust an email the identity provider verified (Google always does;
+    # a self-hosted IdP like Keycloak may not).
+    if not u or not u.email or not getattr(u, "email_confirmed_at", None):
+        return False
+    email = normalize_email(u.email)
+
+    invs = await db_run(
+        supabase.table("invitations").select("*").eq("email", email).eq("status", "pending")
+    )
+    inv = next((i for i in (invs.data or []) if not is_expired(i)), None)
+    if not inv:
+        return False
+
+    # Claim it first (conditional on still pending) so a revoke or a parallel
+    # request can't race us into two profiles.
+    now = datetime.now(timezone.utc).isoformat()
+    claimed = await db_run(
+        supabase.table("invitations")
+        .update({"status": "accepted", "accepted_at": now})
+        .eq("id", inv["id"])
+        .eq("status", "pending")
+    )
+    if not claimed.data:
+        return False
+
+    # A pre-existing email/password identity without a profile may have been
+    # created by ANYONE via /auth/register with this email (no OTP needed for
+    # that step). Its password must not survive into a real account: replace
+    # it with a random one. The user can set their own via "Lupa password?".
+    providers = {getattr(i, "provider", None) for i in (getattr(u, "identities", None) or [])}
+    if "email" in providers:
+        try:
+            await asyncio.to_thread(
+                supabase.auth.admin.update_user_by_id,
+                user["user_id"], {"password": secrets.token_urlsafe(32)},
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).error("Password rotation failed for %s: %s", user["user_id"], exc)
+            await db_run(
+                supabase.table("invitations")
+                .update({"status": "pending", "accepted_at": None})
+                .eq("id", inv["id"])
+            )
+            raise HTTPException(500, "Gagal memproses undangan, coba lagi")
+
+    full_name = _sso_display_name(u, email)
+    try:
+        await db_run(supabase.table("profiles").insert({
+            "id": user["user_id"],
+            "company_id": inv["company_id"],
+            "full_name": full_name,
+            "position": inv.get("position"),
+            "role": inv.get("role") or "employee",
+        }))
+    except Exception as exc:
+        logging.getLogger(__name__).error("Invite accept failed for %s: %s", user["user_id"], exc)
+        await db_run(
+            supabase.table("invitations")
+            .update({"status": "pending", "accepted_at": None})
+            .eq("id", inv["id"])
+        )
+        raise HTTPException(500, "Gagal membuat akun dari undangan, coba lagi")
+
+    await db_run(supabase.table("invitations").update({"accepted_by": user["user_id"]}).eq("id", inv["id"]))
+    await write_audit(
+        "invite_accept", "profile", user["user_id"], full_name,
+        actor_name=full_name,
+        company_id=inv["company_id"],
+        details={"email": email, "role": inv.get("role"), "invitation_id": inv["id"]},
+    )
+    return True
 
 
 @router.post("/sso/session")
@@ -608,14 +704,15 @@ async def sso_session(
     """Finish an SSO login: called by the app right after the OAuth redirect.
 
     Returns the profile (same shape as /auth/me) when the SSO email belongs to a
-    registered Donkap account. Otherwise 403 `sso_not_registered`, and the
-    stray auth user Supabase created for that email is removed.
+    registered Donkap account or has an open invitation (profile created now).
+    Otherwise 403 `sso_not_registered`, and the stray auth user Supabase created
+    for that email is removed.
     """
     if _is_demo_email(user.get("email")):
         raise HTTPException(403, "Akun demo tidak bisa login dengan SSO")
 
     existing = await db_run(supabase.table("profiles").select("id").eq("id", user["user_id"]))
-    if not existing.data:
+    if not existing.data and not await _accept_invitation(user):
         invalidate_token(credentials.credentials)
         await asyncio.to_thread(_delete_if_sso_only_user, user["user_id"])
         raise HTTPException(403, "sso_not_registered")

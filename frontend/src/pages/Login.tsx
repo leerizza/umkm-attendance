@@ -11,10 +11,9 @@ import { supabase } from "@/lib/supabase";
 import { getErrMsg, cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { IS_DEMO } from "@/lib/demo";
+import { SSO_GOOGLE_ENABLED } from "@/lib/sso";
 
 const HCAPTCHA_SITE_KEY = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string) || "";
-// SSO is off until the Google provider + redirect URL are set up in Supabase.
-const SSO_GOOGLE_ENABLED = import.meta.env.VITE_SSO_GOOGLE === "true" && !IS_DEMO;
 
 type Tab = "login" | "register";
 type RegType = "employee" | "owner";
@@ -576,7 +575,7 @@ export default function LoginPage() {
                         Masuk dengan Google
                       </Button>
                       <p className="text-[11px] text-muted-foreground text-center">
-                        Hanya untuk email yang sudah terdaftar di Donkap.
+                        Untuk email yang sudah terdaftar atau diundang admin.
                       </p>
                     </>
                   )}

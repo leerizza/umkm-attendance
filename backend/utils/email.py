@@ -235,3 +235,24 @@ async def send_company_approved_email(
     {"<a href='https://www.donkap.space' style='display:inline-block;background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;text-decoration:none;margin-top:8px;'>Login Sekarang</a>" if approved else ""}"""
 
     await _send(owner_email, title, _card(title, color, body))
+
+
+async def send_invitation_email(to: str, company_name: str, inviter_name: str) -> None:
+    """Invite email for "Masuk dengan Google" (see routers/invitations.py)."""
+    from html import escape
+
+    title = f"Undangan bergabung ke {company_name}"
+    body = f"""
+    <p style="margin:0 0 16px;color:#09090b;font-size:15px;">
+      <strong>{escape(inviter_name)}</strong> mengundang kamu bergabung ke
+      <strong>{escape(company_name)}</strong> di Donkap, aplikasi absensi karyawan.
+    </p>
+    <p style="margin:0 0 20px;color:#09090b;font-size:14px;">
+      Buka Donkap lalu pilih <strong>Masuk dengan Google</strong> memakai akun Google
+      <strong>{escape(to)}</strong>. Akun kamu dibuat otomatis, tanpa perlu password atau kode perusahaan.
+    </p>
+    <a href="https://www.donkap.space/login" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;text-decoration:none;">Buka Donkap</a>
+    <p style="margin:20px 0 0;color:#71717a;font-size:12px;">
+      Undangan berlaku 30 hari. Kalau kamu tidak merasa diundang, abaikan email ini.
+    </p>"""
+    await _send(to, title, _card(escape(title), "#4f46e5", body))

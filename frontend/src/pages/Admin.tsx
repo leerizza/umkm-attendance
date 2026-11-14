@@ -261,7 +261,8 @@ export default function AdminPage() {
   }>(null);
 
   const saveLocation = useMutation({
-    mutationFn: () => {
+    // create/update return differently-typed AxiosResponses (newer axios types include config.data)
+    mutationFn: (): Promise<unknown> => {
       if (!locModal) throw new Error("No data");
       const lat = parseFloat(locModal.lat);
       const lng = parseFloat(locModal.lng);

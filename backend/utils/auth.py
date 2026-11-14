@@ -5,7 +5,7 @@ import json
 import asyncio
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from db import supabase
+from db import supabase, db_run
 
 bearer = HTTPBearer()
 
@@ -146,12 +146,11 @@ async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
             return profile
 
     try:
-        res = (
+        res = await db_run(
             supabase.table("profiles")
             .select("*, companies(*)")
             .eq("id", user_id)
             .single()
-            .execute()
         )
     except Exception:
         raise HTTPException(status_code=404, detail="Profile not found")

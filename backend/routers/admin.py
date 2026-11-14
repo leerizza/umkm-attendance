@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from utils.auth import require_admin, _invalidate_profile_cache
-from db import supabase
+from db import supabase, db_run
 from utils.audit import write_audit
 from routers.attendance import effective_work_minutes
 
@@ -103,7 +103,7 @@ def _xlsx_response(buf: io.BytesIO, filename: str) -> StreamingResponse:
 
 
 @router.get("/stats")
-async def get_stats(admin: dict = Depends(require_admin)):
+def get_stats(admin: dict = Depends(require_admin)):
     """Dashboard stats for today."""
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -135,7 +135,7 @@ async def get_stats(admin: dict = Depends(require_admin)):
 
 
 @router.get("/attendance")
-async def admin_attendance(
+def admin_attendance(
     page: int = 1,
     per_page: int = 10,
     date_from: str = None,
@@ -163,7 +163,7 @@ async def admin_attendance(
 
 
 @router.get("/leave")
-async def admin_leave(
+def admin_leave(
     page: int = 1,
     per_page: int = 10,
     status_filter: str = None,
@@ -193,7 +193,7 @@ async def admin_leave(
 
 
 @router.get("/overtime")
-async def admin_overtime(
+def admin_overtime(
     page: int = 1,
     per_page: int = 10,
     status_filter: str = None,
@@ -245,7 +245,7 @@ async def admin_employees(
         q = q.ilike("full_name", f"%{search}%")
     if is_active is not None:
         q = q.eq("is_active", is_active)
-    res = q.range(offset, offset + per_page - 1).execute()
+    res = await db_run(q.range(offset, offset + per_page - 1))
 
     rows = res.data or []
     if rows:
@@ -260,7 +260,7 @@ async def admin_employees(
 
 
 @router.get("/employees/{user_id}/attendance")
-async def employee_attendance_history(
+def employee_attendance_history(
     user_id: str,
     page: int = 1,
     per_page: int = 20,
@@ -294,7 +294,7 @@ async def employee_attendance_history(
 
 
 @router.get("/company")
-async def get_company(admin: dict = Depends(require_admin)):
+def get_company(admin: dict = Depends(require_admin)):
     try:
         res = (
             supabase.table("companies")
@@ -311,7 +311,7 @@ async def get_company(admin: dict = Depends(require_admin)):
 
 
 @router.patch("/company")
-async def update_company(
+def update_company(
     body: CompanyUpdateRequest,
     admin: dict = Depends(require_admin),
 ):
@@ -402,7 +402,7 @@ def _seed_initial_location(company_id: str, company_data: dict) -> None:
 
 
 @router.get("/report/monthly")
-async def monthly_report(
+def monthly_report(
     year: int = None,
     month: int = None,
     admin: dict = Depends(require_admin),
@@ -483,7 +483,7 @@ async def monthly_report(
 
 
 @router.get("/report/monthly/export")
-async def export_monthly_report_xlsx(
+def export_monthly_report_xlsx(
     year: int = None,
     month: int = None,
     admin: dict = Depends(require_admin),
@@ -556,7 +556,7 @@ async def export_monthly_report_xlsx(
 
 
 @router.get("/attendance/export")
-async def export_attendance_xlsx(
+def export_attendance_xlsx(
     date_from: str = None,
     date_to: str = None,
     admin: dict = Depends(require_admin),
@@ -633,7 +633,7 @@ async def export_attendance_xlsx(
 
 
 @router.patch("/attendance/{record_id}")
-async def correct_attendance(
+def correct_attendance(
     record_id: str,
     body: AttendanceCorrectionRequest,
     admin: dict = Depends(require_admin),
@@ -705,7 +705,7 @@ async def update_employee_role(
         raise HTTPException(400, "role must be 'employee' or 'admin'")
 
     try:
-        emp = supabase.table("profiles").select("company_id,role,full_name").eq("id", user_id).single().execute()
+        emp = await db_run(supabase.table("profiles").select("company_id,role,full_name").eq("id", user_id).single())
     except Exception:
         raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
@@ -714,7 +714,7 @@ async def update_employee_role(
         raise HTTPException(400, "Tidak dapat mengubah role diri sendiri")
 
     old_role = emp.data.get("role")
-    supabase.table("profiles").update({"role": role}).eq("id", user_id).execute()
+    await db_run(supabase.table("profiles").update({"role": role}).eq("id", user_id))
     _invalidate_profile_cache(user_id)
     if old_role != role:
         await write_audit(
@@ -732,7 +732,7 @@ async def toggle_employee_active(
     admin: dict = Depends(require_admin),
 ):
     try:
-        emp = supabase.table("profiles").select("company_id,role,full_name,is_active").eq("id", user_id).single().execute()
+        emp = await db_run(supabase.table("profiles").select("company_id,role,full_name,is_active").eq("id", user_id).single())
     except Exception:
         raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
@@ -740,7 +740,7 @@ async def toggle_employee_active(
     if user_id == admin["id"]:
         raise HTTPException(400, "Cannot deactivate yourself")
 
-    supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).execute()
+    await db_run(supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id))
     _invalidate_profile_cache(user_id)
     if emp.data.get("is_active") != is_active:
         await write_audit(
@@ -752,7 +752,7 @@ async def toggle_employee_active(
 
 
 @router.get("/leave/export")
-async def export_leave_xlsx(
+def export_leave_xlsx(
     status_filter: str = None,
     date_from: str = None,
     date_to: str = None,
@@ -797,7 +797,7 @@ async def export_leave_xlsx(
 
 
 @router.get("/leave/{leave_id}/sick-note")
-async def get_leave_sick_note(
+def get_leave_sick_note(
     leave_id: str,
     admin: dict = Depends(require_admin),
 ):
@@ -823,7 +823,7 @@ async def get_leave_sick_note(
 
 
 @router.get("/overtime/export")
-async def export_overtime_xlsx(
+def export_overtime_xlsx(
     status_filter: str = None,
     date_from: str = None,
     date_to: str = None,
@@ -866,7 +866,7 @@ async def export_overtime_xlsx(
 
 
 @router.get("/employees/{user_id}/attendance/export")
-async def export_employee_attendance_xlsx(
+def export_employee_attendance_xlsx(
     user_id: str,
     admin: dict = Depends(require_admin),
 ):

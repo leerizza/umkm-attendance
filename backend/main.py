@@ -20,23 +20,22 @@ async def _cleanup_sick_notes_loop() -> None:
     """Hapus file surat sakit dari rejected/cancelled leaves yang lebih dari 7 hari."""
     while True:
         try:
-            from db import supabase
+            from db import supabase, db_run
             cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-            res = (
+            res = await db_run(
                 supabase.table("leave_requests")
                 .select("id, attachment_url")
                 .in_("status", ["rejected", "cancelled"])
                 .not_.is_("attachment_url", "null")
                 .lte("created_at", cutoff)
-                .execute()
             )
             cleaned = 0
             for row in (res.data or []):
                 path = row.get("attachment_url")
                 if path:
                     try:
-                        supabase.storage.from_("sick-notes").remove([path])
-                        supabase.table("leave_requests").update({"attachment_url": None}).eq("id", row["id"]).execute()
+                        await asyncio.to_thread(supabase.storage.from_("sick-notes").remove, [path])
+                        await db_run(supabase.table("leave_requests").update({"attachment_url": None}).eq("id", row["id"]))
                         cleaned += 1
                     except Exception as e:
                         _log.warning("cleanup_sick_notes: gagal hapus %s: %s", path, e)

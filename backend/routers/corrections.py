@@ -34,7 +34,7 @@ def _parse_wib(dt_str: str) -> str:
 # ─── Employee endpoints ───────────────────────────────────────────────────────
 
 @router.post("")
-async def create_correction(
+def create_correction(
     body: CorrectionCreateRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -81,7 +81,7 @@ async def create_correction(
 
 
 @router.get("")
-async def get_my_corrections(
+def get_my_corrections(
     page: int = 1,
     per_page: int = 20,
     profile: dict = Depends(get_current_profile),
@@ -102,7 +102,7 @@ async def get_my_corrections(
 # ─── Admin endpoints ──────────────────────────────────────────────────────────
 
 @router.get("/admin")
-async def admin_list_corrections(
+def admin_list_corrections(
     page: int = 1,
     per_page: int = 10,
     status_filter: Optional[str] = None,
@@ -129,7 +129,7 @@ async def admin_list_corrections(
 
 
 @router.post("/{correction_id}/approve")
-async def approve_correction(
+def approve_correction(
     correction_id: str,
     body: CorrectionApproveRequest,
     admin: dict = Depends(require_admin),

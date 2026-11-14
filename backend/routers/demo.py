@@ -12,7 +12,7 @@ def _assert_demo(email: str):
 
 
 @router.post("/reset")
-async def reset_demo_session(
+def reset_demo_session(
     user: dict = Depends(get_current_user),
     profile: dict = Depends(get_current_profile),
 ):

@@ -10,7 +10,7 @@ from models.schemas import (
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from utils.auth import get_current_profile, get_current_user, _invalidate_profile_cache, invalidate_token
 from utils.email import send_new_company_notification
-from db import supabase
+from db import supabase, db_run
 from config import settings
 from limiter import limiter, ip_key
 
@@ -38,12 +38,11 @@ _optional_bearer = HTTPBearer(auto_error=False)
 async def register(request: Request, body: RegisterRequest):
     # 1. Validate company code
     try:
-        company_res = (
+        company_res = await db_run(
             supabase.table("companies")
             .select("id,name,code")
             .eq("code", body.company_code.upper())
             .single()
-            .execute()
         )
         company = company_res.data
     except Exception:
@@ -79,7 +78,7 @@ async def register(request: Request, body: RegisterRequest):
             users = user_list.json().get("users", [])
             if users:
                 uid = users[0]["id"]
-                profile_check = supabase.table("profiles").select("id").eq("id", uid).execute()
+                profile_check = await db_run(supabase.table("profiles").select("id").eq("id", uid))
                 if profile_check.data:
                     raise HTTPException(400, "Email sudah terdaftar, silakan login")
                 # No profile yet — update password to the one entered now, then resend OTP
@@ -135,28 +134,27 @@ async def verify_register(request: Request, body: VerifyRegisterRequest):
 
     # 2. Validate company code
     try:
-        company_res = (
+        company_res = await db_run(
             supabase.table("companies")
             .select("id,name")
             .eq("code", body.company_code.upper())
             .single()
-            .execute()
         )
         company = company_res.data
     except Exception:
         raise HTTPException(400, "Kode perusahaan tidak valid")
 
     # 3. Insert profile (idempotent — skip if already exists)
-    existing = supabase.table("profiles").select("id").eq("id", user_id).execute()
+    existing = await db_run(supabase.table("profiles").select("id").eq("id", user_id))
     if not existing.data:
-        supabase.table("profiles").insert({
+        await db_run(supabase.table("profiles").insert({
             "id": user_id,
             "company_id": company["id"],
             "full_name": body.full_name,
             "phone": body.phone,
             "position": body.position,
             "role": "employee",
-        }).execute()
+        }))
 
     return {
         "access_token": data["access_token"],
@@ -172,7 +170,7 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
     code = body.company_code.upper()
 
     # 1. Ensure company code is not already taken
-    existing = supabase.table("companies").select("id").eq("code", code).execute()
+    existing = await db_run(supabase.table("companies").select("id").eq("code", code))
     if existing.data:
         raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
 
@@ -268,7 +266,7 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
 
     # 2. Check company code still available
     try:
-        existing = supabase.table("companies").select("id").eq("code", code).execute()
+        existing = await db_run(supabase.table("companies").select("id").eq("code", code))
     except Exception as exc:
         logger.error("Company code check failed: %s", exc)
         raise HTTPException(500, "Gagal memeriksa kode perusahaan, coba lagi")
@@ -277,10 +275,9 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
 
     # 3. Create company
     try:
-        company_res = (
+        company_res = await db_run(
             supabase.table("companies")
             .insert({"name": body.company_name, "code": code, "is_approved": False})
-            .execute()
         )
         if not company_res.data:
             raise HTTPException(500, "Gagal membuat perusahaan, coba lagi")
@@ -293,20 +290,20 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
 
     # 4. Insert admin profile (idempotent)
     try:
-        existing_profile = supabase.table("profiles").select("id").eq("id", user_id).execute()
+        existing_profile = await db_run(supabase.table("profiles").select("id").eq("id", user_id))
         if not existing_profile.data:
-            supabase.table("profiles").insert({
+            await db_run(supabase.table("profiles").insert({
                 "id": user_id,
                 "company_id": company_id,
                 "full_name": body.full_name,
                 "phone": body.phone,
                 "role": "admin",
-            }).execute()
+            }))
     except Exception as exc:
         logger.error("Profile insert failed for user=%s: %s", user_id, exc)
         # Company was created; clean it up to keep state consistent
         try:
-            supabase.table("companies").delete().eq("id", company_id).execute()
+            await db_run(supabase.table("companies").delete().eq("id", company_id))
         except Exception:
             pass
         raise HTTPException(500, f"Gagal membuat profil admin: {exc}")
@@ -554,7 +551,7 @@ async def change_password(
 
 
 @router.post("/logout")
-async def logout(
+def logout(
     credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
 ):
     """Drop this token from the backend auth cache so it stops working here
@@ -566,13 +563,13 @@ async def logout(
 
 
 @router.get("/me")
-async def get_me(profile: dict = Depends(get_current_profile)):
+def get_me(profile: dict = Depends(get_current_profile)):
     """Return current user's profile + company."""
     return profile
 
 
 @router.patch("/profile/me")
-async def update_profile(
+def update_profile(
     body: ProfileUpdateRequest,
     profile: dict = Depends(get_current_profile),
 ):

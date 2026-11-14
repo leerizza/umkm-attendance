@@ -17,7 +17,7 @@ router = APIRouter(tags=["locations"])
 # ─── Admin: CRUD locations ───────────────────────────────────────────────────
 
 @router.get("/admin/locations")
-async def list_locations(admin: dict = Depends(require_admin)):
+def list_locations(admin: dict = Depends(require_admin)):
     res = (
         supabase.table("locations")
         .select("*")
@@ -29,7 +29,7 @@ async def list_locations(admin: dict = Depends(require_admin)):
 
 
 @router.post("/admin/locations")
-async def create_location(body: LocationCreateRequest, admin: dict = Depends(require_admin)):
+def create_location(body: LocationCreateRequest, admin: dict = Depends(require_admin)):
     payload = body.model_dump()
     payload["company_id"] = admin["company_id"]
     try:
@@ -43,7 +43,7 @@ async def create_location(body: LocationCreateRequest, admin: dict = Depends(req
 
 
 @router.patch("/admin/locations/{location_id}")
-async def update_location(
+def update_location(
     location_id: str,
     body: LocationUpdateRequest,
     admin: dict = Depends(require_admin),
@@ -65,7 +65,7 @@ async def update_location(
 
 
 @router.delete("/admin/locations/{location_id}")
-async def delete_location(location_id: str, admin: dict = Depends(require_admin)):
+def delete_location(location_id: str, admin: dict = Depends(require_admin)):
     try:
         rec = supabase.table("locations").select("company_id").eq("id", location_id).single().execute()
     except Exception:
@@ -80,7 +80,7 @@ async def delete_location(location_id: str, admin: dict = Depends(require_admin)
 # ─── Admin: assign employee → locations ──────────────────────────────────────
 
 @router.get("/admin/employees/{user_id}/locations")
-async def get_employee_locations(user_id: str, admin: dict = Depends(require_admin)):
+def get_employee_locations(user_id: str, admin: dict = Depends(require_admin)):
     try:
         emp = supabase.table("profiles").select("company_id").eq("id", user_id).single().execute()
     except Exception:
@@ -98,7 +98,7 @@ async def get_employee_locations(user_id: str, admin: dict = Depends(require_adm
 
 
 @router.put("/admin/employees/{user_id}/locations")
-async def assign_employee_locations(
+def assign_employee_locations(
     user_id: str,
     body: EmployeeLocationsAssignRequest,
     admin: dict = Depends(require_admin),
@@ -137,7 +137,7 @@ async def assign_employee_locations(
 # ─── Employee: list of own assigned locations (for Dashboard) ───────────────
 
 @router.get("/attendance/my-locations")
-async def my_locations(profile: dict = Depends(get_current_profile)):
+def my_locations(profile: dict = Depends(get_current_profile)):
     """Returns the locations this employee is allowed to clock-in at.
     When company.multi_location is False, returns an empty list (Dashboard
     falls back to the legacy company.lat/lng/radius_meters)."""

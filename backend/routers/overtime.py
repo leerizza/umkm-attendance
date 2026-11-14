@@ -25,7 +25,7 @@ def _check_overlap(user_id: str, req_date: str, start: str, end: str, exclude_id
 
 
 @router.post("")
-async def create_overtime(
+def create_overtime(
     body: OvertimeCreateRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -52,7 +52,7 @@ async def create_overtime(
 
 
 @router.get("")
-async def get_my_overtime(
+def get_my_overtime(
     page: int = 1,
     per_page: int = 10,
     date_from: str = None,
@@ -80,7 +80,7 @@ async def get_my_overtime(
 
 
 @router.delete("/{ot_id}")
-async def cancel_overtime(
+def cancel_overtime(
     ot_id: str,
     profile: dict = Depends(get_current_profile),
 ):
@@ -100,7 +100,7 @@ async def cancel_overtime(
 
 
 @router.post("/{ot_id}/approve")
-async def approve_overtime(
+def approve_overtime(
     ot_id: str,
     body: OvertimeApproveRequest,
     background_tasks: BackgroundTasks,

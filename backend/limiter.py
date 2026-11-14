@@ -38,3 +38,22 @@ def ip_key(request: Request) -> str:
 
 
 limiter = Limiter(key_func=_get_user_or_ip, default_limits=["200/minute"])
+
+
+async def enforce_default_limit(request: Request) -> None:
+    """App-wide dependency that applies `default_limits` to undecorated routes.
+
+    Replaces SlowAPIMiddleware: since FastAPI 0.137, included routers are wrapped
+    in `_IncludedRouter` (no `.endpoint`), so the middleware's route lookup finds
+    nothing and silently skips every route. A dependency runs after routing, so
+    the matched endpoint is always available in `request.scope["endpoint"]`.
+    Raises RateLimitExceeded → handled by the registered exception handler.
+    """
+    endpoint = request.scope.get("endpoint")
+    if endpoint is None or not limiter.enabled:
+        return
+    name = f"{endpoint.__module__}.{endpoint.__name__}"
+    # Decorated routes enforce their own limit; exempt routes are skipped.
+    if name in limiter._route_limits or name in limiter._exempt_routes:
+        return
+    limiter._check_request_limit(request, endpoint, in_middleware=True)

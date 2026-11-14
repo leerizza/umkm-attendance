@@ -275,7 +275,16 @@ class _FakeAdmin:
 
     def get_user_by_id(self, user_id):
         u = self.db.auth_users.get(user_id)
-        return SimpleNamespace(user=SimpleNamespace(id=user_id, email=u["email"]) if u else None)
+        if not u:
+            return SimpleNamespace(user=None)
+        identities = [SimpleNamespace(provider=p) for p in u.get("providers", ["email"])]
+        return SimpleNamespace(user=SimpleNamespace(id=user_id, email=u["email"], identities=identities))
+
+    def delete_user(self, user_id, *a, **k):
+        self.db.auth_users.pop(user_id, None)
+        for t, uid in list(self.db.tokens.items()):
+            if uid == user_id:
+                self.db.tokens.pop(t)
 
 
 class _FakeAuth:

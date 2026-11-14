@@ -12,5 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     storageKey: "umkm_auth",
     autoRefreshToken: true,
+    // PKCE for OAuth/SSO redirects: the callback URL carries a one-time code
+    // (useless without the verifier kept in this browser) instead of the
+    // access/refresh tokens themselves.
+    flowType: "pkce",
   },
 });

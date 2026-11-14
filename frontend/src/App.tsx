@@ -26,6 +26,7 @@ function lazyPage<T extends React.ComponentType<any>>(
 
 const LoginPage         = lazyPage(() => import("@/pages/Login"));
 const ResetPasswordPage = lazyPage(() => import("@/pages/ResetPassword"));
+const AuthCallbackPage  = lazyPage(() => import("@/pages/AuthCallback"));
 const Dashboard         = lazyPage(() => import("@/pages/Dashboard"));
 const AttendancePage    = lazyPage(() => import("@/pages/Attendance"));
 const LeavePage         = lazyPage(() => import("@/pages/Leave"));
@@ -97,6 +98,7 @@ export default function App() {
               {/* Public */}
               <Route path="/login"          element={<LoginPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/auth/callback"  element={<AuthCallbackPage />} />
 
               {/* Protected */}
               <Route

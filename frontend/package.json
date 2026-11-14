@@ -8,6 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^2.0.2",
     "@radix-ui/react-avatar": "^1.0.4",

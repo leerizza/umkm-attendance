@@ -11,7 +11,6 @@ from utils.auth import get_current_profile, get_current_user, _invalidate_profil
 from utils.email import send_new_company_notification
 from db import supabase
 from config import settings
-from gotrue.errors import AuthApiError
 from limiter import limiter, ip_key
 
 
@@ -501,15 +500,31 @@ async def change_password_otp(
 @router.post("/refresh")
 @limiter.limit("20/minute", key_func=ip_key)
 async def refresh_token(request: Request, body: RefreshRequest):
-    try:
-        res = supabase.auth.refresh_session(body.refresh_token)
-    except AuthApiError:
+    # Call GoTrue directly. Do NOT use supabase.auth.refresh_session() on the
+    # shared service-role client: it fires TOKEN_REFRESHED, which makes the
+    # client swap its Authorization header to this user's JWT — every later DB
+    # query in the process would then run as that user (RLS) and break once the
+    # token expires.
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{settings.supabase_url}/auth/v1/token",
+            params={"grant_type": "refresh_token"},
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Content-Type": "application/json",
+            },
+            json={"refresh_token": body.refresh_token},
+            timeout=10.0,
+        )
+
+    if resp.status_code != 200:
         raise HTTPException(401, "Invalid refresh token")
 
+    data = resp.json()
     return {
-        "access_token": res.session.access_token,
-        "refresh_token": res.session.refresh_token,
-        "expires_at": res.session.expires_at,
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "expires_at": data["expires_at"],
     }
 
 

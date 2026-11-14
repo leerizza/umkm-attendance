@@ -65,6 +65,9 @@ class VerifyRegisterRequest(BaseModel):
     company_code: str = Field(min_length=1, max_length=20)
     phone: Optional[str] = Field(default=None, max_length=20)
     position: Optional[str] = Field(default=None, max_length=100)
+    # Set only after the OTP is verified. Optional for older app builds, which
+    # relied on /auth/register setting it.
+    password: Optional[str] = Field(default=None, min_length=6, max_length=72)
 
 
 class VerifyRegisterOwnerRequest(BaseModel):
@@ -75,6 +78,7 @@ class VerifyRegisterOwnerRequest(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=20)
     company_name: str = Field(min_length=1, max_length=100)
     company_code: str = Field(min_length=3, max_length=20)
+    password: Optional[str] = Field(default=None, min_length=6, max_length=72)
 
 
 # ─── Attendance ──────────────────────────────────────────────────────────────

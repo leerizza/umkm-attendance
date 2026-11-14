@@ -287,6 +287,7 @@ export interface VerifyRegisterPayload {
   company_code: string;
   phone?: string;
   position?: string;
+  password: string;
 }
 
 export interface VerifyRegisterOwnerPayload {
@@ -296,6 +297,7 @@ export interface VerifyRegisterOwnerPayload {
   company_name: string;
   company_code: string;
   phone?: string;
+  password: string;
 }
 
 export interface RegisterCompanyPayload {

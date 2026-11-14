@@ -33,6 +33,29 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _optional_bearer = HTTPBearer(auto_error=False)
 
 
+def _already_registered(data: dict) -> bool:
+    err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
+    return "already been registered" in err or data.get("error_code") == "email_exists"
+
+
+async def _set_password(user_id: str, password: str) -> None:
+    """Set a user's password via the admin API. Only call with a user_id that
+    came from a verified OTP (i.e. the caller proved they own the email)."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.put(
+            f"{settings.supabase_url}/auth/v1/admin/users/{user_id}",
+            headers={
+                "apikey": settings.supabase_service_key,
+                "Authorization": f"Bearer {settings.supabase_service_key}",
+                "Content-Type": "application/json",
+            },
+            json={"password": password},
+            timeout=10.0,
+        )
+    if resp.status_code not in (200, 201):
+        raise HTTPException(500, "Gagal menyimpan password, coba lagi")
+
+
 @router.post("/register")
 @limiter.limit("5/minute", key_func=ip_key)
 async def register(request: Request, body: RegisterRequest):
@@ -62,39 +85,12 @@ async def register(request: Request, body: RegisterRequest):
 
     if resp.status_code not in (200, 201):
         data = resp.json()
-        err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
-        if "already been registered" in err:
-            # Check if profile already exists (completed registration before)
-            async with httpx.AsyncClient() as client2:
-                user_list = await client2.get(
-                    f"{settings.supabase_url}/auth/v1/admin/users",
-                    headers={
-                        "apikey": settings.supabase_service_key,
-                        "Authorization": f"Bearer {settings.supabase_service_key}",
-                    },
-                    params={"email": body.email},
-                    timeout=10.0,
-                )
-            users = user_list.json().get("users", [])
-            if users:
-                uid = users[0]["id"]
-                profile_check = await db_run(supabase.table("profiles").select("id").eq("id", uid))
-                if profile_check.data:
-                    raise HTTPException(400, "Email sudah terdaftar, silakan login")
-                # No profile yet — update password to the one entered now, then resend OTP
-                async with httpx.AsyncClient() as client3:
-                    await client3.put(
-                        f"{settings.supabase_url}/auth/v1/admin/users/{uid}",
-                        headers={
-                            "apikey": settings.supabase_service_key,
-                            "Authorization": f"Bearer {settings.supabase_service_key}",
-                            "Content-Type": "application/json",
-                        },
-                        json={"password": body.password},
-                        timeout=10.0,
-                    )
-        else:
+        if not _already_registered(data):
             raise HTTPException(400, data.get("msg") or data.get("message") or "Registrasi gagal")
+        # Email already has an auth user (unfinished sign-up, or an existing
+        # account). Don't touch it here: this endpoint is unauthenticated. The
+        # password is set in /auth/verify-register, once the OTP proves the
+        # caller owns the email; "already registered" is decided there too.
 
     # 3. Send OTP for email verification
     async with httpx.AsyncClient() as client:
@@ -144,17 +140,24 @@ async def verify_register(request: Request, body: VerifyRegisterRequest):
     except Exception:
         raise HTTPException(400, "Kode perusahaan tidak valid")
 
-    # 3. Insert profile (idempotent — skip if already exists)
+    # 3. Already a Donkap account? Then this is not a sign-up — don't touch it.
     existing = await db_run(supabase.table("profiles").select("id").eq("id", user_id))
-    if not existing.data:
-        await db_run(supabase.table("profiles").insert({
-            "id": user_id,
-            "company_id": company["id"],
-            "full_name": body.full_name,
-            "phone": body.phone,
-            "position": body.position,
-            "role": "employee",
-        }))
+    if existing.data:
+        raise HTTPException(400, "Email sudah terdaftar, silakan login")
+
+    # 4. Password chosen in this sign-up (OTP verified → caller owns the email)
+    if body.password:
+        await _set_password(user_id, body.password)
+
+    # 5. Insert profile
+    await db_run(supabase.table("profiles").insert({
+        "id": user_id,
+        "company_id": company["id"],
+        "full_name": body.full_name,
+        "phone": body.phone,
+        "position": body.position,
+        "role": "employee",
+    }))
 
     return {
         "access_token": data["access_token"],
@@ -188,34 +191,10 @@ async def register_company(request: Request, body: RegisterCompanyRequest):
 
     if resp.status_code not in (200, 201):
         data = resp.json()
-        err = (data.get("msg") or data.get("message") or data.get("error_description") or "").lower()
-        if "already been registered" not in err:
+        if not _already_registered(data):
             raise HTTPException(400, data.get("msg") or data.get("message") or "Gagal membuat akun")
-        # Already exists but no company/profile yet — update password then resend OTP
-        async with httpx.AsyncClient() as client2:
-            user_list = await client2.get(
-                f"{settings.supabase_url}/auth/v1/admin/users",
-                headers={
-                    "apikey": settings.supabase_service_key,
-                    "Authorization": f"Bearer {settings.supabase_service_key}",
-                },
-                params={"email": body.email},
-                timeout=10.0,
-            )
-        users = user_list.json().get("users", [])
-        if users:
-            uid = users[0]["id"]
-            async with httpx.AsyncClient() as client3:
-                await client3.put(
-                    f"{settings.supabase_url}/auth/v1/admin/users/{uid}",
-                    headers={
-                        "apikey": settings.supabase_service_key,
-                        "Authorization": f"Bearer {settings.supabase_service_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={"password": body.password},
-                    timeout=10.0,
-                )
+        # Existing auth user: leave it alone until the OTP is verified
+        # (see /auth/verify-register-company).
 
     # 3. Send OTP
     async with httpx.AsyncClient() as client:
@@ -264,7 +243,12 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
         logger.error("Unexpected Supabase verify response: %s | error: %s", data, exc)
         raise HTTPException(500, "Respons verifikasi tidak valid, coba lagi")
 
-    # 2. Check company code still available
+    # 2. Already a Donkap account? Refuse before creating anything.
+    existing_profile = await db_run(supabase.table("profiles").select("id").eq("id", user_id))
+    if existing_profile.data:
+        raise HTTPException(400, "Email sudah terdaftar, silakan login")
+
+    # 2b. Check company code still available
     try:
         existing = await db_run(supabase.table("companies").select("id").eq("code", code))
     except Exception as exc:
@@ -272,6 +256,10 @@ async def verify_register_company(request: Request, body: VerifyRegisterOwnerReq
         raise HTTPException(500, "Gagal memeriksa kode perusahaan, coba lagi")
     if existing.data:
         raise HTTPException(400, "Kode perusahaan sudah dipakai, pilih kode lain")
+
+    # 2c. Password chosen in this sign-up (OTP verified → caller owns the email)
+    if body.password:
+        await _set_password(user_id, body.password)
 
     # 3. Create company
     try:

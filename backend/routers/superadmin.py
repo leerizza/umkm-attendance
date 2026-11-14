@@ -9,6 +9,7 @@ from config import settings
 from limiter import limiter, client_ip
 from db import supabase
 from utils.email import send_company_approved_email
+from utils.audit import write_audit
 
 router = APIRouter(prefix="/superadmin", tags=["superadmin"])
 _log = logging.getLogger(__name__)
@@ -155,15 +156,10 @@ async def approve_company(company_id: str, approved: bool = True):
     except Exception as e:
         _log.error("Failed to send approval email: %s", e)
 
-    try:
-        supabase.table("audit_log").insert({
-            "action": "approve" if approved else "reject",
-            "entity_type": "company",
-            "entity_id": company_id,
-            "entity_name": company.data["name"],
-        }).execute()
-    except Exception as e:
-        _log.error("Failed to write audit log: %s", e)
+    await write_audit(
+        "approve" if approved else "reject", "company", company_id, company.data["name"],
+        actor_name="superadmin", company_id=company_id,
+    )
 
     status = "approved" if approved else "rejected"
     return {"message": f"Company {status}", "company_id": company_id}
@@ -326,7 +322,7 @@ async def get_analytics_trend():
 async def get_audit_log():
     res = (
         supabase.table("audit_log")
-        .select("id, action, entity_type, entity_name, created_at")
+        .select("id, action, entity_type, entity_name, actor_name, details, created_at")
         .order("created_at", desc=True)
         .limit(100)
         .execute()

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from utils.auth import require_admin, _invalidate_profile_cache
 from db import supabase
+from utils.audit import write_audit
 from routers.attendance import effective_work_minutes
 
 _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
@@ -704,7 +705,7 @@ async def update_employee_role(
         raise HTTPException(400, "role must be 'employee' or 'admin'")
 
     try:
-        emp = supabase.table("profiles").select("company_id").eq("id", user_id).single().execute()
+        emp = supabase.table("profiles").select("company_id,role,full_name").eq("id", user_id).single().execute()
     except Exception:
         raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
@@ -712,8 +713,15 @@ async def update_employee_role(
     if user_id == admin["id"]:
         raise HTTPException(400, "Tidak dapat mengubah role diri sendiri")
 
+    old_role = emp.data.get("role")
     supabase.table("profiles").update({"role": role}).eq("id", user_id).execute()
     _invalidate_profile_cache(user_id)
+    if old_role != role:
+        await write_audit(
+            "role_change", "profile", user_id, emp.data.get("full_name"),
+            actor=admin,
+            details={"from": old_role, "to": role, "company_name": (admin.get("companies") or {}).get("name")},
+        )
     return {"message": f"Role updated to {role}"}
 
 
@@ -724,7 +732,7 @@ async def toggle_employee_active(
     admin: dict = Depends(require_admin),
 ):
     try:
-        emp = supabase.table("profiles").select("company_id,role").eq("id", user_id).single().execute()
+        emp = supabase.table("profiles").select("company_id,role,full_name,is_active").eq("id", user_id).single().execute()
     except Exception:
         raise HTTPException(404, "Employee not found")
     if not emp.data or emp.data["company_id"] != admin["company_id"]:
@@ -734,6 +742,12 @@ async def toggle_employee_active(
 
     supabase.table("profiles").update({"is_active": is_active}).eq("id", user_id).execute()
     _invalidate_profile_cache(user_id)
+    if emp.data.get("is_active") != is_active:
+        await write_audit(
+            "activate" if is_active else "deactivate", "profile", user_id, emp.data.get("full_name"),
+            actor=admin,
+            details={"role": emp.data.get("role"), "company_name": (admin.get("companies") or {}).get("name")},
+        )
     return {"message": "activated" if is_active else "deactivated"}
 
 

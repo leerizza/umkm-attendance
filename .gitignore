@@ -8,8 +8,24 @@ frontend/dist
 frontend/dev-dist
 frontend/node_modules
 
-# Python
-backend/__pycache__
-backend/*.pyc
-backend/*.pyo
+# Python (semua level folder)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Vercel
 .vercel
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Claude Code — setting lokal per mesin (setting tim tetap di .claude/settings.json)
+.claude/settings.local.json
+
+# Office lock files
+~$*.xlsx

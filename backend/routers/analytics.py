@@ -14,7 +14,7 @@ class EventRequest(BaseModel):
 
 @router.post("/event")
 @limiter.limit("60/minute")
-async def track_event(request: Request, body: EventRequest):
+def track_event(request: Request, body: EventRequest):
     """Record an analytics event. Public endpoint — no auth required."""
     try:
         supabase.table("analytics_events").insert({

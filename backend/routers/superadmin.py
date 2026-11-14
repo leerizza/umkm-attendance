@@ -7,7 +7,7 @@ from limits import parse as parse_limit
 from typing import Optional
 from config import settings
 from limiter import limiter, client_ip
-from db import supabase
+from db import supabase, db_run
 from utils.email import send_company_approved_email
 from utils.audit import write_audit
 
@@ -33,7 +33,7 @@ def require_superadmin(request: Request, x_superadmin_key: Optional[str] = Heade
 
 
 @router.get("/stats", dependencies=[Depends(require_superadmin)])
-async def get_stats():
+def get_stats():
     companies_res = supabase.table("companies").select("id, is_approved").execute()
     companies = companies_res.data or []
     total_companies  = len(companies)
@@ -72,7 +72,7 @@ async def get_stats():
 
 
 @router.get("/companies/all", dependencies=[Depends(require_superadmin)])
-async def list_all_companies():
+def list_all_companies():
     res = (
         supabase.table("companies")
         .select("id, name, code, is_approved, created_at")
@@ -111,7 +111,7 @@ async def list_all_companies():
 
 
 @router.get("/companies/pending", dependencies=[Depends(require_superadmin)])
-async def list_pending_companies():
+def list_pending_companies():
     res = (
         supabase.table("companies")
         .select("id, name, code, created_at")
@@ -125,22 +125,21 @@ async def list_pending_companies():
 @router.patch("/companies/{company_id}/approve", dependencies=[Depends(require_superadmin)])
 async def approve_company(company_id: str, approved: bool = True):
     try:
-        company = supabase.table("companies").select("id, name, is_approved").eq("id", company_id).single().execute()
+        company = await db_run(supabase.table("companies").select("id, name, is_approved").eq("id", company_id).single())
     except Exception:
         raise HTTPException(404, "Company not found")
     if not company.data:
         raise HTTPException(404, "Company not found")
 
-    supabase.table("companies").update({"is_approved": approved}).eq("id", company_id).execute()
+    await db_run(supabase.table("companies").update({"is_approved": approved}).eq("id", company_id))
 
     try:
-        profile = (
+        profile = await db_run(
             supabase.table("profiles")
             .select("full_name, id")
             .eq("company_id", company_id)
             .eq("role", "admin")
             .maybe_single()
-            .execute()
         )
         # maybe_single().execute() returns None (not an empty response) when no row matches
         if profile and profile.data:
@@ -166,7 +165,7 @@ async def approve_company(company_id: str, approved: bool = True):
 
 
 @router.get("/analytics", dependencies=[Depends(require_superadmin)])
-async def get_analytics():
+def get_analytics():
     """Return event counts by type, split by today / 7d / 30d / all-time."""
     now = datetime.now(timezone.utc)
     today     = now.date().isoformat()
@@ -234,7 +233,7 @@ async def get_analytics():
 
 
 @router.get("/analytics/range", dependencies=[Depends(require_superadmin)])
-async def get_analytics_range(from_date: str, to_date: str):
+def get_analytics_range(from_date: str, to_date: str):
     """Return analytics totals + daily trend for a custom date range."""
     try:
         from_d = datetime.fromisoformat(from_date).date()
@@ -292,7 +291,7 @@ async def get_analytics_range(from_date: str, to_date: str):
 
 
 @router.get("/analytics/trend", dependencies=[Depends(require_superadmin)])
-async def get_analytics_trend():
+def get_analytics_trend():
     """Daily event counts for the past 7 days (UTC) — used by the trend chart."""
     now = datetime.now(timezone.utc)
     days = [(now - timedelta(days=i)).date() for i in range(6, -1, -1)]
@@ -319,7 +318,7 @@ async def get_analytics_trend():
 
 
 @router.get("/audit-log", dependencies=[Depends(require_superadmin)])
-async def get_audit_log():
+def get_audit_log():
     res = (
         supabase.table("audit_log")
         .select("id, action, entity_type, entity_name, actor_name, details, created_at")
@@ -333,12 +332,11 @@ async def get_audit_log():
 @router.get("/companies/{company_id}/users", dependencies=[Depends(require_superadmin)])
 async def get_company_users(company_id: str):
     """List all profiles for a given company, including auth email."""
-    res = (
+    res = await db_run(
         supabase.table("profiles")
         .select("id, full_name, role, position, is_active, created_at")
         .eq("company_id", company_id)
         .order("role")
-        .execute()
     )
     users = res.data or []
 

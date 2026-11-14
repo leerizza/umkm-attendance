@@ -105,7 +105,7 @@ def _resolve_location(body, company, user_id: str) -> tuple[int, str | None]:
 
 
 @router.post("/clock-in")
-async def clock_in(
+def clock_in(
     body: ClockInRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -156,7 +156,7 @@ async def clock_in(
 
 
 @router.post("/break-start")
-async def break_start(
+def break_start(
     body: BreakRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -180,7 +180,7 @@ async def break_start(
 
 
 @router.post("/break-end")
-async def break_end(
+def break_end(
     body: BreakRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -202,7 +202,7 @@ async def break_end(
 
 
 @router.post("/clock-out")
-async def clock_out(
+def clock_out(
     body: ClockOutRequest,
     profile: dict = Depends(get_current_profile),
 ):
@@ -252,14 +252,14 @@ async def clock_out(
 
 
 @router.get("/today")
-async def get_today(profile: dict = Depends(get_current_profile)):
+def get_today(profile: dict = Depends(get_current_profile)):
     today = today_wib()
     record = _get_today_record(profile["id"], today)
     return {"date": today, "record": record}
 
 
 @router.get("/history")
-async def get_history(
+def get_history(
     page: int = 1,
     per_page: int = 10,
     date_from: str = None,
@@ -288,7 +288,7 @@ async def get_history(
 
 
 @router.get("/monthly-stats")
-async def monthly_stats(profile: dict = Depends(get_current_profile)):
+def monthly_stats(profile: dict = Depends(get_current_profile)):
     """Returns this month's hadir/cuti/lembur counts for the current user."""
     import calendar
     today = datetime.now(WIB).date()

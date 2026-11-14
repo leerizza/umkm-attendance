@@ -58,7 +58,7 @@ def _delete_sick_note(path: str) -> None:
 
 
 @router.post("")
-async def create_leave(
+def create_leave(
     body: LeaveCreateRequest,
     background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_profile),
@@ -159,7 +159,7 @@ async def create_leave(
 
 
 @router.get("/balance")
-async def get_leave_balance(
+def get_leave_balance(
     profile: dict = Depends(get_current_profile),
 ):
     """Return annual leave balance for the current user this year (in business days)."""
@@ -204,7 +204,7 @@ async def get_leave_balance(
 
 
 @router.get("")
-async def get_my_leave(
+def get_my_leave(
     page: int = 1,
     per_page: int = 10,
     date_from: str = None,
@@ -230,7 +230,7 @@ async def get_my_leave(
 
 
 @router.put("/{leave_id}")
-async def update_leave(
+def update_leave(
     leave_id: str,
     body: LeaveCreateRequest,
     profile: dict = Depends(get_current_profile),
@@ -307,7 +307,7 @@ async def update_leave(
 
 
 @router.delete("/{leave_id}")
-async def cancel_leave(
+def cancel_leave(
     leave_id: str,
     profile: dict = Depends(get_current_profile),
 ):
@@ -331,7 +331,7 @@ async def cancel_leave(
 
 
 @router.post("/{leave_id}/approve")
-async def approve_leave(
+def approve_leave(
     leave_id: str,
     body: LeaveApproveRequest,
     background_tasks: BackgroundTasks,

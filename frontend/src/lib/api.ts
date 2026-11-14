@@ -93,6 +93,8 @@ export const authApi = {
     api.post("/auth/login", { email, password, captcha_token: captchaToken }),
   me:              (token: string) =>
     api.get("/auth/me", { headers: { Authorization: `Bearer ${token}` } }),
+  ssoSession:      (token: string) =>
+    api.post("/auth/sso/session", null, { headers: { Authorization: `Bearer ${token}` } }),
   sendOtp:              (email: string, captchaToken?: string) =>
     api.post("/auth/send-otp", { email, captcha_token: captchaToken }),
   verifyOtp:            (email: string, token: string) =>

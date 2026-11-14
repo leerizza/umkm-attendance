@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 import httpx
@@ -8,7 +9,7 @@ from models.schemas import (
     VerifyRegisterRequest, VerifyRegisterOwnerRequest,
 )
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from utils.auth import get_current_profile, get_current_user, _invalidate_profile_cache, invalidate_token
+from utils.auth import bearer, get_current_profile, get_current_user, _invalidate_profile_cache, invalidate_token
 from utils.email import send_new_company_notification
 from db import supabase, db_run
 from config import settings
@@ -560,6 +561,67 @@ def logout(
     if credentials:
         invalidate_token(credentials.credentials)
     return {"message": "ok"}
+
+
+# ─── SSO (OAuth via Supabase Auth, e.g. "Masuk dengan Google") ────────────────
+# SSO is LOGIN-ONLY: it never creates a Donkap account or joins anyone to a
+# company. Supabase Auth links a Google identity to the existing user that has
+# the same verified email, so the user_id (and all attendance/leave data) stays
+# the same. When no such user exists, Supabase still creates a bare auth user
+# without a profile — /auth/sso/session deletes that user again.
+
+_SSO_LOGIN_PROVIDERS = {"email", "phone"}  # identities created by Donkap's own sign-up
+
+
+def _is_demo_email(email: str | None) -> bool:
+    email = (email or "").lower()
+    return email.startswith("demo.") and email.endswith("@donkap.space")
+
+
+def _delete_if_sso_only_user(user_id: str) -> None:
+    """Delete an auth user that was created purely by an SSO sign-in.
+
+    Only called when the user has no profile. A user that also has an
+    email/phone identity came from Donkap's own sign-up (e.g. registration
+    whose OTP step was never finished) and is left alone.
+    """
+    import logging
+    try:
+        res = supabase.auth.admin.get_user_by_id(user_id)
+        u = res.user
+        if not u:
+            return
+        providers = {getattr(i, "provider", None) for i in (getattr(u, "identities", None) or [])}
+        if providers and not (providers & _SSO_LOGIN_PROVIDERS):
+            supabase.auth.admin.delete_user(user_id)
+    except Exception as exc:  # cleanup is best-effort; the login is refused either way
+        logging.getLogger(__name__).warning("SSO orphan cleanup failed for %s: %s", user_id, exc)
+
+
+@router.post("/sso/session")
+@limiter.limit("10/minute", key_func=ip_key)
+async def sso_session(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer),
+    user: dict = Depends(get_current_user),
+):
+    """Finish an SSO login: called by the app right after the OAuth redirect.
+
+    Returns the profile (same shape as /auth/me) when the SSO email belongs to a
+    registered Donkap account. Otherwise 403 `sso_not_registered`, and the
+    stray auth user Supabase created for that email is removed.
+    """
+    if _is_demo_email(user.get("email")):
+        raise HTTPException(403, "Akun demo tidak bisa login dengan SSO")
+
+    existing = await db_run(supabase.table("profiles").select("id").eq("id", user["user_id"]))
+    if not existing.data:
+        invalidate_token(credentials.credentials)
+        await asyncio.to_thread(_delete_if_sso_only_user, user["user_id"])
+        raise HTTPException(403, "sso_not_registered")
+
+    # Same gates as every other request: deactivated user / unapproved company
+    return await get_current_profile(user)
 
 
 @router.get("/me")

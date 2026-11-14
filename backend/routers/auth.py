@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
@@ -644,6 +645,26 @@ async def _accept_invitation(user: dict) -> bool:
     )
     if not claimed.data:
         return False
+
+    # A pre-existing email/password identity without a profile may have been
+    # created by ANYONE via /auth/register with this email (no OTP needed for
+    # that step). Its password must not survive into a real account: replace
+    # it with a random one. The user can set their own via "Lupa password?".
+    providers = {getattr(i, "provider", None) for i in (getattr(u, "identities", None) or [])}
+    if "email" in providers:
+        try:
+            await asyncio.to_thread(
+                supabase.auth.admin.update_user_by_id,
+                user["user_id"], {"password": secrets.token_urlsafe(32)},
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).error("Password rotation failed for %s: %s", user["user_id"], exc)
+            await db_run(
+                supabase.table("invitations")
+                .update({"status": "pending", "accepted_at": None})
+                .eq("id", inv["id"])
+            )
+            raise HTTPException(500, "Gagal memproses undangan, coba lagi")
 
     full_name = _sso_display_name(u, email)
     try:

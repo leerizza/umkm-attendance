@@ -286,6 +286,10 @@ class _FakeAdmin:
             user_metadata=u.get("metadata", {}),
         ))
 
+    def update_user_by_id(self, user_id, attributes):
+        self.db.auth_users[user_id].update(attributes)
+        return SimpleNamespace(user=SimpleNamespace(id=user_id))
+
     def delete_user(self, user_id, *a, **k):
         self.db.auth_users.pop(user_id, None)
         for t, uid in list(self.db.tokens.items()):

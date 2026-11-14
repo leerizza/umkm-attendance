@@ -166,3 +166,26 @@ def test_invite_into_unapproved_company_is_gated(client, fake, make_company, mak
     _, hb = _sso_user(fake, "budi@gmail.com")
     r = client.post("/auth/sso/session", headers=hb)
     assert r.status_code == 403 and r.json()["detail"] == "pending_approval"
+
+
+def test_precreated_password_is_rotated_on_invite_accept(client, fake, make_company, make_user):
+    """Anyone can create an auth user for victim@gmail.com via /auth/register
+    (password set, no profile). When the victim later joins via Google + an
+    invitation, that attacker-chosen password must not keep working."""
+    co = make_company()
+    _, h = make_user(co, role="admin")
+    _invite(client, h, "victim@gmail.com")
+    uid, hb = _sso_user(fake, "victim@gmail.com", providers=("email", "google"),
+                        password="attacker-pw")
+    assert client.post("/auth/sso/session", headers=hb).status_code == 200
+    new_pw = fake.auth_users[uid]["password"]
+    assert new_pw != "attacker-pw" and len(new_pw) >= 32
+
+
+def test_google_only_user_password_untouched(client, fake, make_company, make_user):
+    co = make_company()
+    _, h = make_user(co, role="admin")
+    _invite(client, h, "budi@gmail.com")
+    uid, hb = _sso_user(fake, "budi@gmail.com")
+    assert client.post("/auth/sso/session", headers=hb).status_code == 200
+    assert "password" not in fake.auth_users[uid]

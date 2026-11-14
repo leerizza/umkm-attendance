@@ -162,61 +162,13 @@ CREATE OR REPLACE FUNCTION get_my_company() RETURNS UUID AS $$
   SELECT company_id FROM profiles WHERE id = auth.uid();
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- Companies: only members can read their own company
-CREATE POLICY "company_read" ON companies
-  FOR SELECT USING (id = get_my_company());
-
--- Profiles: users see only their company
-CREATE POLICY "profiles_read" ON profiles
-  FOR SELECT USING (company_id = get_my_company());
-
-CREATE POLICY "profiles_update_own" ON profiles
-  FOR UPDATE USING (id = auth.uid());
-
--- Attendance: employees see own, admins see all in company
-CREATE POLICY "attendance_employee_read" ON attendance
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR (company_id = get_my_company() AND get_my_role() IN ('admin','superadmin'))
-  );
-
-CREATE POLICY "attendance_insert" ON attendance
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "attendance_update_own" ON attendance
-  FOR UPDATE USING (user_id = auth.uid());
-
--- Leave
-CREATE POLICY "leave_read" ON leave_requests
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR (company_id = get_my_company() AND get_my_role() IN ('admin','superadmin'))
-  );
-
-CREATE POLICY "leave_insert" ON leave_requests
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "leave_update" ON leave_requests
-  FOR UPDATE USING (
-    user_id = auth.uid()
-    OR (company_id = get_my_company() AND get_my_role() IN ('admin','superadmin'))
-  );
-
--- Overtime
-CREATE POLICY "overtime_read" ON overtime_requests
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR (company_id = get_my_company() AND get_my_role() IN ('admin','superadmin'))
-  );
-
-CREATE POLICY "overtime_insert" ON overtime_requests
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "overtime_update" ON overtime_requests
-  FOR UPDATE USING (
-    user_id = auth.uid()
-    OR (company_id = get_my_company() AND get_my_role() IN ('admin','superadmin'))
-  );
+-- NO POLICIES on public tables (see migrations/006_lockdown_public_rls.sql).
+-- All table access goes through the backend with the service_role key, which
+-- bypasses RLS. With RLS ON and no policies, anon/authenticated are denied by
+-- default. Previous per-user policies allowed privilege escalation (employee
+-- updating own profiles.role) and fake attendance via direct PostgREST calls.
+REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
 
 -- ============================================================
 -- TRIGGERS: auto-update updated_at

@@ -51,6 +51,16 @@ export const useAuthStore = create<AuthState>()(
       setProfile: (profile) => set({ profile }),
 
       logout: () => {
+        // Tell the backend to drop this token from its auth cache right away
+        // (fire-and-forget; plain fetch so the axios 401 interceptor can't loop).
+        const token = useAuthStore.getState().token;
+        if (token) {
+          fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/auth/logout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            keepalive: true,
+          }).catch(() => {});
+        }
         supabase.auth.signOut();
         set({ token: null, profile: null, isAuthenticated: false });
       },

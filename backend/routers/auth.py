@@ -7,7 +7,8 @@ from models.schemas import (
     ResetPasswordOTPRequest, ChangePasswordOTPRequest,
     VerifyRegisterRequest, VerifyRegisterOwnerRequest,
 )
-from utils.auth import get_current_profile, get_current_user, _invalidate_profile_cache
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from utils.auth import get_current_profile, get_current_user, _invalidate_profile_cache, invalidate_token
 from utils.email import send_new_company_notification
 from db import supabase
 from config import settings
@@ -28,6 +29,8 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_optional_bearer = HTTPBearer(auto_error=False)
 
 
 @router.post("/register")
@@ -548,6 +551,18 @@ async def change_password(
         msg = data.get("msg") or data.get("message") or data.get("error_description") or "Gagal mengubah password"
         raise HTTPException(400, msg)
     return {"message": "Password berhasil diubah"}
+
+
+@router.post("/logout")
+async def logout(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
+):
+    """Drop this token from the backend auth cache so it stops working here
+    immediately. The Supabase session itself is revoked by the client via
+    supabase.auth.signOut(). Always succeeds (idempotent, no token required)."""
+    if credentials:
+        invalidate_token(credentials.credentials)
+    return {"message": "ok"}
 
 
 @router.get("/me")

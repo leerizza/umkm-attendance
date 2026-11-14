@@ -1,5 +1,7 @@
 import time
+import base64
 import hashlib
+import json
 import asyncio
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -8,16 +10,50 @@ from db import supabase
 bearer = HTTPBearer()
 
 # ─── Simple in-memory JWT cache ───────────────────────────────────────────────
-# Caches Supabase Auth validation result for 5 minutes per token.
-# Avoids an extra network round-trip to Supabase Auth on every API request.
+# Caches the Supabase Auth validation result per token so not every API request
+# needs a round-trip to Supabase Auth. Kept short: a session revoked by logout
+# (supabase.auth.signOut) is still accepted by this backend until the entry
+# expires. An entry never outlives the token's own `exp`.
 _auth_cache: dict[str, tuple[dict, float]] = {}
-_AUTH_CACHE_TTL = 300  # 5 minutes
+_AUTH_CACHE_TTL = 60  # 1 minute
 
 _profile_cache: dict[str, tuple[dict, float]] = {}
 _PROFILE_CACHE_TTL = 60  # 1 minute
 
 _email_cache: dict[str, tuple[str | None, float]] = {}
 _EMAIL_CACHE_TTL = 300  # 5 minutes
+
+_CACHE_SOFT_LIMIT = 500   # above this, purge expired entries
+_CACHE_HARD_LIMIT = 2000  # above this, also drop the oldest entries
+
+
+def _prune(cache: dict) -> None:
+    """Keep an in-memory cache bounded. Entries are (value, expire_ts)."""
+    if len(cache) <= _CACHE_SOFT_LIMIT:
+        return
+    now = time.time()
+    for k in [k for k, (_, exp) in list(cache.items()) if exp < now]:
+        cache.pop(k, None)
+    # Still too big (many live entries) → drop oldest-inserted (dicts keep order)
+    overflow = len(cache) - _CACHE_HARD_LIMIT
+    if overflow > 0:
+        for k in list(cache.keys())[:overflow]:
+            cache.pop(k, None)
+
+
+def _token_exp(token: str) -> float | None:
+    """Read the `exp` claim WITHOUT verifying the signature.
+
+    Only used to shorten a cache TTL — never to authorize. The token itself is
+    validated by Supabase Auth before it is ever cached.
+    """
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        exp = json.loads(base64.urlsafe_b64decode(payload)).get("exp")
+        return float(exp) if exp is not None else None
+    except Exception:
+        return None
 
 
 def _token_key(token: str) -> str:
@@ -32,18 +68,23 @@ def _get_cached_user(token: str) -> dict | None:
         user, expire = entry
         if time.time() < expire:
             return user
-        del _auth_cache[key]
+        _auth_cache.pop(key, None)
     return None
 
 
 def _cache_user(token: str, user: dict):
-    key = _token_key(token)
-    # Evict expired entries if cache grows large
-    if len(_auth_cache) > 500:
-        now = time.time()
-        for k in [k for k, (_, exp) in list(_auth_cache.items()) if exp < now]:
-            _auth_cache.pop(k, None)
-    _auth_cache[key] = (user, time.time() + _AUTH_CACHE_TTL)
+    expire = time.time() + _AUTH_CACHE_TTL
+    exp = _token_exp(token)
+    if exp is not None:
+        expire = min(expire, exp)
+    if expire <= time.time():
+        return
+    _prune(_auth_cache)
+    _auth_cache[_token_key(token)] = (user, expire)
+
+
+def invalidate_token(token: str) -> None:
+    _auth_cache.pop(_token_key(token), None)
 
 
 async def _get_auth_email(user_id: str) -> str | None:
@@ -59,6 +100,7 @@ async def _get_auth_email(user_id: str) -> str | None:
         email = res.user.email if res.user else None
     except Exception:
         email = None
+    _prune(_email_cache)
     _email_cache[user_id] = (email, time.time() + _EMAIL_CACHE_TTL)
     return email
 
@@ -122,10 +164,7 @@ async def get_current_profile(user: dict = Depends(get_current_user)) -> dict:
     if company.get("is_approved") is False:
         raise HTTPException(status_code=403, detail="pending_approval")
 
-    if len(_profile_cache) > 500:
-        now = time.time()
-        for k in [k for k, (_, exp) in list(_profile_cache.items()) if exp < now]:
-            _profile_cache.pop(k, None)
+    _prune(_profile_cache)
     _profile_cache[user_id] = (res.data, time.time() + _PROFILE_CACHE_TTL)
     return res.data
 

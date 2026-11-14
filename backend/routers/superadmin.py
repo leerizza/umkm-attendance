@@ -126,7 +126,8 @@ async def approve_company(company_id: str, approved: bool = True):
             .maybe_single()
             .execute()
         )
-        if profile.data:
+        # maybe_single().execute() returns None (not an empty response) when no row matches
+        if profile and profile.data:
             from utils.auth import _get_auth_email
             owner_email = await _get_auth_email(profile.data["id"])
             if owner_email:

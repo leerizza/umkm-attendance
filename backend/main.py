@@ -4,14 +4,13 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
-from limiter import limiter
+from limiter import limiter, enforce_default_limit
 from config import settings
 
 _log = logging.getLogger(__name__)
@@ -115,13 +114,13 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+    # Applies default_limits ("200/minute") to every undecorated route.
+    # (SlowAPIMiddleware can't see routes inside included routers on FastAPI ≥0.137.)
+    dependencies=[Depends(enforce_default_limit)],
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# Required for default_limits ("200/minute") to apply to undecorated routes.
-# Added before CORS so it sits inside CORSMiddleware → 429s still carry CORS headers.
-app.add_middleware(SlowAPIMiddleware)
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 # Order matters: CORSErrorMiddleware must be added LAST (outermost layer).

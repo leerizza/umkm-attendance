@@ -264,6 +264,7 @@ export default function LoginPage() {
           company_code: regForm.company_code,
           phone: regForm.phone || undefined,
           position: regForm.position || undefined,
+          password: regForm.password,
         });
         trackEvent("register_employee");
       } else {
@@ -274,6 +275,7 @@ export default function LoginPage() {
           company_name: ownerForm.company_name,
           company_code: ownerForm.company_code,
           phone: ownerForm.phone || undefined,
+          password: ownerForm.password,
         });
         if (ownerRes.data?.pending_approval) {
           trackEvent("register_company");

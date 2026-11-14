@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     superadmin_key: str = ""
     superadmin_email: str = ""
 
+    # Swagger /docs, /redoc & /openapi.json — off by default (production).
+    # Set ENABLE_DOCS=true for local dev / staging.
+    enable_docs: bool = False
+
     sentry_dsn: str = ""
     sentry_environment: str = "production"
 
@@ -37,6 +41,15 @@ class Settings(BaseSettings):
             if o not in origins:
                 origins.append(o)
         return origins
+
+    # Vercel preview/branch deployments of our own team only, plus production
+    # *.vercel.app aliases of our projects. (Was: any *.vercel.app.)
+    vercel_origin_regex: str = (
+        r"https://("
+        r"[a-z0-9-]+-riza-gumelars-projects"
+        r"|umkm-attendance|umkm-attendance-1-1|umkm-attendance-admin|umkm-attendance-landing"
+        r")\.vercel\.app"
+    )
 
     class Config:
         env_file = ".env"

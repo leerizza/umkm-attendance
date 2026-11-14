@@ -57,13 +57,13 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-_VERCEL_ORIGIN_RE = re.compile(r"^https://.*\.vercel\.app$")
+_VERCEL_ORIGIN_RE = re.compile(settings.vercel_origin_regex)
 
 
 def _is_allowed_origin(origin: str | None) -> bool:
     if not origin:
         return False
-    return origin in settings.allowed_origins or bool(_VERCEL_ORIGIN_RE.match(origin))
+    return origin in settings.allowed_origins or bool(_VERCEL_ORIGIN_RE.fullmatch(origin))
 
 # Init Sentry before importing routers so router-level exceptions get captured.
 if settings.sentry_dsn:
@@ -111,8 +111,9 @@ class CORSErrorMiddleware(BaseHTTPMiddleware):
 app = FastAPI(
     title="Smart UMKM Attendance API",
     version="1.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.enable_docs else None,
+    redoc_url="/redoc" if settings.enable_docs else None,
+    openapi_url="/openapi.json" if settings.enable_docs else None,
     lifespan=lifespan,
     # Applies default_limits ("200/minute") to every undecorated route.
     # (SlowAPIMiddleware can't see routes inside included routers on FastAPI ≥0.137.)
@@ -128,7 +129,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # all Vercel preview/branch deployments
+    allow_origin_regex=settings.vercel_origin_regex,  # our Vercel previews only (see config)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

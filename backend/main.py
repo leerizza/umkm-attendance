@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from limiter import limiter
 from config import settings
 
@@ -118,6 +119,9 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Required for default_limits ("200/minute") to apply to undecorated routes.
+# Added before CORS so it sits inside CORSMiddleware → 429s still carry CORS headers.
+app.add_middleware(SlowAPIMiddleware)
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 # Order matters: CORSErrorMiddleware must be added LAST (outermost layer).
@@ -146,6 +150,7 @@ app.include_router(locations.router)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])
+@limiter.exempt
 async def health():
     return {"status": "ok", "service": "Smart UMKM Attendance"}
 

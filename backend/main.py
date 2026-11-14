@@ -149,6 +149,20 @@ app.include_router(demo.router)
 app.include_router(locations.router)
 
 
+# TEMPORARY (audit Nov 2026): verify that Railway's edge sets X-Real-IP to the
+# real client address (rate limiting depends on it). Returns only the caller's
+# own request info, logs nothing. REMOVE after verification.
+@app.get("/debug/client-ip", include_in_schema=False)
+async def debug_client_ip(request: Request):
+    from limiter import client_ip
+    return {
+        "client_ip_used_for_rate_limit": client_ip(request),
+        "x_real_ip": request.headers.get("x-real-ip"),
+        "x_forwarded_for": request.headers.get("x-forwarded-for"),
+        "socket_peer": request.client.host if request.client else None,
+    }
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 @limiter.exempt
 async def health():

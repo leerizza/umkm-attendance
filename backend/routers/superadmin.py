@@ -1,9 +1,12 @@
 import asyncio
+import hmac
 import logging
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
+from limits import parse as parse_limit
 from typing import Optional
 from config import settings
+from limiter import limiter, client_ip
 from db import supabase
 from utils.email import send_company_approved_email
 
@@ -11,8 +14,20 @@ router = APIRouter(prefix="/superadmin", tags=["superadmin"])
 _log = logging.getLogger(__name__)
 
 
-def require_superadmin(x_superadmin_key: Optional[str] = Header(None)):
-    if not settings.superadmin_key or x_superadmin_key != settings.superadmin_key:
+# Max failed key attempts per IP — blocks brute-forcing the static key.
+_FAILED_KEY_LIMIT = parse_limit("10/hour")
+
+
+def require_superadmin(request: Request, x_superadmin_key: Optional[str] = Header(None)):
+    ip = client_ip(request)
+    if not limiter.limiter.test(_FAILED_KEY_LIMIT, "superadmin-fail", ip):
+        raise HTTPException(429, "Terlalu banyak percobaan, coba lagi nanti")
+    expected = settings.superadmin_key
+    # hmac.compare_digest: constant-time, avoids leaking the key via response timing
+    if not expected or not x_superadmin_key or not hmac.compare_digest(
+        x_superadmin_key.encode(), expected.encode()
+    ):
+        limiter.limiter.hit(_FAILED_KEY_LIMIT, "superadmin-fail", ip)
         raise HTTPException(403, "Invalid or missing superadmin key")
 
 
